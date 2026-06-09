@@ -39,6 +39,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default()) // TracingLogger::default() -> from tracing-actix-web | duration_ms=?
             // .wrap(TracingLogger::default())
             .service(web::resource("/").route(web::get().to(home::index)))
+            .service(web::resource("/profile").route(web::get().to(home::profile)))
     })
     .bind(("0.0.0.0", 8080))?
     .run()
