@@ -17,7 +17,7 @@ pub async fn video(session: Session, state: web::Data<AppState>) -> Result<impl 
     let logged_in = auth::get_session_user(&session, &state.conn).await.is_some();
     let html = VideoPage {
         logged_in,
-        video_title: "fevid Video Player".to_string(),
+        video_title: "FeVid.Cloud".to_string(),
         source_url: "/static/test.mp4".to_string(),
     }
     .render()

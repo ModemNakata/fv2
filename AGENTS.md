@@ -203,10 +203,62 @@ static/
     target: '#video-target',
     title: '{{ video_title }}',
     src: '{{ source_url }}',
+    clickToPlay: false,        // we use pointerdown for instant response
+    clickToFullscreen: false,
     layout: new VidstackPlayerLayout(),
+  });
+
+  // Instant overlay toggle — pointerdown instead of click
+  player.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest('[class*="button"], [class*="slider"], [class*="menu"], [class*="control"]')) return;
+    player.paused ? player.play() : player.pause();
   });
 </script>
 ```
+
+### Configurable Options
+
+**Player props** (passed to `VidstackPlayer.create()`):
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `title` | `string` | — | Video title shown in layout |
+| `src` | `string \| MediaSrc[]` | — | Media source URL or array of sources |
+| `poster` | `string` | — | Poster image URL |
+| `autoPlay` | `boolean` | `false` | Start playback on load |
+| `loop` | `boolean` | `false` | Loop playback |
+| `muted` | `boolean` | `false` | Start muted |
+| `playsInline` | `boolean` | `false` | Play inline (no fullscreen on iPhone) |
+| `volume` | `number` | `1` | Initial volume (0–1) |
+| `playbackRate` | `number` | `1` | Initial playback speed |
+| `preload` | `string` | — | `none`, `metadata`, `auto` |
+| `controls` | `boolean` | — | Show native browser controls |
+| `clickToPlay` | `boolean` | `true` | Toggle play on click |
+| `clickToFullscreen` | `boolean` | `false` | Double-click to fullscreen |
+| `controlsDelay` | `number` | — | Delay (ms) before hiding controls idle |
+| `hideControlsOnMouseLeave` | `boolean` | — | Hide controls when mouse leaves |
+| `load` | `string` | `"eager"` | Loading strategy: `eager`, `idle`, `visible`, `custom`, `play` |
+| `keyDisabled` | `boolean` | `false` | Disable all keyboard shortcuts |
+| `keyTarget` | `string` | `"player"` | `"player"` or `"document"` for keyboard events |
+| `keyShortcuts` | `object` | — | Custom key bindings (see `VidstackPlayerConfig`) |
+| `storage` | `string \| object` | — | Key prefix for localStorage, or custom storage provider |
+| `preferNativeHLS` | `boolean` | `false` | Prefer native HLS over hls.js |
+| `logLevel` | `string` | `"warn"` | `silent`, `error`, `warn`, `info`, `debug` |
+
+**Layout props** (passed to `new VidstackPlayerLayout({...})`):
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `colorScheme` | `string` | `"system"` | `"light"`, `"dark"`, `"system"` |
+| `thumbnails` | `string` | — | Thumbnails sprite URL for seek preview |
+| `download` | `string \| {url, filename}` | — | Enable download button |
+| `noAudioGain` | `boolean` | `false` | Hide audio boost slider |
+| `menuGroup` | `string` | `"bottom"` | `"top"` or `"bottom"` for settings menu |
+| `customIcons` | `boolean` | `false` | Skip loading default icons |
+| `translations` | `object` | — | i18n translation map |
+| `smallWhen` | `string \| boolean` | — | Force small (mobile) layout |
+| `menuContainer` | `string \| HTMLElement` | `document.body` | Where menus are mounted |
 
 ### Quality Selector
 Built into `VidstackPlayerLayout` — no extra plugins needed. When the source is HLS (`.m3u8`), it automatically parses variant streams and shows a settings gear with resolution options (e.g. "1080p", "720p", "Auto"). The selection is persisted to `localStorage`. For MP4 sources the quality menu is hidden.
