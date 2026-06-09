@@ -10,6 +10,7 @@ argon2 = "0.5.3"
 askama = "0.16.0"
 chrono = { version = "0.4.45", features = ["serde"] }
 dotenvy = "0.15.7"
+hex = "0.4.3"
 log = "0.4.32"
 sea-orm = { version = "1.1.20", features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "debug-print"] }
 serde = { version = "1.0.228", features = ["derive"] }

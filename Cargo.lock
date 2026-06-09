@@ -956,6 +956,7 @@ dependencies = [
  "askama",
  "chrono",
  "dotenvy",
+ "hex",
  "log",
  "sea-orm",
  "serde",

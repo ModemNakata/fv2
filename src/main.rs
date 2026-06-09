@@ -23,9 +23,17 @@ async fn main() -> std::io::Result<()> {
 
     dotenvy::dotenv().ok();
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
-    let secret = env::var("SESSION_SECRET")
-        .unwrap_or_else(|_| "0000000000000000000000000000000000000000000000000000000000000000".to_string());
-    let key = Key::from(secret.as_bytes());
+    let key = match env::var("SESSION_SECRET") {
+        Ok(hex_key) => {
+            let bytes = hex::decode(hex_key.trim())
+                .expect("SESSION_SECRET must be a valid hex string");
+            Key::from(&bytes)
+        }
+        Err(_) => {
+            log::warn!("SESSION_SECRET not set, using ephemeral key (sessions will invalidate on restart)");
+            Key::generate()
+        }
+    };
 
     let conn = Database::connect(&db_url).await.unwrap();
 
