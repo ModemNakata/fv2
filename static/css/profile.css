@@ -4,9 +4,9 @@
 
 .profile-banner {
     width: 100%;
-    height: 200px;
+    height: clamp(120px, 15vw, 200px);
     background: linear-gradient(135deg, #0a2a00 0%, #1a1a1a 50%, #002a0a 100%);
-    border-radius: 12px;
+    border-radius: clamp(8px, 1vw, 12px);
     overflow: hidden;
     position: relative;
 }
@@ -17,60 +17,82 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 100px;
+    height: clamp(60px, 8vh, 100px);
     background: linear-gradient(transparent, var(--bg-primary));
 }
 
 .profile-info {
     display: flex;
-    gap: 24px;
-    padding: 0 24px;
-    margin-top: -48px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: clamp(12px, 2vw, 24px);
+    padding: 0 clamp(12px, 2vw, 24px);
+    margin-top: calc(clamp(120px, 15vw, 200px) / -2.5);
     position: relative;
     z-index: 1;
-    align-items: flex-end;
+}
+
+@media (min-width: 640px) {
+    .profile-info {
+        flex-direction: row;
+        align-items: flex-end;
+        text-align: left;
+    }
 }
 
 .profile-avatar-large {
-    width: 96px;
-    height: 96px;
+    width: clamp(72px, 8vw, 96px);
+    height: clamp(72px, 8vw, 96px);
     border-radius: 50%;
     background: var(--accent);
     color: var(--bg-primary);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2rem;
+    font-size: clamp(1.4rem, 2vw, 2rem);
     font-weight: 700;
-    border: 4px solid var(--bg-primary);
+    border: clamp(3px, 0.4vw, 4px) solid var(--bg-primary);
     flex-shrink: 0;
 }
 
 .profile-details {
     flex: 1;
-    padding-bottom: 8px;
+}
+
+@media (min-width: 640px) {
+    .profile-details {
+        padding-bottom: 8px;
+    }
 }
 
 .profile-name {
-    font-size: 1.8rem;
+    font-size: clamp(1.4rem, 2.5vw, 1.8rem);
     font-weight: 700;
     margin-bottom: 4px;
 }
 
 .profile-handle {
-    font-size: 0.95rem;
+    font-size: clamp(0.85rem, 1.2vw, 0.95rem);
     color: var(--text-secondary);
     margin-bottom: 12px;
 }
 
 .profile-stats {
     display: flex;
-    gap: 24px;
+    gap: clamp(12px, 2vw, 24px);
+    justify-content: center;
     margin-bottom: 8px;
 }
 
+@media (min-width: 640px) {
+    .profile-stats {
+        justify-content: flex-start;
+    }
+}
+
 .stat {
-    font-size: 0.9rem;
+    font-size: clamp(0.85rem, 1vw, 0.9rem);
     color: var(--text-secondary);
 }
 
@@ -80,18 +102,18 @@
 }
 
 .profile-bio {
-    font-size: 0.9rem;
+    font-size: clamp(0.85rem, 1vw, 0.9rem);
     color: var(--text-secondary);
     margin-bottom: 16px;
     line-height: 1.5;
 }
 
 .subscribe-btn {
-    padding: 10px 24px;
+    padding: clamp(8px, 1vw, 10px) clamp(20px, 2.5vw, 24px);
     background: var(--accent);
     color: var(--bg-primary);
-    border-radius: 20px;
-    font-size: 0.9rem;
+    border-radius: clamp(18px, 2vw, 20px);
+    font-size: clamp(0.85rem, 1vw, 0.9rem);
     font-weight: 600;
     transition: background 0.2s, transform 0.2s;
 }
@@ -103,18 +125,25 @@
 
 .profile-nav {
     display: flex;
-    gap: 0;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 24px;
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.profile-nav::-webkit-scrollbar {
+    display: none;
 }
 
 .profile-tab {
-    padding: 14px 24px;
-    font-size: 0.9rem;
+    padding: clamp(12px, 1.5vw, 14px) clamp(16px, 2vw, 24px);
+    font-size: clamp(0.85rem, 1vw, 0.9rem);
     font-weight: 500;
     color: var(--text-secondary);
     border-bottom: 2px solid transparent;
     transition: color 0.2s, border-color 0.2s;
+    white-space: nowrap;
 }
 
 .profile-tab:hover {
@@ -128,31 +157,10 @@
 
 .profile-videos {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px 16px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: clamp(16px, 2.5vw, 24px) clamp(8px, 1.5vw, 16px);
 }
 
 .profile-videos .video-card .video-info {
     padding-left: 0;
-}
-
-@media (max-width: 720px) {
-    .profile-info {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        margin-top: -48px;
-    }
-
-    .profile-stats {
-        justify-content: center;
-    }
-
-    .profile-banner {
-        height: 120px;
-    }
-
-    .profile-videos {
-        grid-template-columns: 1fr;
-    }
 }

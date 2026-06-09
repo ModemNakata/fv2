@@ -1,7 +1,7 @@
 .chip-bar {
     display: flex;
     gap: 8px;
-    padding-bottom: 20px;
+    padding-bottom: clamp(16px, 2.5vh, 20px);
     overflow-x: auto;
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -13,11 +13,11 @@
 
 .chip {
     flex-shrink: 0;
-    padding: 8px 16px;
+    padding: clamp(6px, 1vw, 8px) clamp(12px, 1.5vw, 16px);
     background: var(--bg-tertiary);
     color: var(--text-primary);
-    border-radius: 8px;
-    font-size: 0.85rem;
+    border-radius: clamp(6px, 1vw, 8px);
+    font-size: clamp(0.8rem, 1vw, 0.85rem);
     font-weight: 500;
     transition: background 0.2s, color 0.2s;
     white-space: nowrap;
@@ -34,24 +34,6 @@
 
 .video-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px 16px;
-}
-
-@media (max-width: 720px) {
-    .sidebar {
-        display: none;
-    }
-
-    .main-content {
-        margin-left: 0;
-    }
-
-    .video-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .top-bar-center {
-        margin: 0 16px;
-    }
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: clamp(16px, 2.5vw, 24px) clamp(8px, 1.5vw, 16px);
 }
