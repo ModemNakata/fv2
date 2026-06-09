@@ -1,19 +1,9 @@
-use actix_web::{App, HttpServer, Responder, Result, middleware, web};
-use askama::Template;
+use actix_web::{App, HttpServer, middleware, web};
 use sea_orm::{Database, DatabaseConnection};
 use std::env;
 // use tracing_subscriber::{EnvFilter, fmt};
 use tracing_subscriber::fmt;
-
-#[derive(Template)]
-#[template(path = "index.html")]
-struct HomePage;
-
-async fn index() -> Result<impl Responder> {
-    let html = HomePage.render().expect("index.html should be valid");
-
-    Ok(web::Html::new(html))
-}
+mod home;
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -48,7 +38,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(state.clone()))
             .wrap(middleware::Logger::default()) // TracingLogger::default() -> from tracing-actix-web | duration_ms=?
             // .wrap(TracingLogger::default())
-            .service(web::resource("/").route(web::get().to(index)))
+            .service(web::resource("/").route(web::get().to(home::index)))
     })
     .bind(("0.0.0.0", 8080))?
     .run()
