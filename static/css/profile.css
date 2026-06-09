@@ -6,7 +6,6 @@
     width: 100%;
     height: clamp(120px, 15vw, 200px);
     background: linear-gradient(135deg, #0a2a00 0%, #1a1a1a 50%, #002a0a 100%);
-    border-radius: clamp(8px, 1vw, 12px);
     overflow: hidden;
     position: relative;
 }
@@ -44,7 +43,6 @@
 .profile-avatar-large {
     width: clamp(72px, 8vw, 96px);
     height: clamp(72px, 8vw, 96px);
-    border-radius: 50%;
     background: var(--accent);
     color: var(--bg-primary);
     display: flex;
@@ -112,15 +110,12 @@
     padding: clamp(8px, 1vw, 10px) clamp(20px, 2.5vw, 24px);
     background: var(--accent);
     color: var(--bg-primary);
-    border-radius: clamp(18px, 2vw, 20px);
     font-size: clamp(0.85rem, 1vw, 0.9rem);
     font-weight: 600;
-    transition: background 0.2s, transform 0.2s;
 }
 
 .subscribe-btn:hover {
     background: var(--accent-dim);
-    transform: scale(1.02);
 }
 
 .profile-nav {
@@ -142,7 +137,6 @@
     font-weight: 500;
     color: var(--text-secondary);
     border-bottom: 2px solid transparent;
-    transition: color 0.2s, border-color 0.2s;
     white-space: nowrap;
 }
 

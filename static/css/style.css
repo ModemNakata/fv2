@@ -72,17 +72,12 @@ input {
 }
 
 .top-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
     height: 56px;
     background: var(--bg-primary);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 clamp(8px, 2vw, 16px);
-    z-index: 100;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -95,11 +90,9 @@ input {
 .menu-btn {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s;
 }
 
 .menu-btn:hover {
@@ -134,12 +127,10 @@ input {
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-right: none;
-    border-radius: 20px 0 0 20px;
     padding: 0 clamp(12px, 2vw, 16px);
     color: var(--text-primary);
     font-size: 0.95rem;
     outline: none;
-    transition: border-color 0.2s;
 }
 
 .search-input:focus {
@@ -155,12 +146,10 @@ input {
     height: 40px;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 0 20px 20px 0;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--text-secondary);
-    transition: background 0.2s;
 }
 
 .search-btn:hover {
@@ -176,11 +165,9 @@ input {
 .icon-btn {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s;
 }
 
 .icon-btn:hover {
@@ -207,7 +194,6 @@ input {
 .avatar {
     width: clamp(28px, 3vw, 32px);
     height: clamp(28px, 3vw, 32px);
-    border-radius: 50%;
     background: var(--accent);
     color: var(--bg-primary);
     display: flex;
@@ -216,7 +202,6 @@ input {
     font-size: clamp(0.75rem, 1vw, 0.85rem);
     font-weight: 700;
     text-transform: uppercase;
-    transition: opacity 0.2s;
 }
 
 .avatar:hover {
@@ -225,16 +210,11 @@ input {
 
 .main-content {
     min-height: 100vh;
-    padding: clamp(72px, 6vh, 80px) clamp(8px, 2vw, 24px) 24px;
+    padding: clamp(16px, 2vh, 24px) clamp(8px, 2vw, 24px);
 }
 
 .video-card {
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.video-card:hover {
-    transform: translateY(-2px);
 }
 
 .video-card:hover .thumb-icon {
@@ -245,7 +225,6 @@ input {
     position: relative;
     width: 100%;
     aspect-ratio: 16 / 9;
-    border-radius: clamp(8px, 1vw, 12px);
     overflow: hidden;
     background: var(--bg-tertiary);
 }
@@ -257,11 +236,6 @@ input {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.3s;
-}
-
-.video-card:hover .thumb-placeholder {
-    background: hsl(var(--hue, 120), 40%, 18%);
 }
 
 .thumb-icon {
@@ -269,20 +243,10 @@ input {
     align-items: center;
     justify-content: center;
     opacity: 0.5;
-    transition: opacity 0.3s, transform 0.3s;
     color: var(--accent);
 }
 
-.video-card:hover .thumb-icon {
-    opacity: 0.9;
-}
-
-.video-card:hover .thumb-icon svg {
-    transform: scale(1.1);
-}
-
 .thumb-icon svg {
-    transition: transform 0.3s;
     filter: drop-shadow(0 0 8px var(--accent-glow));
 }
 
@@ -295,7 +259,6 @@ input {
 .channel-avatar {
     width: clamp(32px, 3vw, 36px);
     height: clamp(32px, 3vw, 36px);
-    border-radius: 50%;
     background: hsl(var(--hue, 120), 50%, 25%);
     color: var(--text-primary);
     display: flex;
@@ -345,7 +308,6 @@ input {
     background: rgba(0, 0, 0, 0.85);
     color: var(--text-primary);
     padding: clamp(1px, 0.3vw, 2px) clamp(5px, 0.8vw, 6px);
-    border-radius: clamp(3px, 0.5vw, 4px);
     font-size: clamp(0.7rem, 1vw, 0.75rem);
     font-weight: 500;
     letter-spacing: 0.3px;
@@ -362,7 +324,6 @@ input {
 
 ::-webkit-scrollbar-thumb {
     background: var(--border-color);
-    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
