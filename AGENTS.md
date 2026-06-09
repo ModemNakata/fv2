@@ -171,20 +171,25 @@ bun add hls.js                        — HLS quality switching engine
    ```
 2. Bundle with bun:
    ```
-   cd static && bun build build-player.js --outfile=./js/vidstack.min.js --minify
+   cd static && NODE_ENV=production bun build build-player.js --outfile=./js/vidstack.min.js --minify
    ```
 3. Copy CSS:
    ```
    cp node_modules/vidstack/player/styles/default/theme.css css/vidstack-theme.css
    cp "node_modules/vidstack/player/styles/default/layouts/video.css" css/vidstack-layout.css
    ```
-4. Clean up `build-player.js`
+4. Copy hls.js for local serving (avoids CDN fetch):
+   ```
+   cp node_modules/hls.js/dist/hls.min.js js/hls.min.js
+   ```
+5. Clean up `build-player.js`
 
 Produces:
 ```
 static/
   js/
     vidstack.min.js             — bundled + minified (0.40 MB)
+    hls.min.js                  — local hls.js (531 KB)
   css/
     vidstack-theme.css          — default theme
     vidstack-layout.css         — video layout styles
@@ -203,16 +208,15 @@ static/
     target: '#video-target',
     title: '{{ video_title }}',
     src: '{{ source_url }}',
-    clickToPlay: false,        // we use pointerdown for instant response
-    clickToFullscreen: false,
     layout: new VidstackPlayerLayout(),
   });
 
-  // Instant overlay toggle — pointerdown instead of click
-  player.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    if (e.target.closest('[class*="button"], [class*="slider"], [class*="menu"], [class*="control"]')) return;
-    player.paused ? player.play() : player.pause();
+  // Point HLS provider to local hls.js instead of CDN
+  player.addEventListener('media-provider-change', (event) => {
+    const provider = event.detail;
+    if (provider.type === 'hls') {
+      provider.library = '/static/js/hls.min.js';
+    }
   });
 </script>
 ```

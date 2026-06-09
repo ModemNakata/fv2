@@ -2,8 +2,8 @@ use actix_session::Session;
 use actix_web::{Responder, Result, web};
 use askama::Template;
 
-use crate::auth;
 use crate::AppState;
+use crate::auth;
 
 #[derive(Template)]
 #[template(path = "video.html")]
@@ -14,11 +14,13 @@ struct VideoPage {
 }
 
 pub async fn video(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn).await.is_some();
+    let logged_in = auth::get_session_user(&session, &state.conn)
+        .await
+        .is_some();
     let html = VideoPage {
         logged_in,
         video_title: "FeVid.Cloud".to_string(),
-        source_url: "/static/test.mp4".to_string(),
+        source_url: "https://local.test/video-streams/video-xyz/master.m3u8".to_string(),
     }
     .render()
     .expect("video.html should be valid");

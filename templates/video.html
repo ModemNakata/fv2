@@ -17,5 +17,12 @@
     src: '{{ source_url }}',
     layout: new VidstackPlayerLayout(),
   });
+
+  player.addEventListener('media-provider-change', (event) => {
+    const provider = event.detail;
+    if (provider.type === 'hls') {
+      provider.library = '/static/js/hls.min.js';
+    }
+  });
 </script>
 {% endblock %}
