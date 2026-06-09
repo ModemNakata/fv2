@@ -959,6 +959,7 @@ dependencies = [
  "log",
  "sea-orm",
  "serde",
+ "serde_json",
  "tracing-subscriber",
  "uuid",
 ]

@@ -1,45 +1,50 @@
+use actix_session::storage::CookieSessionStore;
+use actix_session::SessionMiddleware;
+use actix_web::cookie::Key;
 use actix_web::{App, HttpServer, middleware, web};
 use sea_orm::{Database, DatabaseConnection};
 use std::env;
-// use tracing_subscriber::{EnvFilter, fmt};
 use tracing_subscriber::fmt;
+
+mod auth;
+mod entity;
 mod home;
 
 #[derive(Debug, Clone)]
-struct AppState {
-    conn: DatabaseConnection,
+pub struct AppState {
+    pub conn: DatabaseConnection,
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // unsafe {
-    //     std::env::set_var("RUST_LOG", "debug");
-    // }
-
-    // let env_filter = EnvFilter::try_from_default_env()
-    // .unwrap_or_else(|_| EnvFilter::new("info"));
-
-    // fmt::fmt().with_env_filter(env_filter).init();
     fmt::fmt().init();
 
     log::info!("starting HTTP server");
 
-    // get env vars
     dotenvy::dotenv().ok();
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
+    let secret = env::var("SESSION_SECRET")
+        .unwrap_or_else(|_| "0000000000000000000000000000000000000000000000000000000000000000".to_string());
+    let key = Key::from(secret.as_bytes());
 
     let conn = Database::connect(&db_url).await.unwrap();
-    // migrator
 
     let state = AppState { conn };
 
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))
-            .wrap(middleware::Logger::default()) // TracingLogger::default() -> from tracing-actix-web | duration_ms=?
-            // .wrap(TracingLogger::default())
+            .wrap(SessionMiddleware::new(CookieSessionStore::default(), key.clone()))
+            .wrap(middleware::Logger::default())
             .service(web::resource("/").route(web::get().to(home::index)))
             .service(web::resource("/profile").route(web::get().to(home::profile)))
+            .service(
+                web::scope("/auth")
+                    .service(auth::auth_check)
+                    .service(auth::sign_up)
+                    .service(auth::sign_in)
+                    .service(auth::sign_out),
+            )
     })
     .bind(("0.0.0.0", 8080))?
     .run()
