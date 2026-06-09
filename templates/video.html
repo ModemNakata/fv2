@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Video - fevid{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="/static/css/video.css">
+{% endblock %}
+{% block content %}
+<div class="video-player-wrapper">
+  <video-player>
+    <video-skin>
+      <video src="/static/test.mp4" playsinline></video>
+    </video-skin>
+  </video-player>
+</div>
+<script type="module" src="/static/dist/player.js"></script>
+{% endblock %}

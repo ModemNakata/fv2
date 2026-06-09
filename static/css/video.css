@@ -1,0 +1,5 @@
+.video-player-wrapper {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: clamp(16px, 2vh, 32px) 0;
+}

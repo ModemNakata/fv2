@@ -10,6 +10,7 @@ use tracing_subscriber::fmt;
 mod auth;
 mod entity;
 mod home;
+mod video;
 
 #[derive(Debug, Clone)]
 pub struct AppState {
@@ -55,6 +56,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .service(web::resource("/").route(web::get().to(home::index)))
             .service(web::resource("/profile").route(web::get().to(home::profile)))
+            .service(web::resource("/video").route(web::get().to(video::video)))
             .service(
                 web::scope("/auth")
                     .service(auth::auth_check)
