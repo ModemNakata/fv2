@@ -9,10 +9,18 @@ use crate::AppState;
 #[template(path = "video.html")]
 struct VideoPage {
     logged_in: bool,
+    source_url: String,
+    source_type: String,
 }
 
 pub async fn video(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
     let logged_in = auth::get_session_user(&session, &state.conn).await.is_some();
-    let html = VideoPage { logged_in }.render().expect("video.html should be valid");
+    let html = VideoPage {
+        logged_in,
+        source_url: "/static/test.mp4".to_string(),
+        source_type: "video/mp4".to_string(),
+    }
+    .render()
+    .expect("video.html should be valid");
     Ok(web::Html::new(html))
 }

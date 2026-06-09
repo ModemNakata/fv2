@@ -150,3 +150,57 @@ We use **`SVGs/regular/`** (outlined) to match YouTube's icon style.
 - `.chip` — filter chip button
 
 These are defined in `style.css` (global) so they're available on any page.
+
+## Video Player (`static/`)
+
+### Setup
+The video player uses classic **video.js** (not `@videojs/html` web components).
+
+Packages installed via `bun` in `static/`:
+```
+bun add video.js
+bun add @videojs/http-streaming       — HLS playback + VHS engine
+bun add videojs-contrib-quality-menu   — quality selector UI
+```
+
+### Build
+A `bun build` produces two files in `static/dist/`:
+```
+static/
+  js/
+    player.js           — entry point (imports video.js + plugins, exports initPlayer)
+  dist/
+    player.js           — bundled (1.98 MB)
+    player.css          — video.js skin CSS (53 KB)
+```
+
+To rebuild after changing `js/player.js`:
+```
+cd static && bun build ./js/player.js --outdir ./dist --format esm --splitting
+```
+
+### Usage in templates
+```html
+<link rel="stylesheet" href="/static/dist/player.css">
+
+<video id="player" class="video-js vjs-default-skin" controls preload="auto" playsinline>
+  <source src="{{ source_url }}" type="{{ source_type }}">
+</video>
+
+<script type="module">
+  import { initPlayer } from '/static/dist/player.js';
+  initPlayer('player', sourceUrl, sourceType);
+</script>
+```
+
+### Quality Menu
+`player.qualityMenu()` is called inside `initPlayer`. It works with **HLS** sources (`application/x-mpegURL`): it reads variant streams from the master playlist and shows resolution options (e.g. 360p, 720p, 1080p). With plain MP4 the quality button is hidden.
+
+### iOS / Safari
+The player options include `overrideNative: true` to force Video.js' HLS engine instead of Apple's native player, which is required for the quality menu to work on Apple devices.
+
+### Adding HLS support
+1. Store HLS master playlists on S3 (or generate them from multiple resolution MP4s)
+2. Point the `source_url` in `src/video.rs` to the master `.m3u8` URL
+3. Set `source_type` to `"application/x-mpegURL"`
+4. The quality menu will automatically read variant streams from the playlist

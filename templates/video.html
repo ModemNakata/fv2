@@ -1,15 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Video - fevid{% endblock %}
 {% block head %}
-  <link rel="stylesheet" href="/static/css/video.css">
+<link rel="stylesheet" href="/static/dist/player.css">
+<link rel="stylesheet" href="/static/css/video.css">
 {% endblock %}
 {% block content %}
 <div class="video-player-wrapper">
-  <video-player>
-    <video-skin>
-      <video src="/static/test.mp4" playsinline></video>
-    </video-skin>
-  </video-player>
+  <video id="player" class="video-js vjs-default-skin" controls preload="auto" playsinline>
+    <source src="{{ source_url }}" type="{{ source_type }}">
+  </video>
 </div>
-<script type="module" src="/static/dist/player.js"></script>
+<script>
+  window.VIDEO_SOURCE = { url: '{{ source_url }}', type: '{{ source_type }}' };
+</script>
+<script type="module">
+  import { initPlayer } from '/static/dist/player.js';
+  initPlayer('player', window.VIDEO_SOURCE.url, window.VIDEO_SOURCE.type);
+</script>
 {% endblock %}
