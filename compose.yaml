@@ -1,0 +1,31 @@
+services:
+
+  web:
+    image: nginx:latest
+    volumes:
+     - ./nginx-config:/etc/nginx
+     - ./static:/usr/share/nginx/html
+    ports:
+     - "80:80"
+     - "443:443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+# How to copy /etc/nginx directory to mount it in volumes on host:
+# docker run -d --name temp_nginx nginx:latest
+# docker cp temp_nginx:/etc/nginx ./nginx-config
+
+
+  pg: 
+    image: postgres:latest
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${DBPASS}
+      POSTGRES_USER: ${DBUSER}
+      POSTGRES_DB: ${DBNAME}
+    volumes:
+      - pg_data:/var/lib/postgresql
+
+volumes:
+  pg_data:

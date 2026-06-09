@@ -1,0 +1,9 @@
+session_name: tmuxp-s
+windows:
+  - window_name: dev
+    layout: tiled
+    panes:
+      - shell_command:
+          - docker compose up 
+      - shell_command:
+          - bacon run-long
