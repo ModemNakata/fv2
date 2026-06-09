@@ -3,16 +3,33 @@
 ## Stack
 - **Backend**: actix-web 4 + SeaORM (Postgres)
 - **Templates**: Askama 0.16 (server-side, Rust)
+- **Sessions**: actix-session (cookie-backed)
+- **Auth**: argon2 password hashing
 - **Static**: nginx serves `/static/` → `static/` directory
+
+## Dependencies (added with `cargo add`)
+| Crate | Purpose |
+|-------|---------|
+| `actix-web` | HTTP framework |
+| `askama` | Server-side templates |
+| `sea-orm` | Postgres ORM |
+| `actix-session` | Cookie-based session management |
+| `argon2` | Password hashing + verification |
+| `serde` (derive) | JSON (de)serialization for API handlers |
+| `uuid` (v4, serde) | User ID generation |
+| `chrono` (serde) | Timestamps |
 
 ## Project Layout
 ```
-src/            — Rust source
-  main.rs       — actix bootstrap, routes
-  home.rs       — route handlers + Askama template structs
+src/
+  main.rs       — actix bootstrap, session middleware, routes
+  home.rs       — page handlers + Askama template structs
+  auth.rs       — sign-in, sign-up, sign-out handlers
   entity/       — SeaORM models (auto-generated)
-templates/      — Askama templates
-  base.html     — shell: top-bar, content block
+    mod.rs
+    users.rs    — users table model
+templates/
+  base.html     — shell: top-bar, sign-in/sign-up dialog, content block
   index.html    — homepage (extends base)
   profile.html  — profile page (extends base)
 static/
@@ -21,7 +38,16 @@ static/
     index.css   — homepage-specific (chip bar, video grid)
     profile.css — profile-specific (banner, tabs, video grid)
   fonts/        — self-hosted woff2
-  js/           — JS files (currently empty)
+  js/
+    main.js     — dialog toggle, tab switching, form submission
+```
+<a name="deps"></a>
+
+## Adding new depedencies
+Always use `cargo add` — never edit `Cargo.toml` by hand:
+```
+cargo add <crate>
+cargo add <crate> --features feat1,feat2
 ```
 
 ## Templates (Askama)
