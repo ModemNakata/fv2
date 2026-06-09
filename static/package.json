@@ -1,6 +1,6 @@
 {
   "dependencies": {
     "hls.js": "^1.6.16",
-    "plyr": "^3.8.4"
+    "vidstack": "^1.15"
   }
 }

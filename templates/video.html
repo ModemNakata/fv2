@@ -1,21 +1,21 @@
 {% extends "base.html" %}
 {% block title %}{{ video_title }} - fevid{% endblock %}
 {% block head %}
-<link rel="stylesheet" href="/static/css/plyr.css">
+<link rel="stylesheet" href="/static/css/vidstack-theme.css">
+<link rel="stylesheet" href="/static/css/vidstack-layout.css">
 <link rel="stylesheet" href="/static/css/video.css">
 {% endblock %}
 {% block content %}
 <div class="video-player-wrapper">
-  <video id="player" controls playsinline>
-    <source src="{{ source_url }}" type="{{ source_type }}">
-  </video>
+  <div id="video-target"></div>
 </div>
-<script src="/static/js/plyr.min.js"></script>
-<script>
-  const player = new Plyr('#player', {
-    controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'fullscreen'],
-    settings: ['quality', 'speed'],
-    keyboard: { focused: true, global: true },
+<script src="/static/js/vidstack.min.js"></script>
+<script type="module">
+  const player = await VidstackPlayer.create({
+    target: '#video-target',
+    title: '{{ video_title }}',
+    src: '{{ source_url }}',
+    layout: new VidstackPlayerLayout(),
   });
 </script>
 {% endblock %}

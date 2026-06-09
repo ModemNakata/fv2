@@ -11,7 +11,6 @@ struct VideoPage {
     logged_in: bool,
     video_title: String,
     source_url: String,
-    source_type: String,
 }
 
 pub async fn video(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
@@ -20,7 +19,6 @@ pub async fn video(session: Session, state: web::Data<AppState>) -> Result<impl 
         logged_in,
         video_title: "fevid Video Player".to_string(),
         source_url: "/static/test.mp4".to_string(),
-        source_type: "video/mp4".to_string(),
     }
     .render()
     .expect("video.html should be valid");

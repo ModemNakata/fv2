@@ -154,27 +154,29 @@ These are defined in `style.css` (global) so they're available on any page.
 ## Video Player (`static/`)
 
 ### Setup
-The video player uses **Plyr** (lightweight, ~115 KB minified).
+The video player uses **Vidstack** v1.15 with built-in quality selector and keyboard shortcuts.
 
 Packages installed via `bun` in `static/`:
 ```
-bun add plyr
+bun add vidstack
 bun add hls.js                        — HLS quality switching engine
 ```
 
 ### Build
 1. Create `static/build-player.js`:
    ```js
-   import Plyr from 'plyr';
-   window.Plyr = Plyr;
+   import { VidstackPlayer, VidstackPlayerLayout } from 'vidstack/global/player';
+   window.VidstackPlayer = VidstackPlayer;
+   window.VidstackPlayerLayout = VidstackPlayerLayout;
    ```
 2. Bundle with bun:
    ```
-   cd static && bun build build-player.js --outfile=./js/plyr.min.js --minify
+   cd static && bun build build-player.js --outfile=./js/vidstack.min.js --minify
    ```
 3. Copy CSS:
    ```
-   cp node_modules/plyr/dist/plyr.css static/css/plyr.css
+   cp node_modules/vidstack/player/styles/default/theme.css css/vidstack-theme.css
+   cp "node_modules/vidstack/player/styles/default/layouts/video.css" css/vidstack-layout.css
    ```
 4. Clean up `build-player.js`
 
@@ -182,37 +184,51 @@ Produces:
 ```
 static/
   js/
-    plyr.min.js             — bundled + minified (115 KB)
+    vidstack.min.js             — bundled + minified (0.40 MB)
   css/
-    plyr.css                — player styles
+    vidstack-theme.css          — default theme
+    vidstack-layout.css         — video layout styles
 ```
 
 ### Usage in templates
 ```html
-<link rel="stylesheet" href="/static/css/plyr.css">
+<link rel="stylesheet" href="/static/css/vidstack-theme.css">
+<link rel="stylesheet" href="/static/css/vidstack-layout.css">
 
-<video id="player" controls playsinline>
-  <source src="{{ source_url }}" type="{{ source_type }}">
-</video>
+<div id="video-target"></div>
 
-<script src="/static/js/plyr.min.js"></script>
-<script>
-  new Plyr('#player', {
-    controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'fullscreen'],
-    settings: ['quality', 'speed'],
+<script src="/static/js/vidstack.min.js"></script>
+<script type="module">
+  const player = await VidstackPlayer.create({
+    target: '#video-target',
+    title: '{{ video_title }}',
+    src: '{{ source_url }}',
+    layout: new VidstackPlayerLayout(),
   });
 </script>
 ```
 
 ### Quality Selector
-Plyr's settings menu includes a quality option when the source is HLS (`.m3u8`). hls.js is loaded automatically — Plyr detects `window.Hls` for quality switching. Pass quality options in the `quality` setting:
+Built into `VidstackPlayerLayout` — no extra plugins needed. When the source is HLS (`.m3u8`), it automatically parses variant streams and shows a settings gear with resolution options (e.g. "1080p", "720p", "Auto"). The selection is persisted to `localStorage`. For MP4 sources the quality menu is hidden.
+
+Manual control:
 ```js
-quality: { default: 720, options: [4320, 2160, 1440, 1080, 720, 576, 480, 360] }
+player.qualities.selected = quality;   // switch to specific quality
+player.qualities.autoSelect();          // re-enable adaptive
 ```
+
+### Keyboard Shortcuts
+Built into the player — no extra config needed. Default shortcuts:
+| Key | Action |
+|-----|--------|
+| Space / K | Play/Pause |
+| Left/Right | Seek -5s/+5s |
+| Up/Down | Volume +10%/-10% |
+| F | Fullscreen |
+| M | Mute/Unmute |
+| 0-9 | Seek to % |
 
 ### Adding HLS support
 1. Store HLS master playlists on S3 (or generate them from multi-resolution MP4s)
-2. Set `source_type` to `"application/x-mpegURL"` in `src/video.rs`
-3. hls.js handles HLS parsing — quality options appear in the settings gear by default
-4. For MP4 sources the quality option is hidden from the settings menu
-5. Plyr uses hls.js under the hood — no manual hls.js setup needed
+2. Point `source_url` in `src/video.rs` to the master `.m3u8` URL
+3. Vidstack auto-detects HLS and uses hls.js — quality menu appears automatically
