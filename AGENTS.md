@@ -154,29 +154,27 @@ These are defined in `style.css` (global) so they're available on any page.
 ## Video Player (`static/`)
 
 ### Setup
-The video player uses **Vidstack** with built-in quality selector.
+The video player uses **Plyr** (lightweight, ~115 KB minified).
 
 Packages installed via `bun` in `static/`:
 ```
-bun add vidstack
-bun add hls.js                        — HLS playback engine
+bun add plyr
+bun add hls.js                        — HLS quality switching engine
 ```
 
 ### Build
-1. Create a build entry file (`static/build-player.js`):
+1. Create `static/build-player.js`:
    ```js
-   import { VidstackPlayer, VidstackPlayerLayout } from 'vidstack/global/player';
-   window.VidstackPlayer = VidstackPlayer;
-   window.VidstackPlayerLayout = VidstackPlayerLayout;
+   import Plyr from 'plyr';
+   window.Plyr = Plyr;
    ```
 2. Bundle with bun:
    ```
-   cd static && bun build build-player.js --outfile=./js/vidstack.min.js --minify
+   cd static && bun build build-player.js --outfile=./js/plyr.min.js --minify
    ```
-3. Copy CSS themes:
+3. Copy CSS:
    ```
-   cp node_modules/vidstack/player/styles/default/theme.css static/css/vidstack-theme.css
-   cp node_modules/vidstack/player/styles/default/layouts/video.css static/css/vidstack-layout.css
+   cp node_modules/plyr/dist/plyr.css static/css/plyr.css
    ```
 4. Clean up `build-player.js`
 
@@ -184,42 +182,37 @@ Produces:
 ```
 static/
   js/
-    vidstack.min.js         — bundled + minified (0.40 MB)
+    plyr.min.js             — bundled + minified (115 KB)
   css/
-    vidstack-theme.css      — default theme
-    vidstack-layout.css     — video layout styles
+    plyr.css                — player styles
 ```
 
 ### Usage in templates
 ```html
-<link rel="stylesheet" href="/static/css/vidstack-theme.css">
-<link rel="stylesheet" href="/static/css/vidstack-layout.css">
+<link rel="stylesheet" href="/static/css/plyr.css">
 
-<div id="video-target"></div>
+<video id="player" controls playsinline>
+  <source src="{{ source_url }}" type="{{ source_type }}">
+</video>
 
-<script src="/static/js/vidstack.min.js"></script>
-<script type="module">
-  const player = await VidstackPlayer.create({
-    target: '#video-target',
-    title: '{{ video_title }}',
-    src: '{{ source_url }}',
-    layout: new VidstackPlayerLayout(),
+<script src="/static/js/plyr.min.js"></script>
+<script>
+  new Plyr('#player', {
+    controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'fullscreen'],
+    settings: ['quality', 'speed'],
   });
 </script>
 ```
 
 ### Quality Selector
-Built into `VidstackPlayerLayout` — no extra plugins needed. When the source is an HLS master playlist (`.m3u8`), it automatically parses variant streams and shows a settings gear with resolution options (e.g. "1080p", "720p", "Auto"). The selection is persisted to `localStorage`.
-
-Manual control via `player.qualities`:
+Plyr's settings menu includes a quality option when the source is HLS (`.m3u8`). hls.js is loaded automatically — Plyr detects `window.Hls` for quality switching. Pass quality options in the `quality` setting:
 ```js
-player.qualities.selected = quality;   // switch to specific quality
-player.qualities.autoSelect();          // re-enable adaptive
-player.qualities.switch = 'next';       // change switch mode
+quality: { default: 720, options: [4320, 2160, 1440, 1080, 720, 576, 480, 360] }
 ```
 
 ### Adding HLS support
 1. Store HLS master playlists on S3 (or generate them from multi-resolution MP4s)
-2. Point `source_url` in `src/video.rs` to the master `.m3u8` URL
-3. Vidstack auto-detects HLS and uses hls.js — quality menu appears automatically
-4. For MP4 sources the quality menu is hidden
+2. Set `source_type` to `"application/x-mpegURL"` in `src/video.rs`
+3. hls.js handles HLS parsing — quality options appear in the settings gear by default
+4. For MP4 sources the quality option is hidden from the settings menu
+5. Plyr uses hls.js under the hood — no manual hls.js setup needed

@@ -1,4 +1,4 @@
 /target
 .env
 phosphor-icons/
-static/node_modules/
+/static/node_modules
