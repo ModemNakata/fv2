@@ -77,50 +77,40 @@ fn set_session_auth(session: &Session, user_id: Uuid, pw_changed_at: NaiveDateTi
     }
 }
 
-#[get("/check")]
-pub async fn auth_check(session: Session, state: web::Data<AppState>) -> HttpResponse {
-    let session_pw_ts = session.get::<u64>("password_changed_at").ok().flatten();
+pub async fn get_session_user(session: &Session, db: &sea_orm::DatabaseConnection) -> Option<String> {
+    let session_pw_ts: Option<u64> = session.get("password_changed_at").ok().flatten();
 
-    if let Some(session_pw_ts) = session_pw_ts {
-        // max-age check
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-        let max_age = Duration::from_secs(SESSION_MAX_AGE_DAYS * 86400);
-        if Duration::from_secs(now.checked_sub(session_pw_ts).unwrap_or(0)) > max_age {
-            session.purge();
-            return HttpResponse::Ok().json(AuthCheckResponse {
-                authed: false,
-                username: None,
-            });
-        }
+    let session_pw_ts = session_pw_ts?;
 
-        if let Ok(Some(user_id)) = session.get::<Uuid>("user_id") {
-            let user = Users::find_by_id(user_id)
-                .one(&state.conn)
-                .await
-                .ok()
-                .flatten();
-
-            if let Some(u) = user {
-                let db_pw_ts = u.password_changed_at.and_utc().timestamp() as u64;
-                // snapshot mismatch → password was changed since this session was created
-                if db_pw_ts != session_pw_ts {
-                    session.purge();
-                } else {
-                    return HttpResponse::Ok().json(AuthCheckResponse {
-                        authed: true,
-                        username: Some(u.username),
-                    });
-                }
-            }
-        }
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let max_age = Duration::from_secs(SESSION_MAX_AGE_DAYS * 86400);
+    if Duration::from_secs(now.checked_sub(session_pw_ts).unwrap_or(0)) > max_age {
+        session.purge();
+        return None;
     }
 
+    let user_id: Uuid = session.get("user_id").ok().flatten()?;
+
+    let user = Users::find_by_id(user_id).one(db).await.ok().flatten()?;
+
+    let db_pw_ts = user.password_changed_at.and_utc().timestamp() as u64;
+    if db_pw_ts != session_pw_ts {
+        session.purge();
+        return None;
+    }
+
+    Some(user.username)
+}
+
+#[get("/check")]
+pub async fn auth_check(session: Session, state: web::Data<AppState>) -> HttpResponse {
+    let username = get_session_user(&session, &state.conn).await;
     HttpResponse::Ok().json(AuthCheckResponse {
-        authed: false,
-        username: None,
+        authed: username.is_some(),
+        username,
     })
 }
 

@@ -285,6 +285,47 @@ input {
     opacity: 0.85;
 }
 
+.dropdown {
+    position: relative;
+}
+
+.dropdown-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 300;
+    min-width: 160px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 6px;
+    display: none;
+}
+
+.dropdown-panel.open {
+    display: block;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    text-align: left;
+}
+
+.dropdown-item:hover {
+    background: var(--bg-hover);
+}
+
+.dropdown-separator {
+    height: 1px;
+    background: var(--border-color);
+    margin: 4px 8px;
+}
+
 .main-content {
     min-height: 100vh;
     padding: clamp(16px, 2vh, 24px) clamp(8px, 2vw, 24px);
@@ -405,4 +446,92 @@ input {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-tertiary);
+}
+
+.auth-dialog {
+    width: min(400px, 92vw);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 0;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    margin: 0;
+}
+
+.auth-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.auth-dialog-inner {
+    padding: 24px;
+}
+
+.auth-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.auth-tab {
+    flex: 1;
+    height: 40px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    border-bottom: 2px solid transparent;
+}
+
+.auth-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.auth-form.hidden {
+    display: none;
+}
+
+.auth-input {
+    height: 44px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    padding: 0 14px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.auth-input:focus {
+    border-color: var(--accent);
+}
+
+.auth-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.auth-submit {
+    height: 44px;
+    background: var(--accent);
+    color: var(--bg-primary);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.auth-submit:hover {
+    opacity: 0.9;
+}
+
+.auth-error {
+    color: #ff4444;
+    font-size: 0.8rem;
+    min-height: 1.2em;
 }
