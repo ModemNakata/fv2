@@ -1,3 +1,4 @@
+use actix_session::config::PersistentSession;
 use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
 use actix_web::cookie::Key;
@@ -42,7 +43,15 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))
-            .wrap(SessionMiddleware::new(CookieSessionStore::default(), key.clone()))
+            .wrap(
+                SessionMiddleware::builder(CookieSessionStore::default(), key.clone())
+                    .cookie_name("fevid-session".to_owned())
+                    .cookie_secure(true)
+                    .session_lifecycle(
+                        PersistentSession::default().session_ttl(actix_web::cookie::time::Duration::days(365)),
+                    )
+                    .build(),
+            )
             .wrap(middleware::Logger::default())
             .service(web::resource("/").route(web::get().to(home::index)))
             .service(web::resource("/profile").route(web::get().to(home::profile)))
