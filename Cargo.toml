@@ -9,4 +9,5 @@ askama = "0.16.0"
 dotenvy = "0.15.7"
 log = "0.4.32"
 sea-orm = { version = "1.1.20", features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "debug-print"] }
+# tracing-actix-web = "0.7.21"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }

@@ -2,7 +2,8 @@ use actix_web::{App, HttpServer, Responder, Result, middleware, web};
 use askama::Template;
 use sea_orm::{Database, DatabaseConnection};
 use std::env;
-use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+// use tracing_subscriber::{EnvFilter, fmt};
+use tracing_subscriber::fmt;
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -21,9 +22,15 @@ struct AppState {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    // unsafe {
+    //     std::env::set_var("RUST_LOG", "debug");
+    // }
 
-    fmt::fmt().with_env_filter(env_filter).init();
+    // let env_filter = EnvFilter::try_from_default_env()
+    // .unwrap_or_else(|_| EnvFilter::new("info"));
+
+    // fmt::fmt().with_env_filter(env_filter).init();
+    fmt::fmt().init();
 
     log::info!("starting HTTP server");
 
@@ -39,7 +46,8 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))
-            .wrap(middleware::Logger::default())
+            .wrap(middleware::Logger::default()) // TracingLogger::default() -> from tracing-actix-web | duration_ms=?
+            // .wrap(TracingLogger::default())
             .service(web::resource("/").route(web::get().to(index)))
     })
     .bind(("0.0.0.0", 8080))?
