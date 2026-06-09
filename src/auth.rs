@@ -7,14 +7,14 @@ use sea_orm::{
     sea_query::{Expr, Func},
 };
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+// use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 use crate::AppState;
 use crate::entity::prelude::*;
 use crate::entity::users;
 
-const SESSION_MAX_AGE_DAYS: u64 = 3650;
+// const SESSION_MAX_AGE_DAYS: u64 = 3650;
 
 #[derive(Serialize)]
 pub struct AuthCheckResponse {
@@ -77,20 +77,23 @@ fn set_session_auth(session: &Session, user_id: Uuid, pw_changed_at: NaiveDateTi
     }
 }
 
-pub async fn get_session_user(session: &Session, db: &sea_orm::DatabaseConnection) -> Option<String> {
+pub async fn get_session_user(
+    session: &Session,
+    db: &sea_orm::DatabaseConnection,
+) -> Option<String> {
     let session_pw_ts: Option<u64> = session.get("password_changed_at").ok().flatten();
 
     let session_pw_ts = session_pw_ts?;
 
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    let max_age = Duration::from_secs(SESSION_MAX_AGE_DAYS * 86400);
-    if Duration::from_secs(now.checked_sub(session_pw_ts).unwrap_or(0)) > max_age {
-        session.purge();
-        return None;
-    }
+    // let now = SystemTime::now()
+    //     .duration_since(UNIX_EPOCH)
+    //     .unwrap_or_default()
+    //     .as_secs();
+    // let max_age = Duration::from_secs(SESSION_MAX_AGE_DAYS * 86400);
+    // if Duration::from_secs(now.checked_sub(session_pw_ts).unwrap_or(0)) > max_age {
+    //     session.purge();
+    //     return None;
+    // }
 
     let user_id: Uuid = session.get("user_id").ok().flatten()?;
 
