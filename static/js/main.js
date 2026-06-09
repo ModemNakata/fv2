@@ -87,9 +87,25 @@
     });
   }
 
+  function setLoading(btn, loading) {
+    if (loading) {
+      btn.disabled = true;
+      btn.classList.add('btn--loading');
+      btn.dataset.origText = btn.dataset.origText || btn.innerHTML;
+      btn.innerHTML = '<span class="btn-spinner"></span> Processing...';
+    } else {
+      btn.disabled = false;
+      btn.classList.remove('btn--loading');
+      btn.innerHTML = btn.dataset.origText || btn.innerHTML;
+    }
+  }
+
   function handleFormSubmit(form, errorEl) {
     form.addEventListener('submit', function(e) {
       e.preventDefault();
+      var btn = form.querySelector('.auth-submit');
+      setLoading(btn, true);
+      errorEl.textContent = '';
       var data = new URLSearchParams(new FormData(form));
       var body = {};
       data.forEach(function(value, key) { body[key] = value; });
@@ -101,6 +117,7 @@
       })
       .then(function(r) { return r.json(); })
       .then(function(resp) {
+        setLoading(btn, false);
         if (resp.ok) {
           location.reload();
         } else {
@@ -108,6 +125,7 @@
         }
       })
       .catch(function() {
+        setLoading(btn, false);
         errorEl.textContent = 'Network error';
       });
     });
@@ -121,9 +139,13 @@
   if (signUpForm && signUpError) {
     signUpForm.addEventListener('submit', function(e) {
       e.preventDefault();
+      var btn = signUpForm.querySelector('.auth-submit');
+      setLoading(btn, true);
+      signUpError.textContent = '';
       var pass = signUpForm.querySelector('[name="password"]').value;
       var confirm = signUpForm.querySelector('[name="confirm_password"]').value;
       if (pass !== confirm) {
+        setLoading(btn, false);
         signUpError.textContent = 'Passwords do not match';
         return;
       }
@@ -138,6 +160,7 @@
       })
       .then(function(r) { return r.json(); })
       .then(function(resp) {
+        setLoading(btn, false);
         if (resp.ok) {
           location.reload();
         } else {
@@ -145,6 +168,7 @@
         }
       })
       .catch(function() {
+        setLoading(btn, false);
         signUpError.textContent = 'Network error';
       });
     });
