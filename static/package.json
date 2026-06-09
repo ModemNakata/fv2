@@ -1,7 +1,6 @@
 {
   "dependencies": {
-    "@videojs/http-streaming": "^3.17.4",
-    "video.js": "^8.23.7",
-    "videojs-contrib-quality-menu": "^1.0.4"
+    "hls.js": "^1.6.16",
+    "vidstack": "^1.15"
   }
 }

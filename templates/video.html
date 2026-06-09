@@ -1,20 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Video - fevid{% endblock %}
+{% block title %}{{ video_title }} - fevid{% endblock %}
 {% block head %}
-<link rel="stylesheet" href="/static/dist/player.css">
+<link rel="stylesheet" href="/static/css/vidstack-theme.css">
+<link rel="stylesheet" href="/static/css/vidstack-layout.css">
 <link rel="stylesheet" href="/static/css/video.css">
 {% endblock %}
 {% block content %}
 <div class="video-player-wrapper">
-  <video id="player" class="video-js vjs-default-skin" controls preload="auto" playsinline>
-    <source src="{{ source_url }}" type="{{ source_type }}">
-  </video>
+  <div id="video-target"></div>
 </div>
-<script>
-  window.VIDEO_SOURCE = { url: '{{ source_url }}', type: '{{ source_type }}' };
-</script>
+<script src="/static/js/vidstack.min.js"></script>
 <script type="module">
-  import { initPlayer } from '/static/dist/player.js';
-  initPlayer('player', window.VIDEO_SOURCE.url, window.VIDEO_SOURCE.type);
+  const player = await VidstackPlayer.create({
+    target: '#video-target',
+    title: '{{ video_title }}',
+    src: '{{ source_url }}',
+    layout: new VidstackPlayerLayout(),
+  });
 </script>
 {% endblock %}

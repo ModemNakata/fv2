@@ -154,53 +154,72 @@ These are defined in `style.css` (global) so they're available on any page.
 ## Video Player (`static/`)
 
 ### Setup
-The video player uses classic **video.js** (not `@videojs/html` web components).
+The video player uses **Vidstack** with built-in quality selector.
 
 Packages installed via `bun` in `static/`:
 ```
-bun add video.js
-bun add @videojs/http-streaming       — HLS playback + VHS engine
-bun add videojs-contrib-quality-menu   — quality selector UI
+bun add vidstack
+bun add hls.js                        — HLS playback engine
 ```
 
 ### Build
-A `bun build` produces two files in `static/dist/`:
+1. Create a build entry file (`static/build-player.js`):
+   ```js
+   import { VidstackPlayer, VidstackPlayerLayout } from 'vidstack/global/player';
+   window.VidstackPlayer = VidstackPlayer;
+   window.VidstackPlayerLayout = VidstackPlayerLayout;
+   ```
+2. Bundle with bun:
+   ```
+   cd static && bun build build-player.js --outfile=./js/vidstack.min.js --minify
+   ```
+3. Copy CSS themes:
+   ```
+   cp node_modules/vidstack/player/styles/default/theme.css static/css/vidstack-theme.css
+   cp node_modules/vidstack/player/styles/default/layouts/video.css static/css/vidstack-layout.css
+   ```
+4. Clean up `build-player.js`
+
+Produces:
 ```
 static/
   js/
-    player.js           — entry point (imports video.js + plugins, exports initPlayer)
-  dist/
-    player.js           — bundled (1.98 MB)
-    player.css          — video.js skin CSS (53 KB)
-```
-
-To rebuild after changing `js/player.js`:
-```
-cd static && bun build ./js/player.js --outdir ./dist --format esm --splitting
+    vidstack.min.js         — bundled + minified (0.40 MB)
+  css/
+    vidstack-theme.css      — default theme
+    vidstack-layout.css     — video layout styles
 ```
 
 ### Usage in templates
 ```html
-<link rel="stylesheet" href="/static/dist/player.css">
+<link rel="stylesheet" href="/static/css/vidstack-theme.css">
+<link rel="stylesheet" href="/static/css/vidstack-layout.css">
 
-<video id="player" class="video-js vjs-default-skin" controls preload="auto" playsinline>
-  <source src="{{ source_url }}" type="{{ source_type }}">
-</video>
+<div id="video-target"></div>
 
+<script src="/static/js/vidstack.min.js"></script>
 <script type="module">
-  import { initPlayer } from '/static/dist/player.js';
-  initPlayer('player', sourceUrl, sourceType);
+  const player = await VidstackPlayer.create({
+    target: '#video-target',
+    title: '{{ video_title }}',
+    src: '{{ source_url }}',
+    layout: new VidstackPlayerLayout(),
+  });
 </script>
 ```
 
-### Quality Menu
-`player.qualityMenu()` is called inside `initPlayer`. It works with **HLS** sources (`application/x-mpegURL`): it reads variant streams from the master playlist and shows resolution options (e.g. 360p, 720p, 1080p). With plain MP4 the quality button is hidden.
+### Quality Selector
+Built into `VidstackPlayerLayout` — no extra plugins needed. When the source is an HLS master playlist (`.m3u8`), it automatically parses variant streams and shows a settings gear with resolution options (e.g. "1080p", "720p", "Auto"). The selection is persisted to `localStorage`.
 
-### iOS / Safari
-The player options include `overrideNative: true` to force Video.js' HLS engine instead of Apple's native player, which is required for the quality menu to work on Apple devices.
+Manual control via `player.qualities`:
+```js
+player.qualities.selected = quality;   // switch to specific quality
+player.qualities.autoSelect();          // re-enable adaptive
+player.qualities.switch = 'next';       // change switch mode
+```
 
 ### Adding HLS support
-1. Store HLS master playlists on S3 (or generate them from multiple resolution MP4s)
-2. Point the `source_url` in `src/video.rs` to the master `.m3u8` URL
-3. Set `source_type` to `"application/x-mpegURL"`
-4. The quality menu will automatically read variant streams from the playlist
+1. Store HLS master playlists on S3 (or generate them from multi-resolution MP4s)
+2. Point `source_url` in `src/video.rs` to the master `.m3u8` URL
+3. Vidstack auto-detects HLS and uses hls.js — quality menu appears automatically
+4. For MP4 sources the quality menu is hidden
