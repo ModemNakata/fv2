@@ -253,6 +253,21 @@ input {
     height: clamp(48px, 6vw, 56px);
 }
 
+.sign-in-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.sign-in-btn:hover {
+    background: var(--accent-glow);
+}
+
 .avatar {
     width: clamp(28px, 3vw, 32px);
     height: clamp(28px, 3vw, 32px);

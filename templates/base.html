@@ -58,6 +58,7 @@
       </div>
     </div>
     <div class="top-bar-right">
+      {% if logged_in %}
       <button class="icon-btn" aria-label="Create">
         <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
           <rect width="256" height="256" fill="none" />
@@ -79,6 +80,20 @@
         </svg>
       </button>
       <a href="/profile" class="avatar">U</a>
+      {% else %}
+      <button class="sign-in-btn">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+          <rect width="256" height="256" fill="none" />
+          <line x1="24" y1="128" x2="136" y2="128" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+          <polyline points="96 88 136 128 96 168" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+          <polyline points="136 40 200 40 200 216 136 216" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+        </svg>
+        Sign in
+      </button>
+      {% endif %}
     </div>
   </nav>
   <main class="main-content">
