@@ -9,6 +9,7 @@ pub struct Model {
     pub id: Uuid,
     pub image_set_id: Uuid,
     pub storage_path: String,
+    pub original_name: String,
     pub sort_order: i32,
     pub alt_text: Option<String>,
     pub created_at: DateTime,

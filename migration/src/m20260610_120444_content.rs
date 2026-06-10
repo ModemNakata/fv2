@@ -109,6 +109,7 @@ impl MigrationTrait for Migration {
                     .col(string_len("resolution", 50))
                     .col(string_len("format", 50))
                     .col(string_len("storage_path", 1024))
+                    .col(string_len("original_name", 1024))
                     .col(big_integer_null("file_size_bytes"))
                     .col(timestamp("created_at").default(Expr::current_timestamp()))
                     .foreign_key(
@@ -160,6 +161,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(uuid("image_set_id"))
                     .col(string_len("storage_path", 1024))
+                    .col(string_len("original_name", 1024))
                     .col(integer("sort_order").default(0))
                     .col(string_len_null("alt_text", 255))
                     .col(timestamp("created_at").default(Expr::current_timestamp()))
