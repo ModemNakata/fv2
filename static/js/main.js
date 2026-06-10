@@ -23,6 +23,39 @@
     });
   }
 
+  var scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+  function toggleSidebar(open) {
+    if (!sidebar) return;
+    var isOpen = open !== undefined ? open : !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', isOpen);
+    if (sidebarBackdrop) sidebarBackdrop.classList.toggle('open', isOpen);
+    document.body.style.paddingRight = isOpen ? scrollbarWidth + 'px' : '';
+    document.body.classList.toggle('sidebar-open', isOpen);
+  }
+
+  var menuBtn = document.querySelector('.menu-btn');
+  var sidebar = document.getElementById('sidebar');
+  var sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+  if (menuBtn && sidebar) {
+    menuBtn.addEventListener('click', function() {
+      toggleSidebar();
+    });
+
+    if (sidebarBackdrop) {
+      sidebarBackdrop.addEventListener('click', function() {
+        toggleSidebar(false);
+      });
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+        toggleSidebar(false);
+      }
+    });
+  }
+
   var dropdownTrigger = document.querySelector('.dropdown-trigger');
   var dropdownPanel = document.getElementById('userDropdown');
 
