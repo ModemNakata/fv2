@@ -11,21 +11,39 @@
   <h1 class="upload-heading">Upload Video</h1>
   <form class="upload-form" id="uploadForm" action="/upload/video" method="post" enctype="multipart/form-data">
     <div class="upload-dropzone" id="videoDropzone">
-      <svg class="icon upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-        <rect width="256" height="256" fill="none"/>
-        <line x1="128" y1="144" x2="128" y2="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-        <polyline points="216 144 216 208 40 208 40 144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-        <polyline points="88 72 128 32 168 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-      </svg>
-      <p class="upload-text">Drag & drop a video or <span class="upload-link">browse</span></p>
-      <p class="upload-hint">Encoded to HLS (H.264) — up to 10GB</p>
-      <input type="file" id="videoFileInput" name="file" class="upload-file-input" hidden>
+      <div class="dropzone-default" id="dropzoneDefault">
+        <svg class="icon upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+          <rect width="256" height="256" fill="none"/>
+          <line x1="128" y1="144" x2="128" y2="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          <polyline points="216 144 216 208 40 208 40 144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          <polyline points="88 72 128 32 168 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+        </svg>
+        <p class="upload-text">Drag & drop a video or <span class="upload-link">browse</span></p>
+        <p class="upload-hint">Encoded to HLS (H.264) — up to 10GB</p>
+      </div>
+      <div class="dropzone-file" id="dropzoneFile" hidden>
+        <svg class="icon file-selected-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+          <rect width="256" height="256" fill="none"/>
+          <polygon points="160 112 112 80 112 144 160 112" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          <rect x="32" y="48" width="192" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          <line x1="32" y1="208" x2="224" y2="208" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+        </svg>
+        <p class="file-selected-name" id="fileName"></p>
+        <p class="file-selected-size" id="fileSize"></p>
+      </div>
+      <input type="file" id="videoFileInput" name="file" hidden>
     </div>
     <div class="upload-fields">
       <input type="text" name="title" class="upload-input" placeholder="Video title" required>
       <textarea name="description" class="upload-textarea" placeholder="Description"></textarea>
     </div>
     <button type="submit" class="upload-submit">Upload</button>
+    <div class="progress-container" id="progressContainer" hidden>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <p class="progress-text" id="progressText"></p>
+    </div>
   </form>
   <script>
     (function() {
@@ -33,44 +51,116 @@
       var fileInput = document.getElementById('videoFileInput');
       var form = document.getElementById('uploadForm');
       var btn = form.querySelector('.upload-submit');
+      var defaultView = document.getElementById('dropzoneDefault');
+      var fileView = document.getElementById('dropzoneFile');
+      var fileName = document.getElementById('fileName');
+      var fileSize = document.getElementById('fileSize');
+
+      function formatSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        var k = 1024;
+        var sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        var i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + '\u00A0' + sizes[i];
+      }
+
+      function showFile(file) {
+        fileName.textContent = file.name;
+        fileSize.textContent = formatSize(file.size);
+        defaultView.hidden = true;
+        fileView.hidden = false;
+        btn.textContent = 'Upload ' + file.name;
+        btn.disabled = false;
+      }
 
       dropzone.addEventListener('click', function() {
         fileInput.click();
       });
 
       fileInput.addEventListener('change', function() {
-        if (fileInput.files.length > 0) {
-          btn.textContent = 'Upload ' + fileInput.files[0].name;
-          btn.disabled = false;
+        if (fileInput.files.length > 0) showFile(fileInput.files[0]);
+      });
+
+      dropzone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+
+      dropzone.addEventListener('dragleave', function() {
+        dropzone.classList.remove('dragover');
+      });
+
+      dropzone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+          var f = e.dataTransfer.files[0];
+          fileInput.files = e.dataTransfer.files;
+          showFile(f);
         }
       });
 
-      // Disable button until a file is selected
+      // Start disabled until a file is selected
       btn.disabled = true;
 
       form.addEventListener('submit', function(e) {
         e.preventDefault();
+        var dropzone = document.getElementById('videoDropzone');
+        var progressContainer = document.getElementById('progressContainer');
+        var progressFill = document.getElementById('progressFill');
+        var progressText = document.getElementById('progressText');
+
+        dropzone.style.display = 'none';
+        progressContainer.hidden = false;
         btn.disabled = true;
         btn.textContent = 'Uploading...';
 
         var fd = new FormData(form);
+        var xhr = new XMLHttpRequest();
 
-        fetch(form.action, { method: 'POST', body: fd })
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            if (data.ok && data.content_id) {
-              window.location.href = '/video?id=' + data.content_id;
-            } else {
-              alert(data.error || 'Upload failed');
-              btn.disabled = false;
-              btn.textContent = 'Upload';
+        xhr.upload.addEventListener('progress', function(e) {
+          if (e.lengthComputable) {
+            var pct = Math.round((e.loaded / e.total) * 100);
+            progressFill.style.width = pct + '%';
+            progressText.textContent = 'Uploading... ' + pct + '%';
+          }
+        });
+
+        xhr.addEventListener('load', function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              var data = JSON.parse(xhr.responseText);
+              if (data.ok && data.content_id) {
+                window.location.href = '/video?id=' + data.content_id;
+              } else {
+                alert(data.error || 'Upload failed');
+                resetUploadUI();
+              }
+            } catch (_) {
+              alert('Upload failed');
+              resetUploadUI();
             }
-          })
-          .catch(function() {
-            alert('Network error');
-            btn.disabled = false;
-            btn.textContent = 'Upload';
-          });
+          } else {
+            alert('Upload failed');
+            resetUploadUI();
+          }
+        });
+
+        xhr.addEventListener('error', function() {
+          alert('Network error');
+          resetUploadUI();
+        });
+
+        xhr.open('POST', form.action, true);
+        xhr.send(fd);
+
+        function resetUploadUI() {
+          dropzone.style.display = '';
+          progressContainer.hidden = true;
+          progressFill.style.width = '0%';
+          btn.disabled = false;
+          btn.textContent = 'Upload';
+        }
       });
     })();
   </script>

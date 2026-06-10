@@ -27,6 +27,12 @@
       <textarea name="description" class="upload-textarea" placeholder="Description"></textarea>
     </div>
     <button type="submit" class="upload-submit" id="uploadBtn" style="display:none">Upload</button>
+    <div class="progress-container" id="progressContainer" hidden>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <p class="progress-text" id="progressText"></p>
+    </div>
   </form>
 </div>
 <script>
@@ -276,10 +282,18 @@
       addFiles(e.dataTransfer.files);
     });
 
-    // Upload via fetch
+    // Upload with progress
     document.getElementById('uploadForm').addEventListener('submit', function(e) {
       e.preventDefault();
       var btn = document.getElementById('uploadBtn');
+      var dropzone = document.getElementById('galleryDropzone');
+      var progressContainer = document.getElementById('progressContainer');
+      var progressFill = document.getElementById('progressFill');
+      var progressText = document.getElementById('progressText');
+
+      dropzone.style.display = 'none';
+      fileList.style.display = 'none';
+      progressContainer.hidden = false;
       btn.disabled = true;
       btn.textContent = 'Uploading...';
 
@@ -289,22 +303,52 @@
       if (desc) fd.append('description', desc);
       files.forEach(function(f) { fd.append('files', f, f.name); });
 
-      fetch(this.action, { method: 'POST', body: fd })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.ok && data.content_id) {
-            window.location.href = '/video?id=' + data.content_id;
-          } else {
-            alert(data.error || 'Upload failed');
-            btn.disabled = false;
-            btn.textContent = 'Upload';
+      var xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', function(e) {
+        if (e.lengthComputable) {
+          var pct = Math.round((e.loaded / e.total) * 100);
+          progressFill.style.width = pct + '%';
+          progressText.textContent = 'Uploading... ' + pct + '%';
+        }
+      });
+
+      xhr.addEventListener('load', function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            var data = JSON.parse(xhr.responseText);
+            if (data.ok && data.content_id) {
+              window.location.href = '/video?id=' + data.content_id;
+            } else {
+              alert(data.error || 'Upload failed');
+              resetUploadUI();
+            }
+          } catch (_) {
+            alert('Upload failed');
+            resetUploadUI();
           }
-        })
-        .catch(function() {
-          alert('Network error');
-          btn.disabled = false;
-          btn.textContent = 'Upload';
-        });
+        } else {
+          alert('Upload failed');
+          resetUploadUI();
+        }
+      });
+
+      xhr.addEventListener('error', function() {
+        alert('Network error');
+        resetUploadUI();
+      });
+
+      xhr.open('POST', this.action, true);
+      xhr.send(fd);
+
+      function resetUploadUI() {
+        dropzone.style.display = '';
+        fileList.style.display = '';
+        progressContainer.hidden = true;
+        progressFill.style.width = '0%';
+        btn.disabled = false;
+        btn.textContent = 'Upload';
+      }
     });
   })();
 </script>
