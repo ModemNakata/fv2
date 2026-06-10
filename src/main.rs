@@ -12,6 +12,7 @@ mod auth;
 mod entity;
 mod home;
 mod s3;
+mod upload;
 mod video;
 
 #[derive(Clone)]
@@ -62,6 +63,11 @@ async fn main() -> std::io::Result<()> {
             .service(web::resource("/profile").route(web::get().to(home::profile)))
             .service(web::resource("/upload/video").route(web::get().to(home::upload_video)))
             .service(web::resource("/upload/gallery").route(web::get().to(home::upload_gallery)))
+            .service(
+                web::scope("/upload")
+                    .service(upload::upload_video)
+                    .service(upload::upload_gallery),
+            )
             .service(web::resource("/video").route(web::get().to(video::video)))
             .service(
                 web::scope("/auth")

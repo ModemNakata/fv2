@@ -3,11 +3,10 @@ use actix_web::{HttpResponse, get, post, web};
 use argon2::{Argon2, PasswordHasher, PasswordVerifier};
 use chrono::NaiveDateTime;
 use sea_orm::{
-    EntityTrait, QueryFilter, Set,
+    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
     sea_query::{Expr, Func},
 };
 use serde::{Deserialize, Serialize};
-// use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 use crate::AppState;
@@ -106,6 +105,33 @@ pub async fn get_session_user(
     }
 
     Some(user.username)
+}
+
+pub async fn require_user(
+    session: &Session,
+    db: &DatabaseConnection,
+) -> Result<users::Model, HttpResponse> {
+    let username = get_session_user(session, db)
+        .await
+        .ok_or_else(|| {
+            HttpResponse::Unauthorized().json(serde_json::json!({
+                "ok": false,
+                "error": "Not signed in",
+            }))
+        })?;
+
+    Users::find()
+        .filter(users::Column::Username.eq(&username))
+        .one(db)
+        .await
+        .ok()
+        .flatten()
+        .ok_or_else(|| {
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "ok": false,
+                "error": "Failed to find user",
+            }))
+        })
 }
 
 #[get("/check")]

@@ -9,7 +9,7 @@
 {% block content %}
 <div class="upload-page">
   <h1 class="upload-heading">Upload Gallery</h1>
-  <form class="upload-form" id="uploadForm">
+  <form class="upload-form" id="uploadForm" action="/upload/gallery" method="post" enctype="multipart/form-data">
     <div class="upload-dropzone" id="galleryDropzone">
       <svg class="icon upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
         <rect width="256" height="256" fill="none"/>
@@ -23,8 +23,8 @@
     </div>
     <div class="file-list" id="fileList"></div>
     <div class="upload-fields">
-      <input type="text" class="upload-input" placeholder="Gallery title" required>
-      <textarea class="upload-textarea" placeholder="Description"></textarea>
+      <input type="text" name="title" class="upload-input" placeholder="Gallery title" required>
+      <textarea name="description" class="upload-textarea" placeholder="Description"></textarea>
     </div>
     <button type="submit" class="upload-submit" id="uploadBtn" style="display:none">Upload</button>
   </form>
@@ -274,6 +274,37 @@
       e.preventDefault();
       dropzone.classList.remove('dragover');
       addFiles(e.dataTransfer.files);
+    });
+
+    // Upload via fetch
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var btn = document.getElementById('uploadBtn');
+      btn.disabled = true;
+      btn.textContent = 'Uploading...';
+
+      var fd = new FormData();
+      fd.append('title', this.querySelector('[name="title"]').value);
+      var desc = this.querySelector('[name="description"]').value;
+      if (desc) fd.append('description', desc);
+      files.forEach(function(f) { fd.append('files', f, f.name); });
+
+      fetch(this.action, { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.ok && data.content_id) {
+            window.location.href = '/video?id=' + data.content_id;
+          } else {
+            alert(data.error || 'Upload failed');
+            btn.disabled = false;
+            btn.textContent = 'Upload';
+          }
+        })
+        .catch(function() {
+          alert('Network error');
+          btn.disabled = false;
+          btn.textContent = 'Upload';
+        });
     });
   })();
 </script>

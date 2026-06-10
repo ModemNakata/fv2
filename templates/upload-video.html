@@ -9,7 +9,7 @@
 {% block content %}
 <div class="upload-page">
   <h1 class="upload-heading">Upload Video</h1>
-  <form class="upload-form">
+  <form class="upload-form" action="/upload/video" method="post" enctype="multipart/form-data">
     <div class="upload-dropzone" id="videoDropzone">
       <svg class="icon upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
         <rect width="256" height="256" fill="none"/>
@@ -19,18 +19,17 @@
       </svg>
       <p class="upload-text">Drag & drop a video or <span class="upload-link">browse</span></p>
       <p class="upload-hint">Encoded to HLS (H.264) — up to 10GB</p>
-      <input type="file" id="videoFileInput" class="upload-file-input" hidden>
+      <input type="file" id="videoFileInput" name="file" class="upload-file-input" hidden>
     </div>
     <div class="upload-fields">
-      <input type="text" class="upload-input" placeholder="Video title" required>
-      <textarea class="upload-textarea" placeholder="Description"></textarea>
+      <input type="text" name="title" class="upload-input" placeholder="Video title" required>
+      <textarea name="description" class="upload-textarea" placeholder="Description"></textarea>
     </div>
     <button type="submit" class="upload-submit">Upload</button>
   </form>
-</div>
-<script>
-  document.getElementById('videoDropzone').addEventListener('click', function() {
-    document.getElementById('videoFileInput').click();
-  });
-</script>
+  <script>
+    document.getElementById('videoDropzone').addEventListener('click', function() {
+      document.getElementById('videoFileInput').click();
+    });
+  </script>
 {% endblock %}
