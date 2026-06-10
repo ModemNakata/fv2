@@ -6,10 +6,9 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::auth;
-use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
-use crate::entity::{content_items, image_sets, images, users, video_formats, videos};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use crate::entity::{content_items, image_sets, images, video_formats, videos};
+use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
 const MIN_PART_SIZE: usize = 5 * 1024 * 1024; // 5MB
 
@@ -105,16 +104,6 @@ struct UploadedFile {
     original_name: String,
 }
 
-async fn resolve_user(session: &Session, state: &AppState) -> Option<users::Model> {
-    let username = auth::get_session_user(session, &state.conn).await?;
-    Users::find()
-        .filter(users::Column::Username.eq(&username))
-        .one(&state.conn)
-        .await
-        .ok()
-        .flatten()
-}
-
 async fn cleanup_s3(bucket: &::s3::Bucket, prefix: &str, files: &[UploadedFile]) {
     for f in files {
         let _ = bucket.delete_object(&s3_key(prefix, f.id, &f.ext)).await;
@@ -126,15 +115,9 @@ pub async fn upload_video(
     state: web::Data<AppState>,
     mut payload: Multipart,
 ) -> HttpResponse {
-    let user = match resolve_user(&session, &state).await {
-        Some(u) => u,
-        None => {
-            return HttpResponse::Unauthorized().json(UploadResponse {
-                ok: false,
-                error: Some("Not signed in".to_string()),
-                content_id: None,
-            });
-        }
+    let user = match auth::require_user(&session, &state.conn).await {
+        Ok(u) => u,
+        Err(resp) => return resp,
     };
 
     let mut title = String::new();
@@ -316,15 +299,9 @@ pub async fn upload_gallery(
     state: web::Data<AppState>,
     mut payload: Multipart,
 ) -> HttpResponse {
-    let user = match resolve_user(&session, &state).await {
-        Some(u) => u,
-        None => {
-            return HttpResponse::Unauthorized().json(UploadResponse {
-                ok: false,
-                error: Some("Not signed in".to_string()),
-                content_id: None,
-            });
-        }
+    let user = match auth::require_user(&session, &state.conn).await {
+        Ok(u) => u,
+        Err(resp) => return resp,
     };
 
     let mut title = String::new();
