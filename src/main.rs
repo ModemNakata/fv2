@@ -3,6 +3,7 @@ use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
 use actix_web::cookie::Key;
 use actix_web::{App, HttpServer, middleware, web};
+use ::s3::Bucket;
 use sea_orm::{Database, DatabaseConnection};
 use std::env;
 use tracing_subscriber::fmt;
@@ -10,11 +11,13 @@ use tracing_subscriber::fmt;
 mod auth;
 mod entity;
 mod home;
+mod s3;
 mod video;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AppState {
     pub conn: DatabaseConnection,
+    pub s3: Bucket,
 }
 
 #[actix_web::main]
@@ -38,8 +41,9 @@ async fn main() -> std::io::Result<()> {
     };
 
     let conn = Database::connect(&db_url).await.unwrap();
+    let bucket = s3::init_bucket();
 
-    let state = AppState { conn };
+    let state = AppState { conn, s3: bucket };
 
     HttpServer::new(move || {
         App::new()

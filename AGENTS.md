@@ -25,6 +25,7 @@ src/
   main.rs       — actix bootstrap, session middleware, routes
   home.rs       — page handlers + Askama template structs
   auth.rs       — sign-in, sign-up, sign-out handlers
+  s3.rs        — rustfs S3 bucket initialization (rust-s3)
   entity/       — SeaORM models (auto-generated)
     mod.rs
     users.rs    — users table model
