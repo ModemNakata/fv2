@@ -2,4 +2,10 @@
 
 pub mod prelude;
 
+pub mod content_items;
+pub mod image_sets;
+pub mod images;
+pub mod sea_orm_active_enums;
 pub mod users;
+pub mod video_formats;
+pub mod videos;
