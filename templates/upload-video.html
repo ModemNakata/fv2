@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Video - FeVid{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/upload-video.css">
+{% endblock %}
+
+{% block content %}
+<div class="upload-page">
+  <h1 class="upload-heading">Upload Video</h1>
+  <form class="upload-form">
+    <div class="upload-dropzone">
+      <svg class="icon upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+        <rect width="256" height="256" fill="none"/>
+        <line x1="128" y1="144" x2="128" y2="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+        <polyline points="216 144 216 208 40 208 40 144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+        <polyline points="88 72 128 32 168 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+      </svg>
+      <p class="upload-text">Drag & drop a video or <span class="upload-link">browse</span></p>
+      <p class="upload-hint">Encoded to HLS (H.264) — up to 10GB</p>
+    </div>
+    <div class="upload-fields">
+      <input type="text" class="upload-input" placeholder="Video title" required>
+      <textarea class="upload-textarea" placeholder="Description"></textarea>
+    </div>
+    <button type="submit" class="upload-submit">Upload</button>
+  </form>
+</div>
+{% endblock %}

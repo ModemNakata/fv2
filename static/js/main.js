@@ -56,20 +56,31 @@
     });
   }
 
-  var dropdownTrigger = document.querySelector('.dropdown-trigger');
-  var dropdownPanel = document.getElementById('userDropdown');
+  var dropdownTriggers = document.querySelectorAll('.dropdown-trigger');
+  var userDropdown = document.getElementById('userDropdown');
+  var createDropdown = document.getElementById('createDropdown');
 
-  if (dropdownTrigger && dropdownPanel) {
-    dropdownTrigger.addEventListener('click', function(e) {
+  dropdownTriggers.forEach(function(trigger) {
+    trigger.addEventListener('click', function(e) {
       e.stopPropagation();
-      dropdownPanel.classList.toggle('open');
+      var panel = trigger.parentElement.querySelector('.dropdown-panel');
+      if (panel) panel.classList.toggle('open');
     });
+  });
 
-    document.addEventListener('click', function() {
-      dropdownPanel.classList.remove('open');
+  document.addEventListener('click', function() {
+    var allPanels = document.querySelectorAll('.dropdown-panel');
+    allPanels.forEach(function(p) { p.classList.remove('open'); });
+  });
+
+  if (userDropdown) {
+    userDropdown.addEventListener('click', function(e) {
+      e.stopPropagation();
     });
+  }
 
-    dropdownPanel.addEventListener('click', function(e) {
+  if (createDropdown) {
+    createDropdown.addEventListener('click', function(e) {
       e.stopPropagation();
     });
   }

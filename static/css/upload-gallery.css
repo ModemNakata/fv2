@@ -1,0 +1,122 @@
+.upload-page {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.upload-heading {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.upload-dropzone {
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  padding: clamp(40px, 6vh, 64px) clamp(16px, 3vw, 24px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.upload-dropzone:hover {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.upload-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--accent);
+}
+
+.upload-text {
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.upload-link {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.upload-hint {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.upload-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.upload-input {
+  height: 44px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  padding: 0 14px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.upload-input:focus {
+  border-color: var(--accent);
+}
+
+.upload-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.upload-textarea {
+  min-height: 120px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  padding: 12px 14px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.upload-textarea:focus {
+  border-color: var(--accent);
+}
+
+.upload-textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.upload-submit {
+  height: 44px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  align-self: flex-start;
+  padding: 0 32px;
+}
+
+.upload-submit:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 639px) {
+  .upload-page {
+    max-width: none;
+  }
+
+  .upload-submit {
+    width: 100%;
+  }
+}
