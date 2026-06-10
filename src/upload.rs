@@ -2,14 +2,16 @@ use actix_multipart::Multipart;
 use actix_session::Session;
 use actix_web::{HttpResponse, web};
 use futures_util::StreamExt;
-use s3::Bucket;
 use uuid::Uuid;
 
 use crate::auth;
+use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
-use crate::entity::{content_items, images, image_sets, video_formats, videos};
-use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+use crate::entity::{content_items, images, image_sets, users, video_formats, videos};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use crate::AppState;
+
+const MIN_PART_SIZE: usize = 5 * 1024 * 1024;
 
 #[derive(serde::Serialize)]
 struct UploadResponse {
@@ -28,11 +30,93 @@ fn mime_for_ext(ext: &str) -> String {
         .to_string()
 }
 
-async fn s3_put(bucket: &Bucket, key: &str, mime: &str, bytes: &[u8]) -> Result<(), String> {
-    match bucket.put_object_with_content_type(key, bytes, mime).await {
-        Ok(resp) if resp.status_code() < 300 => Ok(()),
-        Ok(resp) => Err(format!("S3 upload failed with status {}", resp.status_code())),
-        Err(e) => Err(format!("S3 upload error: {e}")),
+async fn s3_put_stream(
+    bucket: &::s3::Bucket,
+    key: &str,
+    mime: &str,
+    mut field: actix_multipart::Field,
+) -> Result<u64, String> {
+    let init = bucket
+        .initiate_multipart_upload(key, mime)
+        .await
+        .map_err(|e| format!("init multipart: {e}"))?;
+    let upload_id = init.upload_id;
+
+    let mut buf = Vec::with_capacity(MIN_PART_SIZE);
+    let mut part_num: u32 = 1;
+    let mut parts = Vec::new();
+    let mut total: u64 = 0;
+
+    loop {
+        match field.next().await {
+            Some(Ok(chunk)) => {
+                total += chunk.len() as u64;
+                buf.extend_from_slice(&chunk);
+                if buf.len() >= MIN_PART_SIZE {
+                    let data = std::mem::replace(&mut buf, Vec::with_capacity(MIN_PART_SIZE));
+                    match bucket
+                        .put_multipart_chunk(data, key, part_num, &upload_id, "")
+                        .await
+                    {
+                        Ok(p) => parts.push(p),
+                        Err(e) => {
+                            let _ = bucket.abort_upload(key, &upload_id).await;
+                            return Err(format!("part {part_num}: {e}"));
+                        }
+                    }
+                    part_num += 1;
+                }
+            }
+            Some(Err(e)) => {
+                let _ = bucket.abort_upload(key, &upload_id).await;
+                return Err(format!("stream error: {e}"));
+            }
+            None => break,
+        }
+    }
+
+    let last = std::mem::replace(&mut buf, Vec::new());
+    match bucket
+        .put_multipart_chunk(last, key, part_num, &upload_id, "")
+        .await
+    {
+        Ok(p) => parts.push(p),
+        Err(e) => {
+            let _ = bucket.abort_upload(key, &upload_id).await;
+            return Err(format!("final part: {e}"));
+        }
+    }
+
+    bucket
+        .complete_multipart_upload(key, &upload_id, parts)
+        .await
+        .map_err(|e| {
+            let _ = bucket.abort_upload(key, &upload_id);
+            format!("complete: {e}")
+        })?;
+
+    Ok(total)
+}
+
+struct UploadedFile {
+    id: Uuid,
+    ext: String,
+    size: u64,
+}
+
+async fn resolve_user(session: &Session, state: &AppState) -> Option<users::Model> {
+    let username = auth::get_session_user(session, &state.conn).await?;
+    Users::find()
+        .filter(users::Column::Username.eq(&username))
+        .one(&state.conn)
+        .await
+        .ok()
+        .flatten()
+}
+
+async fn cleanup_s3(bucket: &::s3::Bucket, prefix: &str, files: &[UploadedFile]) {
+    for f in files {
+        let _ = bucket.delete_object(&s3_key(prefix, f.id, &f.ext)).await;
     }
 }
 
@@ -41,47 +125,83 @@ pub async fn upload_video(
     state: web::Data<AppState>,
     mut payload: Multipart,
 ) -> HttpResponse {
-    let user = match auth::require_user(&session, &state.conn).await {
-        Ok(u) => u,
-        Err(resp) => return resp,
+    let user = match resolve_user(&session, &state).await {
+        Some(u) => u,
+        None => {
+            return HttpResponse::Unauthorized().json(UploadResponse {
+                ok: false,
+                error: Some("Not signed in".to_string()),
+                content_id: None,
+            });
+        }
     };
 
     let mut title = String::new();
     let mut description: Option<String> = None;
-    let mut file_bytes: Option<Vec<u8>> = None;
-    let mut file_ext = String::from("mp4");
+    let mut uploaded: Option<UploadedFile> = None;
 
     while let Some(Ok(mut field)) = payload.next().await {
-        let cd = field.content_disposition().expect("missing content disposition").clone();
+        let cd = field
+            .content_disposition()
+            .expect("missing content disposition")
+            .clone();
         let name = cd.get_name().unwrap_or("").to_string();
         let field_filename = cd.get_filename().map(|f| f.to_string());
 
-        let mut data = Vec::new();
-        while let Some(Ok(chunk)) = field.next().await {
-            data.extend_from_slice(&chunk);
-        }
-
         match name.as_str() {
-            "title" => title = String::from_utf8(data).unwrap_or_default(),
+            "title" => {
+                let mut data = Vec::new();
+                while let Some(Ok(chunk)) = field.next().await {
+                    data.extend_from_slice(&chunk);
+                }
+                title = String::from_utf8(data).unwrap_or_default();
+            }
             "description" => {
+                let mut data = Vec::new();
+                while let Some(Ok(chunk)) = field.next().await {
+                    data.extend_from_slice(&chunk);
+                }
                 let val = String::from_utf8(data).unwrap_or_default();
                 if !val.is_empty() {
                     description = Some(val);
                 }
             }
             "file" => {
-                if let Some(ref filename) = field_filename {
-                    if let Some(ext) = filename.rsplit('.').next() {
-                        file_ext = ext.to_lowercase();
+                let ext = field_filename
+                    .as_ref()
+                    .and_then(|f| f.rsplit('.').next().map(|e| e.to_lowercase()))
+                    .unwrap_or_else(|| String::from("mp4"));
+
+                let file_id = Uuid::new_v4();
+                let key = s3_key("videos", file_id, &ext);
+                let mime = mime_for_ext(&ext);
+
+                match s3_put_stream(&state.s3, &key, &mime, field).await {
+                    Ok(size) => {
+                        uploaded = Some(UploadedFile {
+                            id: file_id,
+                            ext,
+                            size,
+                        });
+                    }
+                    Err(e) => {
+                        log::error!("S3 upload failed: {e}");
+                        return HttpResponse::InternalServerError().json(UploadResponse {
+                            ok: false,
+                            error: Some("Upload failed".to_string()),
+                            content_id: None,
+                        });
                     }
                 }
-                file_bytes = Some(data);
             }
             _ => {}
         }
     }
 
     if title.is_empty() {
+        if let Some(ref f) = uploaded {
+            let _ = state.s3.delete_object(&s3_key("videos", f.id, &f.ext)).await;
+        }
         return HttpResponse::BadRequest().json(UploadResponse {
             ok: false,
             error: Some("Title is required".to_string()),
@@ -89,8 +209,8 @@ pub async fn upload_video(
         });
     }
 
-    let bytes = match file_bytes {
-        Some(b) => b,
+    let file = match uploaded {
+        Some(f) => f,
         None => {
             return HttpResponse::BadRequest().json(UploadResponse {
                 ok: false,
@@ -118,9 +238,10 @@ pub async fn upload_video(
 
     if let Err(e) = content.insert(&state.conn).await {
         log::error!("DB error inserting content_item: {e}");
+        let _ = state.s3.delete_object(&s3_key("videos", file.id, &file.ext)).await;
         return HttpResponse::InternalServerError().json(UploadResponse {
             ok: false,
-            error: Some("Failed to create video record".to_string()),
+            error: Some("Failed to create record".to_string()),
             content_id: None,
         });
     }
@@ -135,54 +256,39 @@ pub async fn upload_video(
         log::error!("DB error inserting video: {e}");
         return HttpResponse::InternalServerError().json(UploadResponse {
             ok: false,
-            error: Some("Failed to create video record".to_string()),
+            error: Some("Failed to create record".to_string()),
             content_id: None,
         });
     }
 
-    let key = s3_key("videos", content_id, &file_ext);
-    let mime = mime_for_ext(&file_ext);
+    let fmt = video_formats::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        video_id: Set(content_id),
+        resolution: Set("source".to_string()),
+        format: Set(file.ext.clone()),
+        storage_path: Set(s3_key("videos", file.id, &file.ext)),
+        file_size_bytes: Set(Some(file.size as i64)),
+        created_at: Set(now),
+    };
 
-    match s3_put(&state.s3, &key, &mime, &bytes).await {
-        Ok(()) => {
-            let fmt = video_formats::ActiveModel {
-                id: Set(Uuid::new_v4()),
-                video_id: Set(content_id),
-                resolution: Set("source".to_string()),
-                format: Set(file_ext),
-                storage_path: Set(key),
-                file_size_bytes: Set(Some(bytes.len() as i64)),
-                created_at: Set(now),
-            };
-
-            if let Err(e) = fmt.insert(&state.conn).await {
-                log::error!("DB error inserting video_format: {e}");
-            }
-
-            if let Ok(Some(content_model)) =
-                content_items::Entity::find_by_id(content_id).one(&state.conn).await
-            {
-                let mut content: content_items::ActiveModel = content_model.into();
-                content.status = Set(ContentStatus::Ready);
-                content.updated_at = Set(chrono::Utc::now().naive_utc());
-                let _ = content.update(&state.conn).await;
-            }
-
-            HttpResponse::Created().json(UploadResponse {
-                ok: true,
-                error: None,
-                content_id: Some(content_id),
-            })
-        }
-        Err(e) => {
-            log::error!("{e}");
-            HttpResponse::InternalServerError().json(UploadResponse {
-                ok: false,
-                error: Some("Failed to upload file to storage".to_string()),
-                content_id: Some(content_id),
-            })
-        }
+    if let Err(e) = fmt.insert(&state.conn).await {
+        log::error!("DB error inserting video_format: {e}");
     }
+
+    if let Ok(Some(content_model)) =
+        content_items::Entity::find_by_id(content_id).one(&state.conn).await
+    {
+        let mut content: content_items::ActiveModel = content_model.into();
+        content.status = Set(ContentStatus::Ready);
+        content.updated_at = Set(chrono::Utc::now().naive_utc());
+        let _ = content.update(&state.conn).await;
+    }
+
+    HttpResponse::Created().json(UploadResponse {
+        ok: true,
+        error: None,
+        content_id: Some(content_id),
+    })
 }
 
 pub async fn upload_gallery(
@@ -190,42 +296,78 @@ pub async fn upload_gallery(
     state: web::Data<AppState>,
     mut payload: Multipart,
 ) -> HttpResponse {
-    let user = match auth::require_user(&session, &state.conn).await {
-        Ok(u) => u,
-        Err(resp) => return resp,
+    let user = match resolve_user(&session, &state).await {
+        Some(u) => u,
+        None => {
+            return HttpResponse::Unauthorized().json(UploadResponse {
+                ok: false,
+                error: Some("Not signed in".to_string()),
+                content_id: None,
+            });
+        }
     };
 
     let mut title = String::new();
     let mut description: Option<String> = None;
-    let mut files: Vec<(String, Vec<u8>)> = Vec::new();
+    let mut uploaded: Vec<UploadedFile> = Vec::new();
 
     while let Some(Ok(mut field)) = payload.next().await {
-        let cd = field.content_disposition().expect("missing content disposition").clone();
+        let cd = field
+            .content_disposition()
+            .expect("missing content disposition")
+            .clone();
         let name = cd.get_name().unwrap_or("").to_string();
         let field_filename = cd.get_filename().map(|f| f.to_string());
 
-        let mut data = Vec::new();
-        while let Some(Ok(chunk)) = field.next().await {
-            data.extend_from_slice(&chunk);
-        }
-
         match name.as_str() {
-            "title" => title = String::from_utf8(data).unwrap_or_default(),
+            "title" => {
+                let mut data = Vec::new();
+                while let Some(Ok(chunk)) = field.next().await {
+                    data.extend_from_slice(&chunk);
+                }
+                title = String::from_utf8(data).unwrap_or_default();
+            }
             "description" => {
+                let mut data = Vec::new();
+                while let Some(Ok(chunk)) = field.next().await {
+                    data.extend_from_slice(&chunk);
+                }
                 let val = String::from_utf8(data).unwrap_or_default();
                 if !val.is_empty() {
                     description = Some(val);
                 }
             }
             "files" => {
-                let filename = field_filename.unwrap_or_else(|| "image".to_string());
-                files.push((filename, data));
+                let ext = field_filename
+                    .as_ref()
+                    .and_then(|f| f.rsplit('.').next().map(|e| e.to_lowercase()))
+                    .unwrap_or_else(|| String::from("jpg"));
+
+                let file_id = Uuid::new_v4();
+                let key = s3_key("galleries", file_id, &ext);
+                let mime = mime_for_ext(&ext);
+
+                match s3_put_stream(&state.s3, &key, &mime, field).await {
+                    Ok(size) => {
+                        uploaded.push(UploadedFile { id: file_id, ext, size });
+                    }
+                    Err(e) => {
+                        log::error!("S3 upload failed: {e}");
+                        cleanup_s3(&state.s3, "galleries", &uploaded).await;
+                        return HttpResponse::InternalServerError().json(UploadResponse {
+                            ok: false,
+                            error: Some("Upload failed".to_string()),
+                            content_id: None,
+                        });
+                    }
+                }
             }
             _ => {}
         }
     }
 
     if title.is_empty() {
+        cleanup_s3(&state.s3, "galleries", &uploaded).await;
         return HttpResponse::BadRequest().json(UploadResponse {
             ok: false,
             error: Some("Title is required".to_string()),
@@ -233,7 +375,7 @@ pub async fn upload_gallery(
         });
     }
 
-    if files.is_empty() {
+    if uploaded.is_empty() {
         return HttpResponse::BadRequest().json(UploadResponse {
             ok: false,
             error: Some("No files provided".to_string()),
@@ -259,9 +401,10 @@ pub async fn upload_gallery(
 
     if let Err(e) = content.insert(&state.conn).await {
         log::error!("DB error inserting content_item: {e}");
+        cleanup_s3(&state.s3, "galleries", &uploaded).await;
         return HttpResponse::InternalServerError().json(UploadResponse {
             ok: false,
-            error: Some("Failed to create gallery record".to_string()),
+            error: Some("Failed to create record".to_string()),
             content_id: None,
         });
     }
@@ -273,33 +416,19 @@ pub async fn upload_gallery(
 
     if let Err(e) = image_set.insert(&state.conn).await {
         log::error!("DB error inserting image_set: {e}");
+        cleanup_s3(&state.s3, "galleries", &uploaded).await;
         return HttpResponse::InternalServerError().json(UploadResponse {
             ok: false,
-            error: Some("Failed to create gallery record".to_string()),
+            error: Some("Failed to create record".to_string()),
             content_id: None,
         });
     }
 
-    for (i, (filename, bytes)) in files.iter().enumerate() {
-        let image_id = Uuid::new_v4();
-        let ext = filename
-            .rsplit('.')
-            .next()
-            .map(|e| e.to_lowercase())
-            .unwrap_or_else(|| String::from("jpg"));
-
-        let key = s3_key("galleries", image_id, &ext);
-        let mime = mime_for_ext(&ext);
-
-        if let Err(e) = s3_put(&state.s3, &key, &mime, bytes).await {
-            log::error!("{e} for {filename}");
-            continue;
-        }
-
+    for (i, f) in uploaded.iter().enumerate() {
         let image = images::ActiveModel {
-            id: Set(image_id),
+            id: Set(f.id),
             image_set_id: Set(content_id),
-            storage_path: Set(key),
+            storage_path: Set(s3_key("galleries", f.id, &f.ext)),
             sort_order: Set(i as i32),
             alt_text: Set(None),
             created_at: Set(now),
