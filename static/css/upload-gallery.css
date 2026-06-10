@@ -101,6 +101,12 @@
   color: var(--text-tertiary);
 }
 
+.upload-input:disabled,
+.upload-textarea:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .file-list {
   display: flex;
   flex-direction: column;

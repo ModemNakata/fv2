@@ -31,7 +31,7 @@
         <p class="file-selected-name" id="fileName"></p>
         <p class="file-selected-size" id="fileSize"></p>
       </div>
-      <input type="file" id="videoFileInput" name="file" hidden>
+      <input type="file" id="videoFileInput" name="file" accept=".mp4,.mov,.avi,.mkv,.webm,.m4v,.ts" hidden>
     </div>
     <div class="upload-fields">
       <input type="text" name="title" class="upload-input" placeholder="Video title" required>
@@ -114,6 +114,8 @@
         progressContainer.hidden = false;
         btn.disabled = true;
         btn.textContent = 'Uploading...';
+        form.querySelector('[name="title"]').disabled = true;
+        form.querySelector('[name="description"]').disabled = true;
 
         var fd = new FormData(form);
         var xhr = new XMLHttpRequest();
@@ -122,7 +124,7 @@
           if (e.lengthComputable) {
             var pct = Math.round((e.loaded / e.total) * 100);
             progressFill.style.width = pct + '%';
-            progressText.textContent = 'Uploading... ' + pct + '%';
+            btn.textContent = 'Uploading ' + pct + '%';
           }
         });
 
@@ -160,6 +162,8 @@
           progressFill.style.width = '0%';
           btn.disabled = false;
           btn.textContent = 'Upload';
+          form.querySelector('[name="title"]').disabled = false;
+          form.querySelector('[name="description"]').disabled = false;
         }
       });
     })();

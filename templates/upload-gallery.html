@@ -19,7 +19,7 @@
       </svg>
       <p class="upload-text">Drag & drop images or <span class="upload-link">browse</span></p>
       <p class="upload-hint">Converted to WebP — up to 100 images, 5GB total</p>
-      <input type="file" id="galleryFileInput" hidden multiple>
+      <input type="file" id="galleryFileInput" accept="image/*" hidden multiple>
     </div>
     <div class="file-list" id="fileList"></div>
     <div class="upload-fields">
@@ -296,6 +296,8 @@
       progressContainer.hidden = false;
       btn.disabled = true;
       btn.textContent = 'Uploading...';
+      this.querySelector('[name="title"]').disabled = true;
+      this.querySelector('[name="description"]').disabled = true;
 
       var fd = new FormData();
       fd.append('title', this.querySelector('[name="title"]').value);
@@ -309,7 +311,7 @@
         if (e.lengthComputable) {
           var pct = Math.round((e.loaded / e.total) * 100);
           progressFill.style.width = pct + '%';
-          progressText.textContent = 'Uploading... ' + pct + '%';
+          btn.textContent = 'Uploading ' + pct + '%';
         }
       });
 
@@ -348,6 +350,8 @@
         progressFill.style.width = '0%';
         btn.disabled = false;
         btn.textContent = 'Upload';
+        document.querySelector('[name="title"]').disabled = false;
+        document.querySelector('[name="description"]').disabled = false;
       }
     });
   })();

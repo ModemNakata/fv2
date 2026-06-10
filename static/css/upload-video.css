@@ -81,6 +81,12 @@
   color: var(--text-tertiary);
 }
 
+.upload-input:disabled,
+.upload-textarea:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .upload-textarea {
   min-height: 120px;
   background: var(--bg-tertiary);
@@ -148,6 +154,11 @@
 
 .upload-submit:hover {
   opacity: 0.9;
+}
+
+.upload-submit:disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .progress-container {
