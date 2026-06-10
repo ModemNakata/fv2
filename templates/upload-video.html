@@ -13,20 +13,26 @@
     <div class="upload-dropzone" id="videoDropzone">
       <div class="dropzone-default" id="dropzoneDefault">
         <svg class="icon upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-          <rect width="256" height="256" fill="none"/>
-          <line x1="128" y1="144" x2="128" y2="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-          <polyline points="216 144 216 208 40 208 40 144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-          <polyline points="88 72 128 32 168 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          <rect width="256" height="256" fill="none" />
+          <line x1="128" y1="144" x2="128" y2="32" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+          <polyline points="216 144 216 208 40 208 40 144" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+          <polyline points="88 72 128 32 168 72" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
         </svg>
         <p class="upload-text">Drag & drop a video or <span class="upload-link">browse</span></p>
         <p class="upload-hint">Encoded to HLS (H.264) — up to 10GB</p>
       </div>
       <div class="dropzone-file" id="dropzoneFile" hidden>
         <svg class="icon file-selected-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-          <rect width="256" height="256" fill="none"/>
-          <polygon points="160 112 112 80 112 144 160 112" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-          <rect x="32" y="48" width="192" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-          <line x1="32" y1="208" x2="224" y2="208" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          <rect width="256" height="256" fill="none" />
+          <polygon points="160 112 112 80 112 144 160 112" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+          <rect x="32" y="48" width="192" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+          <line x1="32" y1="208" x2="224" y2="208" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
         </svg>
         <p class="file-selected-name" id="fileName"></p>
         <p class="file-selected-size" id="fileSize"></p>
@@ -35,7 +41,7 @@
     </div>
     <div class="upload-fields">
       <input type="text" name="title" class="upload-input" placeholder="Video title" required>
-      <textarea name="description" class="upload-textarea" placeholder="Description"></textarea>
+      <textarea name="description" class="upload-textarea" placeholder="Description (optional)"></textarea>
     </div>
     <button type="submit" class="upload-submit">Upload</button>
     <div class="progress-container" id="progressContainer" hidden>
@@ -46,7 +52,7 @@
     </div>
   </form>
   <script>
-    (function() {
+    (function () {
       var dropzone = document.getElementById('videoDropzone');
       var fileInput = document.getElementById('videoFileInput');
       var form = document.getElementById('uploadForm');
@@ -73,24 +79,24 @@
         btn.disabled = false;
       }
 
-      dropzone.addEventListener('click', function() {
+      dropzone.addEventListener('click', function () {
         fileInput.click();
       });
 
-      fileInput.addEventListener('change', function() {
+      fileInput.addEventListener('change', function () {
         if (fileInput.files.length > 0) showFile(fileInput.files[0]);
       });
 
-      dropzone.addEventListener('dragover', function(e) {
+      dropzone.addEventListener('dragover', function (e) {
         e.preventDefault();
         dropzone.classList.add('dragover');
       });
 
-      dropzone.addEventListener('dragleave', function() {
+      dropzone.addEventListener('dragleave', function () {
         dropzone.classList.remove('dragover');
       });
 
-      dropzone.addEventListener('drop', function(e) {
+      dropzone.addEventListener('drop', function (e) {
         e.preventDefault();
         dropzone.classList.remove('dragover');
         if (e.dataTransfer.files.length > 0) {
@@ -103,7 +109,7 @@
       // Start disabled until a file is selected
       btn.disabled = true;
 
-      form.addEventListener('submit', function(e) {
+      form.addEventListener('submit', function (e) {
         e.preventDefault();
         var dropzone = document.getElementById('videoDropzone');
         var progressContainer = document.getElementById('progressContainer');
@@ -120,7 +126,7 @@
         var fd = new FormData(form);
         var xhr = new XMLHttpRequest();
 
-        xhr.upload.addEventListener('progress', function(e) {
+        xhr.upload.addEventListener('progress', function (e) {
           if (e.lengthComputable) {
             var pct = Math.round((e.loaded / e.total) * 100);
             progressFill.style.width = pct + '%';
@@ -128,7 +134,7 @@
           }
         });
 
-        xhr.addEventListener('load', function() {
+        xhr.addEventListener('load', function () {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               var data = JSON.parse(xhr.responseText);
@@ -148,7 +154,7 @@
           }
         });
 
-        xhr.addEventListener('error', function() {
+        xhr.addEventListener('error', function () {
           alert('Network error');
           resetUploadUI();
         });
@@ -168,4 +174,4 @@
       });
     })();
   </script>
-{% endblock %}
+  {% endblock %}

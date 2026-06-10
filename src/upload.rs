@@ -4,14 +4,14 @@ use actix_web::{HttpResponse, web};
 use futures_util::StreamExt;
 use uuid::Uuid;
 
+use crate::AppState;
 use crate::auth;
 use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
-use crate::entity::{content_items, images, image_sets, users, video_formats, videos};
+use crate::entity::{content_items, image_sets, images, users, video_formats, videos};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
-use crate::AppState;
 
-const MIN_PART_SIZE: usize = 5 * 1024 * 1024;
+const MIN_PART_SIZE: usize = 5 * 1024 * 1024; // 5MB
 
 #[derive(serde::Serialize)]
 struct UploadResponse {
@@ -167,10 +167,19 @@ pub async fn upload_video(
                 }
             }
             "file" => {
-                let ext = field_filename
+                let ext = match field_filename
                     .as_ref()
                     .and_then(|f| f.rsplit('.').next().map(|e| e.to_lowercase()))
-                    .unwrap_or_else(|| String::from("mp4"));
+                {
+                    Some(e) => e,
+                    None => {
+                        return HttpResponse::BadRequest().json(UploadResponse {
+                            ok: false,
+                            error: Some("Could not determine file extension".to_string()),
+                            content_id: None,
+                        });
+                    }
+                };
 
                 let file_id = Uuid::new_v4();
                 let key = s3_key("videos", file_id, &ext);
@@ -200,7 +209,10 @@ pub async fn upload_video(
 
     if title.is_empty() {
         if let Some(ref f) = uploaded {
-            let _ = state.s3.delete_object(&s3_key("videos", f.id, &f.ext)).await;
+            let _ = state
+                .s3
+                .delete_object(&s3_key("videos", f.id, &f.ext))
+                .await;
         }
         return HttpResponse::BadRequest().json(UploadResponse {
             ok: false,
@@ -238,7 +250,10 @@ pub async fn upload_video(
 
     if let Err(e) = content.insert(&state.conn).await {
         log::error!("DB error inserting content_item: {e}");
-        let _ = state.s3.delete_object(&s3_key("videos", file.id, &file.ext)).await;
+        let _ = state
+            .s3
+            .delete_object(&s3_key("videos", file.id, &file.ext))
+            .await;
         return HttpResponse::InternalServerError().json(UploadResponse {
             ok: false,
             error: Some("Failed to create record".to_string()),
@@ -264,7 +279,7 @@ pub async fn upload_video(
     let fmt = video_formats::ActiveModel {
         id: Set(Uuid::new_v4()),
         video_id: Set(content_id),
-        resolution: Set("source".to_string()),
+        resolution: Set("original".to_string()),
         format: Set(file.ext.clone()),
         storage_path: Set(s3_key("videos", file.id, &file.ext)),
         file_size_bytes: Set(Some(file.size as i64)),
@@ -275,8 +290,9 @@ pub async fn upload_video(
         log::error!("DB error inserting video_format: {e}");
     }
 
-    if let Ok(Some(content_model)) =
-        content_items::Entity::find_by_id(content_id).one(&state.conn).await
+    if let Ok(Some(content_model)) = content_items::Entity::find_by_id(content_id)
+        .one(&state.conn)
+        .await
     {
         let mut content: content_items::ActiveModel = content_model.into();
         content.status = Set(ContentStatus::Ready);
@@ -338,10 +354,20 @@ pub async fn upload_gallery(
                 }
             }
             "files" => {
-                let ext = field_filename
+                let ext = match field_filename
                     .as_ref()
                     .and_then(|f| f.rsplit('.').next().map(|e| e.to_lowercase()))
-                    .unwrap_or_else(|| String::from("jpg"));
+                {
+                    Some(e) => e,
+                    None => {
+                        cleanup_s3(&state.s3, "galleries", &uploaded).await;
+                        return HttpResponse::BadRequest().json(UploadResponse {
+                            ok: false,
+                            error: Some("Could not determine file extension".to_string()),
+                            content_id: None,
+                        });
+                    }
+                };
 
                 let file_id = Uuid::new_v4();
                 let key = s3_key("galleries", file_id, &ext);
@@ -349,7 +375,11 @@ pub async fn upload_gallery(
 
                 match s3_put_stream(&state.s3, &key, &mime, field).await {
                     Ok(size) => {
-                        uploaded.push(UploadedFile { id: file_id, ext, size });
+                        uploaded.push(UploadedFile {
+                            id: file_id,
+                            ext,
+                            size,
+                        });
                     }
                     Err(e) => {
                         log::error!("S3 upload failed: {e}");
@@ -439,8 +469,9 @@ pub async fn upload_gallery(
         }
     }
 
-    if let Ok(Some(content_model)) =
-        content_items::Entity::find_by_id(content_id).one(&state.conn).await
+    if let Ok(Some(content_model)) = content_items::Entity::find_by_id(content_id)
+        .one(&state.conn)
+        .await
     {
         let mut content: content_items::ActiveModel = content_model.into();
         content.status = Set(ContentStatus::Ready);

@@ -12,10 +12,13 @@
   <form class="upload-form" id="uploadForm" action="/upload/gallery" method="post" enctype="multipart/form-data">
     <div class="upload-dropzone" id="galleryDropzone">
       <svg class="icon upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-        <rect width="256" height="256" fill="none"/>
-        <line x1="128" y1="144" x2="128" y2="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-        <polyline points="216 144 216 208 40 208 40 144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-        <polyline points="88 72 128 32 168 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+        <rect width="256" height="256" fill="none" />
+        <line x1="128" y1="144" x2="128" y2="32" fill="none" stroke="currentColor" stroke-linecap="round"
+          stroke-linejoin="round" stroke-width="16" />
+        <polyline points="216 144 216 208 40 208 40 144" fill="none" stroke="currentColor" stroke-linecap="round"
+          stroke-linejoin="round" stroke-width="16" />
+        <polyline points="88 72 128 32 168 72" fill="none" stroke="currentColor" stroke-linecap="round"
+          stroke-linejoin="round" stroke-width="16" />
       </svg>
       <p class="upload-text">Drag & drop images or <span class="upload-link">browse</span></p>
       <p class="upload-hint">Converted to WebP — up to 100 images, 5GB total</p>
@@ -24,7 +27,8 @@
     <div class="file-list" id="fileList"></div>
     <div class="upload-fields">
       <input type="text" name="title" class="upload-input" placeholder="Gallery title" required>
-      <textarea name="description" class="upload-textarea" placeholder="Description"></textarea>
+      <textarea name="description" class="upload-textarea" placeholder="Description (optional)"></textarea>
+      <!-- optionally -->
     </div>
     <button type="submit" class="upload-submit" id="uploadBtn" style="display:none">Upload</button>
     <div class="progress-container" id="progressContainer" hidden>
@@ -36,7 +40,7 @@
   </form>
 </div>
 <script>
-  (function() {
+  (function () {
     var MAX_FILES = 100;
     var MAX_SIZE = 5 * 1024 * 1024 * 1024;
 
@@ -62,7 +66,7 @@
       fileList.innerHTML = '';
       var totalSize = 0;
 
-      files.forEach(function(file, index) {
+      files.forEach(function (file, index) {
         totalSize += file.size;
 
         var item = document.createElement('div');
@@ -102,7 +106,7 @@
         removeBtn.className = 'file-remove';
         removeBtn.type = 'button';
         removeBtn.textContent = '\u00D7';
-        removeBtn.addEventListener('click', function(e) {
+        removeBtn.addEventListener('click', function (e) {
           e.stopPropagation();
           files.splice(index, 1);
           render();
@@ -113,30 +117,30 @@
         item.appendChild(removeBtn);
 
         // --- Drag & drop reorder (desktop) ---
-        item.addEventListener('dragstart', function() {
+        item.addEventListener('dragstart', function () {
           draggedIndex = index;
           item.classList.add('dragging');
         });
-        item.addEventListener('dragend', function() {
+        item.addEventListener('dragend', function () {
           item.classList.remove('dragging');
           draggedIndex = null;
         });
 
         // --- Touch long-press drag (mobile) ---
-        item.addEventListener('touchstart', function(e) {
-          touchTimer = setTimeout(function() {
+        item.addEventListener('touchstart', function (e) {
+          touchTimer = setTimeout(function () {
             isTouchDragging = true;
             draggedIndex = index;
             item.classList.add('dragging');
           }, 200);
         });
-        item.addEventListener('touchmove', function() {
+        item.addEventListener('touchmove', function () {
           clearTimeout(touchTimer);
         });
-        item.addEventListener('touchend', function() {
+        item.addEventListener('touchend', function () {
           clearTimeout(touchTimer);
         });
-        item.addEventListener('touchcancel', function() {
+        item.addEventListener('touchcancel', function () {
           clearTimeout(touchTimer);
           isTouchDragging = false;
           item.classList.remove('dragging');
@@ -169,7 +173,7 @@
       var closest = null;
       var closestOffset = Number.NEGATIVE_INFINITY;
 
-      items.forEach(function(item) {
+      items.forEach(function (item) {
         var box = item.getBoundingClientRect();
         var offset = y - box.top - box.height / 2;
         if (offset < 0 && offset > closestOffset) {
@@ -182,7 +186,7 @@
     }
 
     // Desktop drag over file list
-    fileList.addEventListener('dragover', function(e) {
+    fileList.addEventListener('dragover', function (e) {
       e.preventDefault();
       var afterIndex = getInsertIndex(fileList, e.clientY);
       var dragging = document.querySelector('.dragging');
@@ -196,13 +200,13 @@
       }
     });
 
-    fileList.addEventListener('drop', function(e) {
+    fileList.addEventListener('drop', function (e) {
       e.preventDefault();
       commitReorder();
     });
 
     // Touch reorder
-    fileList.addEventListener('touchmove', function(e) {
+    fileList.addEventListener('touchmove', function (e) {
       if (isTouchDragging) {
         e.preventDefault();
         var touch = e.touches[0];
@@ -217,9 +221,9 @@
           }
         }
       }
-    }, { passive: false });
+    }, {passive: false});
 
-    fileList.addEventListener('touchend', function(e) {
+    fileList.addEventListener('touchend', function (e) {
       if (isTouchDragging) {
         commitReorder();
       }
@@ -248,7 +252,7 @@
       }
       var toAdd = Array.from(newFiles).slice(0, remaining);
 
-      toAdd.forEach(function(f) {
+      toAdd.forEach(function (f) {
         if (f.type && f.type.startsWith('image/')) {
           f._preview = URL.createObjectURL(f);
         }
@@ -258,32 +262,32 @@
       render();
     }
 
-    dropzone.addEventListener('click', function() {
+    dropzone.addEventListener('click', function () {
       fileInput.click();
     });
 
-    fileInput.addEventListener('change', function() {
+    fileInput.addEventListener('change', function () {
       addFiles(fileInput.files);
       fileInput.value = '';
     });
 
-    dropzone.addEventListener('dragover', function(e) {
+    dropzone.addEventListener('dragover', function (e) {
       e.preventDefault();
       dropzone.classList.add('dragover');
     });
 
-    dropzone.addEventListener('dragleave', function() {
+    dropzone.addEventListener('dragleave', function () {
       dropzone.classList.remove('dragover');
     });
 
-    dropzone.addEventListener('drop', function(e) {
+    dropzone.addEventListener('drop', function (e) {
       e.preventDefault();
       dropzone.classList.remove('dragover');
       addFiles(e.dataTransfer.files);
     });
 
     // Upload with progress
-    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    document.getElementById('uploadForm').addEventListener('submit', function (e) {
       e.preventDefault();
       var btn = document.getElementById('uploadBtn');
       var dropzone = document.getElementById('galleryDropzone');
@@ -303,11 +307,11 @@
       fd.append('title', this.querySelector('[name="title"]').value);
       var desc = this.querySelector('[name="description"]').value;
       if (desc) fd.append('description', desc);
-      files.forEach(function(f) { fd.append('files', f, f.name); });
+      files.forEach(function (f) {fd.append('files', f, f.name);});
 
       var xhr = new XMLHttpRequest();
 
-      xhr.upload.addEventListener('progress', function(e) {
+      xhr.upload.addEventListener('progress', function (e) {
         if (e.lengthComputable) {
           var pct = Math.round((e.loaded / e.total) * 100);
           progressFill.style.width = pct + '%';
@@ -315,7 +319,7 @@
         }
       });
 
-      xhr.addEventListener('load', function() {
+      xhr.addEventListener('load', function () {
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             var data = JSON.parse(xhr.responseText);
@@ -335,7 +339,7 @@
         }
       });
 
-      xhr.addEventListener('error', function() {
+      xhr.addEventListener('error', function () {
         alert('Network error');
         resetUploadUI();
       });
