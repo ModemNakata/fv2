@@ -109,7 +109,7 @@ impl MigrationTrait for Migration {
                     .col(string_len("resolution", 50))
                     .col(string_len("format", 50))
                     .col(string_len("storage_path", 1024))
-                    .col(string_len("original_name", 1024))
+                    .col(string_len("original_name", 1024)) // should
                     .col(big_integer_null("file_size_bytes"))
                     .col(timestamp("created_at").default(Expr::current_timestamp()))
                     .foreign_key(
@@ -243,3 +243,8 @@ impl MigrationTrait for Migration {
         Ok(())
     }
 }
+
+//.col(string_len("original_name", 1024)) // should be optional ? (???)
+//.col(string_len("original_name", 1024)) // should be optional? (???)
+//.col(string_len("original_name", 1024)) // should be optional(???)
+//.col(string_len("original_name", 1024)) // should be optional???
