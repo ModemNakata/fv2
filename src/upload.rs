@@ -1,6 +1,6 @@
 use actix_multipart::Multipart;
 use actix_session::Session;
-use actix_web::{HttpResponse, post, web};
+use actix_web::{HttpResponse, web};
 use futures_util::StreamExt;
 use s3::Bucket;
 use uuid::Uuid;
@@ -36,7 +36,6 @@ async fn s3_put(bucket: &Bucket, key: &str, mime: &str, bytes: &[u8]) -> Result<
     }
 }
 
-#[post("/video")]
 pub async fn upload_video(
     session: Session,
     state: web::Data<AppState>,
@@ -186,7 +185,6 @@ pub async fn upload_video(
     }
 }
 
-#[post("/gallery")]
 pub async fn upload_gallery(
     session: Session,
     state: web::Data<AppState>,

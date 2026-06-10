@@ -9,7 +9,7 @@
 {% block content %}
 <div class="upload-page">
   <h1 class="upload-heading">Upload Video</h1>
-  <form class="upload-form" action="/upload/video" method="post" enctype="multipart/form-data">
+  <form class="upload-form" id="uploadForm" action="/upload/video" method="post" enctype="multipart/form-data">
     <div class="upload-dropzone" id="videoDropzone">
       <svg class="icon upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
         <rect width="256" height="256" fill="none"/>
@@ -28,8 +28,50 @@
     <button type="submit" class="upload-submit">Upload</button>
   </form>
   <script>
-    document.getElementById('videoDropzone').addEventListener('click', function() {
-      document.getElementById('videoFileInput').click();
-    });
+    (function() {
+      var dropzone = document.getElementById('videoDropzone');
+      var fileInput = document.getElementById('videoFileInput');
+      var form = document.getElementById('uploadForm');
+      var btn = form.querySelector('.upload-submit');
+
+      dropzone.addEventListener('click', function() {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', function() {
+        if (fileInput.files.length > 0) {
+          btn.textContent = 'Upload ' + fileInput.files[0].name;
+          btn.disabled = false;
+        }
+      });
+
+      // Disable button until a file is selected
+      btn.disabled = true;
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        btn.disabled = true;
+        btn.textContent = 'Uploading...';
+
+        var fd = new FormData(form);
+
+        fetch(form.action, { method: 'POST', body: fd })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.ok && data.content_id) {
+              window.location.href = '/video?id=' + data.content_id;
+            } else {
+              alert(data.error || 'Upload failed');
+              btn.disabled = false;
+              btn.textContent = 'Upload';
+            }
+          })
+          .catch(function() {
+            alert('Network error');
+            btn.disabled = false;
+            btn.textContent = 'Upload';
+          });
+      });
+    })();
   </script>
 {% endblock %}
