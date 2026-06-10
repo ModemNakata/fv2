@@ -102,12 +102,12 @@
 }
 
 .upload-submit {
+  width: 100%;
   height: 44px;
   background: var(--accent);
   color: var(--bg-primary);
   font-size: 0.95rem;
   font-weight: 700;
-  align-self: flex-start;
   padding: 0 32px;
 }
 
@@ -118,9 +118,5 @@
 @media (max-width: 639px) {
   .upload-page {
     max-width: none;
-  }
-
-  .upload-submit {
-    width: 100%;
   }
 }
