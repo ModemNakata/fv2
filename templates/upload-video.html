@@ -116,14 +116,14 @@
         var progressFill = document.getElementById('progressFill');
         var progressText = document.getElementById('progressText');
 
+        var fd = new FormData(form);
+
         dropzone.style.display = 'none';
         progressContainer.hidden = false;
         btn.disabled = true;
         btn.textContent = 'Uploading...';
         form.querySelector('[name="title"]').disabled = true;
         form.querySelector('[name="description"]').disabled = true;
-
-        var fd = new FormData(form);
         var xhr = new XMLHttpRequest();
 
         xhr.upload.addEventListener('progress', function (e) {
