@@ -18,7 +18,8 @@ mod video;
 #[derive(Clone)]
 pub struct AppState {
     pub conn: DatabaseConnection,
-    pub s3: Bucket,
+    pub s3_processed: Bucket,
+    pub s3_orig: Bucket,
 }
 
 #[actix_web::main]
@@ -42,9 +43,9 @@ async fn main() -> std::io::Result<()> {
     };
 
     let conn = Database::connect(&db_url).await.unwrap();
-    let bucket = s3::init_bucket();
+    let (s3_processed, s3_orig) = s3::init_buckets();
 
-    let state = AppState { conn, s3: bucket };
+    let state = AppState { conn, s3_processed, s3_orig };
 
     HttpServer::new(move || {
         App::new()

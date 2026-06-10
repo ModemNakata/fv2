@@ -184,10 +184,10 @@ pub async fn upload_video(
 
                 let original_name = field_filename.unwrap_or_else(|| String::from("video"));
                 let file_id = Uuid::new_v4();
-                let key = s3_key("original/videos", file_id, &ext);
+                let key = s3_key("videos", file_id, &ext);
                 let mime = mime_for_ext(&ext);
 
-                match s3_put_stream(&state.s3, &key, &mime, field).await {
+                match s3_put_stream(&state.s3_orig, &key, &mime, field).await {
                     Ok(size) => {
                         uploaded = Some(UploadedFile {
                             id: file_id,
@@ -213,8 +213,8 @@ pub async fn upload_video(
     if title.is_empty() {
         if let Some(ref f) = uploaded {
             let _ = state
-                .s3
-                .delete_object(&s3_key("original/videos", f.id, &f.ext))
+                .s3_orig
+                .delete_object(&s3_key("videos", f.id, &f.ext))
                 .await;
         }
         return HttpResponse::BadRequest().json(UploadResponse {
@@ -254,8 +254,8 @@ pub async fn upload_video(
     if let Err(e) = content.insert(&state.conn).await {
         log::error!("DB error inserting content_item: {e}");
         let _ = state
-            .s3
-            .delete_object(&s3_key("original/videos", file.id, &file.ext))
+            .s3_orig
+            .delete_object(&s3_key("videos", file.id, &file.ext))
             .await;
         return HttpResponse::InternalServerError().json(UploadResponse {
             ok: false,
@@ -284,7 +284,7 @@ pub async fn upload_video(
         video_id: Set(content_id),
         resolution: Set("original".to_string()),
         format: Set(file.ext.clone()),
-        storage_path: Set(s3_key("original/videos", file.id, &file.ext)),
+        storage_path: Set(s3_key("videos", file.id, &file.ext)),
         original_name: Set(file.original_name.clone()),
         file_size_bytes: Set(Some(file.size as i64)),
         created_at: Set(now),
@@ -364,7 +364,7 @@ pub async fn upload_gallery(
                 {
                     Some(e) => e,
                     None => {
-                        cleanup_s3(&state.s3, "original/galleries", &uploaded).await;
+                        cleanup_s3(&state.s3_orig, "galleries", &uploaded).await;
                         return HttpResponse::BadRequest().json(UploadResponse {
                             ok: false,
                             error: Some("Could not determine file extension".to_string()),
@@ -375,10 +375,10 @@ pub async fn upload_gallery(
 
                 let original_name = field_filename.unwrap_or_else(|| String::from("image"));
                 let file_id = Uuid::new_v4();
-                let key = s3_key("original/galleries", file_id, &ext);
+                let key = s3_key("galleries", file_id, &ext);
                 let mime = mime_for_ext(&ext);
 
-                match s3_put_stream(&state.s3, &key, &mime, field).await {
+                match s3_put_stream(&state.s3_orig, &key, &mime, field).await {
                     Ok(size) => {
                         uploaded.push(UploadedFile {
                             id: file_id,
@@ -389,7 +389,7 @@ pub async fn upload_gallery(
                     }
                     Err(e) => {
                         log::error!("S3 upload failed: {e}");
-                        cleanup_s3(&state.s3, "original/galleries", &uploaded).await;
+                        cleanup_s3(&state.s3_orig, "galleries", &uploaded).await;
                         return HttpResponse::InternalServerError().json(UploadResponse {
                             ok: false,
                             error: Some("Upload failed".to_string()),
@@ -403,7 +403,7 @@ pub async fn upload_gallery(
     }
 
     if title.is_empty() {
-        cleanup_s3(&state.s3, "original/galleries", &uploaded).await;
+        cleanup_s3(&state.s3_orig, "galleries", &uploaded).await;
         return HttpResponse::BadRequest().json(UploadResponse {
             ok: false,
             error: Some("Title is required".to_string()),
@@ -437,7 +437,7 @@ pub async fn upload_gallery(
 
     if let Err(e) = content.insert(&state.conn).await {
         log::error!("DB error inserting content_item: {e}");
-        cleanup_s3(&state.s3, "original/galleries", &uploaded).await;
+        cleanup_s3(&state.s3_orig, "galleries", &uploaded).await;
         return HttpResponse::InternalServerError().json(UploadResponse {
             ok: false,
             error: Some("Failed to create record".to_string()),
@@ -452,7 +452,7 @@ pub async fn upload_gallery(
 
     if let Err(e) = image_set.insert(&state.conn).await {
         log::error!("DB error inserting image_set: {e}");
-        cleanup_s3(&state.s3, "original/galleries", &uploaded).await;
+        cleanup_s3(&state.s3_orig, "galleries", &uploaded).await;
         return HttpResponse::InternalServerError().json(UploadResponse {
             ok: false,
             error: Some("Failed to create record".to_string()),
@@ -464,7 +464,7 @@ pub async fn upload_gallery(
         let image = images::ActiveModel {
             id: Set(f.id),
             image_set_id: Set(content_id),
-            storage_path: Set(s3_key("original/galleries", f.id, &f.ext)),
+            storage_path: Set(s3_key("galleries", f.id, &f.ext)),
             original_name: Set(f.original_name.clone()),
             sort_order: Set(i as i32),
             alt_text: Set(None),
