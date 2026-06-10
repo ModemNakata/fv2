@@ -1,3 +1,7 @@
+.top-bar-center {
+  display: none;
+}
+
 .upload-page {
   max-width: 640px;
   margin: 0 auto;
