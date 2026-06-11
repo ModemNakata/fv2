@@ -6,6 +6,9 @@
 {% block content %}
 <div class="gallery-header">
   <h1 class="gallery-title">{{ title }}</h1>
+  {% if description.is_some() %}
+  <p class="gallery-description">{{ description.as_ref().unwrap() }}</p>
+  {% endif %}
 </div>
 <div class="gallery-grid">
   {% for image in images %}

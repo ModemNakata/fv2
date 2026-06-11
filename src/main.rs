@@ -72,8 +72,10 @@ async fn main() -> std::io::Result<()> {
                 .route(web::get().to(home::upload_gallery))
                 .route(web::post().to(upload::upload_gallery))
             )
-            .service(web::resource("/video").route(web::get().to(video::video)))
-            .service(web::resource("/gallery").route(web::get().to(gallery::gallery)))
+            .service(web::resource("/video").route(web::get().to(video::redirect_to_home)))
+            .service(web::resource("/video/{uuid}").route(web::get().to(video::video)))
+            .service(web::resource("/gallery").route(web::get().to(gallery::index)))
+            .service(web::resource("/gallery/{uuid}").route(web::get().to(gallery::gallery)))
             .service(
                 web::scope("/auth")
                     .service(auth::auth_check)

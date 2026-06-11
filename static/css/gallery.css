@@ -10,6 +10,13 @@
     color: var(--text-primary);
 }
 
+.gallery-description {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
 .gallery-grid {
     display: grid;
     grid-template-columns: 1fr;
