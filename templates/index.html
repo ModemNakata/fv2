@@ -67,7 +67,8 @@
       </div>
       {% endif %}
       {% if v.preview_url.is_some() %}
-      <video class="thumb-preview" src="{{ v.preview_url.as_ref().unwrap() }}" muted playsinline preload="none" loop></video>
+      <video class="thumb-preview" src="{{ v.preview_url.as_ref().unwrap() }}" muted playsinline preload="none" loop{% if v.thumbnail_url.is_some() %} poster="{{ v.thumbnail_url.as_ref().unwrap() }}"{% endif %}></video>
+      <div class="thumb-spinner"></div>
       {% endif %}
       <span class="duration">{{ v.duration }}</span>
     </div>
@@ -88,16 +89,29 @@
   for (var i = 0; i < cards.length; i++) {
     var card = cards[i];
     var video = card.querySelector('.thumb-preview');
+    var spinner = card.querySelector('.thumb-spinner');
     if (!video) continue;
+
     card.addEventListener('mouseenter', function() {
       var v = this.querySelector('.thumb-preview');
+      var s = this.querySelector('.thumb-spinner');
       v.currentTime = 0;
+      if (s) s.classList.add('active');
       v.play().catch(function(){});
     });
+
     card.addEventListener('mouseleave', function() {
       var v = this.querySelector('.thumb-preview');
+      var s = this.querySelector('.thumb-spinner');
       v.pause();
       v.currentTime = 0;
+      if (s) s.classList.remove('active');
+    });
+
+    video.addEventListener('playing', function() {
+      var card = this.closest('.video-card');
+      var s = card.querySelector('.thumb-spinner');
+      if (s) s.classList.remove('active');
     });
   }
 })();
