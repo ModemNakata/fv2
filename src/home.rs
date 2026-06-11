@@ -20,12 +20,12 @@ struct HomePage {
 struct VideoItem {
     id: Uuid,
     title: String,
-    channel_name: String,
     views: String,
     duration: String,
     time_ago: String,
     thumbnail_url: Option<String>,
     preview_url: Option<String>,
+    uploader_avatar_url: Option<String>,
     uploader_initials: String,
     hue: u32,
 }
@@ -135,12 +135,10 @@ pub async fn index(
             let view_count = video_opt.as_ref().map(|v| v.view_count).unwrap_or(0);
             let views_str = format_view_count(view_count);
 
-            let channel_name = users_map
+            let initials = users_map
                 .get(&content.uploader_id)
                 .cloned()
-                .unwrap_or_else(|| "Unknown".to_string());
-
-            let initials = channel_name
+                .unwrap_or_else(|| "?".to_string())
                 .chars()
                 .next()
                 .map(|c| c.to_uppercase().to_string())
@@ -170,12 +168,12 @@ pub async fn index(
             VideoItem {
                 id: content.id,
                 title: content.title,
-                channel_name,
                 views: views_str,
                 duration: duration_str,
                 time_ago: time_ago_str,
                 thumbnail_url,
                 preview_url,
+                uploader_avatar_url: None,
                 uploader_initials: initials,
                 hue,
             }

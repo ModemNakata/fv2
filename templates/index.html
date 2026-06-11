@@ -73,10 +73,11 @@
       <span class="duration">{{ v.duration }}</span>
     </div>
     <div class="video-info">
+      {% if v.uploader_avatar_url.is_some() %}
       <div class="channel-avatar" style="--hue: {{ v.hue }}">{{ v.uploader_initials }}</div>
+      {% endif %}
       <div class="video-details">
         <h3 class="video-title">{{ v.title }}</h3>
-        <p class="channel-name">{{ v.channel_name }}</p>
         <p class="video-meta">{{ v.views }} · {{ v.time_ago }}</p>
       </div>
     </div>
