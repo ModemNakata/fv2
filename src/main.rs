@@ -12,6 +12,7 @@ mod auth;
 mod entity;
 mod gallery;
 mod home;
+mod pipeline;
 mod s3;
 mod upload;
 mod video;
@@ -79,6 +80,11 @@ async fn main() -> std::io::Result<()> {
                     .service(auth::sign_up)
                     .service(auth::sign_in)
                     .service(auth::sign_out),
+            )
+            .service(
+                web::scope("/api")
+                    .route("/pending-processing", web::get().to(pipeline::pending_processing))
+                    .route("/content/{id}/status", web::patch().to(pipeline::update_status)),
             )
     })
     .bind(("0.0.0.0", 8080))?

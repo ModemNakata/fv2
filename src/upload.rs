@@ -282,7 +282,7 @@ pub async fn upload_video(
         .await
     {
         let mut content: content_items::ActiveModel = content_model.into();
-        content.status = Set(ContentStatus::Ready);
+        content.status = Set(ContentStatus::Processing);
         content.updated_at = Set(chrono::Utc::now().naive_utc());
         let _ = content.update(&state.conn).await;
     }
@@ -458,7 +458,7 @@ pub async fn upload_gallery(
         .await
     {
         let mut content: content_items::ActiveModel = content_model.into();
-        content.status = Set(ContentStatus::Ready);
+        content.status = Set(ContentStatus::Processing);
         content.updated_at = Set(chrono::Utc::now().naive_utc());
         let _ = content.update(&state.conn).await;
     }
