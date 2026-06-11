@@ -169,6 +169,8 @@ pub(crate) struct StatusUpdate {
     thumbnail_url: Option<String>,
     #[serde(default)]
     preview_path: Option<String>,
+    #[serde(default)]
+    duration: Option<f64>,
 }
 
 pub async fn update_status(
@@ -233,6 +235,19 @@ pub async fn update_status(
                     }
                 } else {
                     log::warn!("video record not found for content_id {content_id}, skipping preview_path");
+                }
+            }
+
+            if let Some(dur) = body.duration {
+                let duration_secs = dur.round() as i32;
+                if let Ok(Some(video)) = videos::Entity::find_by_id(content_id).one(&state.conn).await {
+                    let mut video: videos::ActiveModel = video.into();
+                    video.duration_seconds = Set(Some(duration_secs));
+                    if let Err(e) = video.update(&state.conn).await {
+                        log::error!("DB error updating duration_seconds: {e}");
+                    }
+                } else {
+                    log::warn!("video record not found for content_id {content_id}, skipping duration");
                 }
             }
 
