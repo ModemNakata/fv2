@@ -5,9 +5,9 @@ use chrono::{DateTime as ChronoDateTime, Utc};
 use sea_orm::*;
 use uuid::Uuid;
 
-use crate::auth;
-use crate::entity::{content_items, users, videos, sea_orm_active_enums::*};
 use crate::AppState;
+use crate::auth;
+use crate::entity::{content_items, sea_orm_active_enums::*, users, videos};
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -53,13 +53,17 @@ pub async fn index(
     state: web::Data<AppState>,
     query: web::Query<std::collections::HashMap<String, String>>,
 ) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn).await.is_some();
+    let logged_in = auth::get_session_user(&session, &state.conn)
+        .await
+        .is_some();
 
-    let limit: u32 = query.get("limit")
+    let limit: u32 = query
+        .get("limit")
         .and_then(|v| v.parse().ok())
         .unwrap_or(20)
         .min(50);
-    let page: u32 = query.get("page")
+    let page: u32 = query
+        .get("page")
         .and_then(|v| v.parse().ok())
         .unwrap_or(1)
         .max(1);
@@ -102,7 +106,7 @@ pub async fn index(
             .collect()
     };
 
-    let s3_endpoint = std::env::var("S3_ENDPOINT").unwrap_or_default();
+    let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
     let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
     let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
         String::new()
@@ -115,7 +119,8 @@ pub async fn index(
     let video_items: Vec<VideoItem> = items
         .into_iter()
         .map(|(content, video_opt)| {
-            let duration_secs = video_opt.as_ref()
+            let duration_secs = video_opt
+                .as_ref()
                 .and_then(|v| v.duration_seconds)
                 .unwrap_or(0);
             let hours = duration_secs / 3600;
@@ -141,15 +146,23 @@ pub async fn index(
                 .map(|c| c.to_uppercase().to_string())
                 .unwrap_or_else(|| "?".to_string());
 
-            let hue = (content.id.to_string().bytes().fold(0u32, |acc, b| acc.wrapping_add(b as u32)) * 37) % 360;
+            let hue = (content
+                .id
+                .to_string()
+                .bytes()
+                .fold(0u32, |acc, b| acc.wrapping_add(b as u32))
+                * 37)
+                % 360;
 
             let time_ago_str = time_ago(&content.created_at, now);
 
-            let thumbnail_url = content.thumbnail_url
+            let thumbnail_url = content
+                .thumbnail_url
                 .filter(|k| !k.is_empty())
                 .map(|key| format!("{}/{}", s3_base, key));
 
-            let preview_url = video_opt.as_ref()
+            let preview_url = video_opt
+                .as_ref()
                 .and_then(|v| v.preview_path.as_ref())
                 .filter(|k| !k.is_empty())
                 .map(|key| format!("{}/{}", s3_base, key));
@@ -170,7 +183,10 @@ pub async fn index(
         .collect();
 
     let pages: Vec<PageButton> = (1..=total_pages)
-        .map(|num| PageButton { num, is_active: num == page })
+        .map(|num| PageButton {
+            num,
+            is_active: num == page,
+        })
         .collect();
 
     let pagination = Pagination {
@@ -249,8 +265,12 @@ fn time_ago(created_at: &sea_orm::prelude::DateTime, now: ChronoDateTime<Utc>) -
 // ---- profile, upload_video, upload_gallery handlers (unchanged) ----
 
 pub async fn profile(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn).await.is_some();
-    let html = ProfilePage { logged_in }.render().expect("profile.html should be valid");
+    let logged_in = auth::get_session_user(&session, &state.conn)
+        .await
+        .is_some();
+    let html = ProfilePage { logged_in }
+        .render()
+        .expect("profile.html should be valid");
     Ok(web::Html::new(html))
 }
 
@@ -267,13 +287,24 @@ struct UploadGalleryPage {
 }
 
 pub async fn upload_video(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn).await.is_some();
-    let html = UploadVideoPage { logged_in }.render().expect("upload-video.html should be valid");
+    let logged_in = auth::get_session_user(&session, &state.conn)
+        .await
+        .is_some();
+    let html = UploadVideoPage { logged_in }
+        .render()
+        .expect("upload-video.html should be valid");
     Ok(web::Html::new(html))
 }
 
-pub async fn upload_gallery(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn).await.is_some();
-    let html = UploadGalleryPage { logged_in }.render().expect("upload-gallery.html should be valid");
+pub async fn upload_gallery(
+    session: Session,
+    state: web::Data<AppState>,
+) -> Result<impl Responder> {
+    let logged_in = auth::get_session_user(&session, &state.conn)
+        .await
+        .is_some();
+    let html = UploadGalleryPage { logged_in }
+        .render()
+        .expect("upload-gallery.html should be valid");
     Ok(web::Html::new(html))
 }
