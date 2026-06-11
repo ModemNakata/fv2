@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - fevid{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/css/gallery.css">
+{% endblock %}
+{% block content %}
+<div class="gallery-header">
+  <h1 class="gallery-title">{{ title }}</h1>
+</div>
+<div class="gallery-grid">
+  {% for image in images %}
+  <div class="gallery-item">
+    <img class="gallery-image" src="{{ image.url }}" alt="{{ image.alt }}" loading="lazy">
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

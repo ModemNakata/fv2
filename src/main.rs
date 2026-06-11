@@ -10,6 +10,7 @@ use tracing_subscriber::fmt;
 
 mod auth;
 mod entity;
+mod gallery;
 mod home;
 mod s3;
 mod upload;
@@ -71,6 +72,7 @@ async fn main() -> std::io::Result<()> {
                 .route(web::post().to(upload::upload_gallery))
             )
             .service(web::resource("/video").route(web::get().to(video::video)))
+            .service(web::resource("/gallery").route(web::get().to(gallery::gallery)))
             .service(
                 web::scope("/auth")
                     .service(auth::auth_check)
