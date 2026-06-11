@@ -84,6 +84,7 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/api")
                     .route("/pending-processing", web::get().to(pipeline::pending_processing))
+                    .route("/content/{id}", web::get().to(pipeline::get_content))
                     .route("/content/{id}/status", web::patch().to(pipeline::update_status)),
             )
     })

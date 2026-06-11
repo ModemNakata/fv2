@@ -21,6 +21,44 @@ struct PendingFile {
     original_name: String,
 }
 
+fn item_to_pending(
+    item: &content_items::Model,
+    video_formats: &[video_formats::Model],
+    all_images: &[images::Model],
+) -> PendingItem {
+    let content_type = match item.r#type {
+        ContentType::Video => "video",
+        ContentType::ImageSet => "image_set",
+    }
+    .to_string();
+
+    let files = match item.r#type {
+        ContentType::Video => video_formats
+            .iter()
+            .filter(|f| f.video_id == item.id)
+            .map(|f| PendingFile {
+                path: f.storage_path.clone(),
+                original_name: f.original_name.clone(),
+            })
+            .collect(),
+        ContentType::ImageSet => all_images
+            .iter()
+            .filter(|img| img.image_set_id == item.id)
+            .map(|img| PendingFile {
+                path: img.storage_path.clone(),
+                original_name: img.original_name.clone(),
+            })
+            .collect(),
+    };
+
+    PendingItem {
+        content_id: item.id,
+        content_type,
+        title: item.title.clone(),
+        files,
+    }
+}
+
 pub async fn pending_processing(state: web::Data<AppState>) -> HttpResponse {
     let items = match content_items::Entity::find()
         .filter(content_items::Column::Status.eq(ContentStatus::Processing))
@@ -72,42 +110,55 @@ pub async fn pending_processing(state: web::Data<AppState>) -> HttpResponse {
     };
 
     let result: Vec<PendingItem> = items
-        .into_iter()
-        .map(|item| {
-            let content_type = match item.r#type {
-                ContentType::Video => "video",
-                ContentType::ImageSet => "image_set",
-            }
-            .to_string();
-
-            let files = match item.r#type {
-                ContentType::Video => video_formats
-                    .iter()
-                    .filter(|f| f.video_id == item.id)
-                    .map(|f| PendingFile {
-                        path: f.storage_path.clone(),
-                        original_name: f.original_name.clone(),
-                    })
-                    .collect(),
-                ContentType::ImageSet => all_images
-                    .iter()
-                    .filter(|img| img.image_set_id == item.id)
-                    .map(|img| PendingFile {
-                        path: img.storage_path.clone(),
-                        original_name: img.original_name.clone(),
-                    })
-                    .collect(),
-            };
-
-            PendingItem {
-                content_id: item.id,
-                content_type,
-                title: item.title,
-                files,
-            }
-        })
+        .iter()
+        .map(|item| item_to_pending(item, &video_formats, &all_images))
         .collect();
 
+    HttpResponse::Ok().json(result)
+}
+
+pub async fn get_content(
+    state: web::Data<AppState>,
+    content_id: web::Path<Uuid>,
+) -> HttpResponse {
+    let content_id = content_id.into_inner();
+
+    let item = match content_items::Entity::find_by_id(content_id).one(&state.conn).await {
+        Ok(Some(item)) => item,
+        Ok(None) => {
+            return HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Content not found"
+            }));
+        }
+        Err(e) => {
+            log::error!("DB error fetching content {content_id}: {e}");
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database error"
+            }));
+        }
+    };
+
+    let video_formats = match item.r#type {
+        ContentType::Video => video_formats::Entity::find()
+            .filter(video_formats::Column::VideoId.eq(content_id))
+            .filter(video_formats::Column::Resolution.eq("original"))
+            .all(&state.conn)
+            .await
+            .unwrap_or_default(),
+        ContentType::ImageSet => Vec::new(),
+    };
+
+    let all_images = match item.r#type {
+        ContentType::ImageSet => images::Entity::find()
+            .filter(images::Column::ImageSetId.eq(content_id))
+            .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
+            .all(&state.conn)
+            .await
+            .unwrap_or_default(),
+        ContentType::Video => Vec::new(),
+    };
+
+    let result = item_to_pending(&item, &video_formats, &all_images);
     HttpResponse::Ok().json(result)
 }
 

@@ -7,6 +7,7 @@ Internal HTTP endpoints used by the H264 + WebP processing pipeline to discover 
 | Endpoint | Auth |
 |----------|------|
 | `GET /api/pending-processing` | None |
+| `GET /api/content/{id}` | None |
 | `PATCH /api/content/{id}/status` | `X-Api-Key` header must match `S3_ACCESS_KEY` from `.env` |
 
 ## Flow
@@ -91,6 +92,38 @@ Returns all content items with `status = processing` (upload complete, awaiting 
 - `path` values are relative to `S3_ORIG_BUCKET` — if you have endpoint `https://s3.example.com/origin-bucket`, the full URL would be `https://s3.example.com/origin-bucket/videos/uuid.mp4`
 - Videos always return exactly one file (the original upload)
 - Image sets return all images ordered by `sort_order`
+
+---
+
+## `GET /api/content/{id}`
+
+Returns a single content item by ID (any status). Useful for the pipeline's `--uuid` direct mode to resolve the original file mapping without needing `--file`.
+
+### Response `200 OK`
+
+```json
+{
+  "content_id": "13e535ad-3020-4b0c-be99-eadf99a65620",
+  "content_type": "video",
+  "title": "123",
+  "files": [
+    {
+      "path": "videos/e31cca56-3c62-4f80-bff9-edf62cfae12d.mp4",
+      "original_name": ":3.mp4"
+    }
+  ]
+}
+```
+
+### Response `404 Not Found`
+
+```json
+{ "error": "Content not found" }
+```
+
+### Fields
+
+Same shape as one item from `GET /api/pending-processing`.
 
 ---
 
