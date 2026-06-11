@@ -83,7 +83,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid("content_id").primary_key())
                     .col(integer_null("duration_seconds"))
-                    .col(string_len_null("preview_path", 1024))
+                    .col(string_len("preview_path", 1024).null())
                     .col(big_integer("view_count").default(0))
                     .foreign_key(
                         ForeignKey::create()
