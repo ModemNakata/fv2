@@ -4,7 +4,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::entity::sea_orm_active_enums::{ContentStatus, ContentType};
-use crate::entity::{content_items, images, video_formats};
+use crate::entity::{content_items, images, video_formats, videos};
 use crate::AppState;
 
 #[derive(Serialize)]
@@ -114,6 +114,10 @@ pub async fn pending_processing(state: web::Data<AppState>) -> HttpResponse {
 #[derive(serde::Deserialize)]
 pub(crate) struct StatusUpdate {
     status: String,
+    #[serde(default)]
+    thumbnail_url: Option<String>,
+    #[serde(default)]
+    preview_path: Option<String>,
 }
 
 pub async fn update_status(
@@ -153,15 +157,34 @@ pub async fn update_status(
 
     match content_items::Entity::find_by_id(content_id).one(&state.conn).await {
         Ok(Some(content)) => {
+            let now = chrono::Utc::now().naive_utc();
             let mut content: content_items::ActiveModel = content.into();
             content.status = Set(new_status);
-            content.updated_at = Set(chrono::Utc::now().naive_utc());
+            content.updated_at = Set(now);
+
+            if let Some(ref url) = body.thumbnail_url {
+                content.thumbnail_url = Set(Some(url.clone()));
+            }
+
             if let Err(e) = content.update(&state.conn).await {
                 log::error!("DB error updating status: {e}");
                 return HttpResponse::InternalServerError().json(serde_json::json!({
                     "error": "Failed to update status"
                 }));
             }
+
+            if let Some(ref preview) = body.preview_path {
+                if let Ok(Some(video)) = videos::Entity::find_by_id(content_id).one(&state.conn).await {
+                    let mut video: videos::ActiveModel = video.into();
+                    video.preview_path = Set(Some(preview.clone()));
+                    if let Err(e) = video.update(&state.conn).await {
+                        log::error!("DB error updating preview_path: {e}");
+                    }
+                } else {
+                    log::warn!("video record not found for content_id {content_id}, skipping preview_path");
+                }
+            }
+
             HttpResponse::Ok().json(serde_json::json!({"ok": true}))
         }
         Ok(None) => HttpResponse::NotFound().json(serde_json::json!({

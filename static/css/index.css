@@ -149,3 +149,27 @@ body.sidebar-open {
     color: var(--bg-primary);
     font-weight: 700;
 }
+
+.thumb-preview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+    z-index: 1;
+}
+
+.video-card:hover .thumb-preview {
+    display: block;
+}
+
+.video-card:hover .thumb-img,
+.video-card:hover .thumb-placeholder {
+    display: none;
+}
+
+.video-card:hover .duration {
+    display: none;
+}

@@ -51,7 +51,7 @@
 {% else %}
 <div class="video-grid">
 {% for v in videos %}
-  <a href="/video?id={{ v.id }}" class="video-card">
+  <a href="/video?id={{ v.id }}" class="video-card" data-preview="{{ v.preview_url.is_some() }}">
     <div class="thumbnail">
       {% if v.thumbnail_url.is_some() %}
       <img src="{{ v.thumbnail_url.as_ref().unwrap() }}" alt="{{ v.title }}" class="thumb-img">
@@ -66,6 +66,9 @@
         </span>
       </div>
       {% endif %}
+      {% if v.preview_url.is_some() %}
+      <video class="thumb-preview" src="{{ v.preview_url.as_ref().unwrap() }}" muted playsinline preload="none" loop></video>
+      {% endif %}
       <span class="duration">{{ v.duration }}</span>
     </div>
     <div class="video-info">
@@ -78,6 +81,27 @@
     </div>
   </a>
 {% endfor %}
+
+<script>
+(function() {
+  var cards = document.querySelectorAll('.video-card[data-preview="true"]');
+  for (var i = 0; i < cards.length; i++) {
+    var card = cards[i];
+    var video = card.querySelector('.thumb-preview');
+    if (!video) continue;
+    card.addEventListener('mouseenter', function() {
+      var v = this.querySelector('.thumb-preview');
+      v.currentTime = 0;
+      v.play().catch(function(){});
+    });
+    card.addEventListener('mouseleave', function() {
+      var v = this.querySelector('.thumb-preview');
+      v.pause();
+      v.currentTime = 0;
+    });
+  }
+})();
+</script>
 </div>
 {% endif %}
 

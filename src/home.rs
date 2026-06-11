@@ -25,6 +25,7 @@ struct VideoItem {
     duration: String,
     time_ago: String,
     thumbnail_url: Option<String>,
+    preview_url: Option<String>,
     uploader_initials: String,
     hue: u32,
 }
@@ -101,6 +102,14 @@ pub async fn index(
             .collect()
     };
 
+    let s3_endpoint = std::env::var("S3_ENDPOINT").unwrap_or_default();
+    let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
+    let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
+        String::new()
+    } else {
+        format!("{}/{}", s3_endpoint.trim_end_matches('/'), s3_bucket)
+    };
+
     let now = Utc::now();
 
     let video_items: Vec<VideoItem> = items
@@ -136,6 +145,15 @@ pub async fn index(
 
             let time_ago_str = time_ago(&content.created_at, now);
 
+            let thumbnail_url = content.thumbnail_url
+                .filter(|k| !k.is_empty())
+                .map(|key| format!("{}/{}", s3_base, key));
+
+            let preview_url = video_opt.as_ref()
+                .and_then(|v| v.preview_path.as_ref())
+                .filter(|k| !k.is_empty())
+                .map(|key| format!("{}/{}", s3_base, key));
+
             VideoItem {
                 id: content.id,
                 title: content.title,
@@ -143,7 +161,8 @@ pub async fn index(
                 views: views_str,
                 duration: duration_str,
                 time_ago: time_ago_str,
-                thumbnail_url: content.thumbnail_url,
+                thumbnail_url,
+                preview_url,
                 uploader_initials: initials,
                 hue,
             }

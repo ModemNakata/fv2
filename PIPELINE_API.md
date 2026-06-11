@@ -109,9 +109,19 @@ Updates the processing status of a content item after the pipeline finishes.
 
 ```json
 {
-  "status": "ready"
+  "status": "ready",
+  "thumbnail_url": "videos/550e8400-e29b-41d4-a716-446655440000/thumbnail.jpg",
+  "preview_path": "videos/550e8400-e29b-41d4-a716-446655440000/preview.webm"
 }
 ```
+
+### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `status` | string | yes | `"ready"` or `"failed"` |
+| `thumbnail_url` | string | no | S3 key of the generated 1280×720 thumbnail image (stored in `S3_BUCKET`). Only applies to videos. |
+| `preview_path` | string | no | S3 key of the 3–5 second hover preview clip (stored in `S3_BUCKET`). Only applies to videos. |
 
 ### Valid Status Values
 
@@ -161,6 +171,13 @@ loop:
       if item.content_type == "video":
         encoded = h264_encode(original, resolutions=[1080p, 720p, 480p])
         upload to S3_BUCKET / videos/{content_id}/
+        
+        # Generate thumbnail + preview clip
+        thumbnail = ffmpeg_thumbnail(original, size=1280x720, seek=5s)
+        upload thumbnail to S3_BUCKET / videos/{content_id}/thumbnail.jpg
+        
+        preview = ffmpeg_clip(original, start=0s, duration=3s, scale=640x360)
+        upload preview to S3_BUCKET / videos/{content_id}/preview.webm
       
       if item.content_type == "image_set":
         webp = webp_encode(original, qualities=[80, 50])
@@ -168,5 +185,9 @@ loop:
     
     PATCH http://app:8080/api/content/{item.content_id}/status
       X-Api-Key: {S3_ACCESS_KEY}
-      { "status": "ready" }
+      {
+        "status": "ready",
+        "thumbnail_url": "videos/{content_id}/thumbnail.jpg",
+        "preview_path": "videos/{content_id}/preview.webm"
+      }
 ```
