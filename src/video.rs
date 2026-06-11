@@ -20,7 +20,7 @@ pub async fn video(session: Session, state: web::Data<AppState>) -> Result<impl 
     let html = VideoPage {
         logged_in,
         video_title: "FeVid.Cloud".to_string(),
-        source_url: "https://local.test/video-streams/video-xyz/master.m3u8".to_string(),
+        source_url: "https://local.test/bucket/video-xyz/master.m3u8".to_string(),
     }
     .render()
     .expect("video.html should be valid");
