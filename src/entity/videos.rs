@@ -8,6 +8,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub content_id: Uuid,
     pub duration_seconds: Option<i32>,
+    pub preview_path: Option<String>,
     pub view_count: i64,
 }
 
