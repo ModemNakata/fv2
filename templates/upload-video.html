@@ -139,7 +139,7 @@
             try {
               var data = JSON.parse(xhr.responseText);
               if (data.ok && data.content_id) {
-                window.location.href = '/video?id=' + data.content_id;
+                window.location.href = '/video/' + data.content_id;
               } else {
                 alert(data.error || 'Upload failed');
                 resetUploadUI();
