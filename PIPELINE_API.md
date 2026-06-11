@@ -1,4 +1,4 @@
-# Pipeline API — fevid-V2
+# Pipeline API
 
 Internal HTTP endpoints used by the H264 + WebP processing pipeline to discover and update unprocessed content.
 
