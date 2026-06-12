@@ -26,13 +26,16 @@
           <input type="file" name="avatar" accept="image/*" id="avatarInput">
           Choose image
         </label>
+        {% if current_avatar_url.is_some() %}
+        <button type="button" class="avatar-remove-btn" id="removeAvatarBtn">Remove</button>
+        {% endif %}
         <p class="settings-hint">PNG, JPEG, or WebP. Will be resized to 128×128.</p>
       </div>
     </div>
 
     <div class="settings-section">
       <label class="settings-label" for="usernameInput">Username</label>
-      <input type="text" id="usernameInput" name="username" class="settings-input" value="{{ current_username }}" maxlength="16" pattern="[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]|[a-zA-Z0-9]" required>
+      <input type="text" id="usernameInput" name="username" class="settings-input" value="{{ current_username }}" maxlength="16" required>
       <p class="settings-hint">3–16 characters. Letters, digits, hyphens only. No consecutive hyphens.</p>
     </div>
 
@@ -58,6 +61,21 @@ document.getElementById('avatarInput').addEventListener('change', function(e) {
   };
   reader.readAsDataURL(file);
 });
+
+var removeBtn = document.getElementById('removeAvatarBtn');
+if (removeBtn) {
+  removeBtn.addEventListener('click', function() {
+    var preview = document.getElementById('avatarPreview');
+    preview.innerHTML = '<svg class="avatar-placeholder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="96" r="64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M32,216c19.37-33.47,54.55-56,96-56s76.63,22.53,96,56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>';
+    document.getElementById('avatarInput').value = '';
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'remove_avatar';
+    input.value = 'true';
+    this.parentNode.appendChild(input);
+    this.style.display = 'none';
+  });
+}
 
 document.getElementById('settingsForm').addEventListener('submit', function(e) {
   e.preventDefault();

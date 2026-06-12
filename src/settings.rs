@@ -68,6 +68,7 @@ pub async fn update_settings(
     let mut username: Option<String> = None;
     let mut display_name: Option<String> = None;
     let mut avatar_data: Option<Vec<u8>> = None;
+    let mut remove_avatar = false;
 
     while let Some(Ok(mut field)) = payload.next().await {
         let cd = field
@@ -104,6 +105,16 @@ pub async fn update_settings(
                 }
                 if !data.is_empty() {
                     avatar_data = Some(data);
+                }
+            }
+            "remove_avatar" => {
+                let mut data = Vec::new();
+                while let Some(Ok(chunk)) = field.next().await {
+                    data.extend_from_slice(&chunk);
+                }
+                let val = String::from_utf8(data).unwrap_or_default();
+                if val == "true" {
+                    remove_avatar = true;
                 }
             }
             _ => {}
@@ -151,7 +162,11 @@ pub async fn update_settings(
         user.display_name = Set(name.clone());
     }
 
-    if let Some(data) = avatar_data {
+    if remove_avatar {
+        let old_path = format!("static/avatars/{user_id}.webp");
+        let _ = std::fs::remove_file(&old_path);
+        user.avatar_url = Set(None);
+    } else if let Some(data) = avatar_data {
         match process_avatar(&data, user_id) {
             Ok(avatar_url) => {
                 user.avatar_url = Set(Some(avatar_url));
