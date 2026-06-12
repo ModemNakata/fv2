@@ -47,8 +47,7 @@ Returns all content items with `status = processing` (upload complete, awaiting 
     "title": "My Great Video",
     "files": [
       {
-        "path": "videos/a1b2c3d4-e5f6-7890-abcd-ef1234567890.mp4",
-        "original_name": "my_video.mp4"
+        "path": "videos/a1b2c3d4-e5f6-7890-abcd-ef1234567890.mp4"
       }
     ]
   },
@@ -58,12 +57,10 @@ Returns all content items with `status = processing` (upload complete, awaiting 
     "title": "Photo Album",
     "files": [
       {
-        "path": "galleries/x1y2z3d4-e5f6-7890-abcd-ef1234567890.jpg",
-        "original_name": "photo1.jpg"
+        "path": "galleries/x1y2z3d4-e5f6-7890-abcd-ef1234567890.jpg"
       },
       {
-        "path": "galleries/a2b3c4d5-e6f7-8901-bcde-f12345678901.png",
-        "original_name": "photo2.png"
+        "path": "galleries/a2b3c4d5-e6f7-8901-bcde-f12345678901.png"
       }
     ]
   }
@@ -85,7 +82,6 @@ Returns all content items with `status = processing` (upload complete, awaiting 
 | `title` | string | User-provided title |
 | `files` | array | One file for video, potentially multiple for image_set |
 | `files[].path` | string | Key in **S3_ORIG_BUCKET** (the upload bucket), suitable for `GetObject` |
-| `files[].original_name` | string | Original filename as uploaded by user |
 
 ### Notes
 
@@ -108,8 +104,7 @@ Returns a single content item by ID (any status). Useful for the pipeline's `--u
   "title": "123",
   "files": [
     {
-      "path": "videos/e31cca56-3c62-4f80-bff9-edf62cfae12d.mp4",
-      "original_name": ":3.mp4"
+      "path": "videos/e31cca56-3c62-4f80-bff9-edf62cfae12d.mp4"
     }
   ]
 }

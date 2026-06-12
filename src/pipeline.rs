@@ -18,7 +18,6 @@ struct PendingItem {
 #[derive(Serialize)]
 struct PendingFile {
     path: String,
-    original_name: String,
 }
 
 fn item_to_pending(
@@ -38,7 +37,6 @@ fn item_to_pending(
             .filter(|f| f.video_id == item.id)
             .map(|f| PendingFile {
                 path: f.storage_path.clone(),
-                original_name: f.original_name.clone(),
             })
             .collect(),
         ContentType::ImageSet => all_images
@@ -46,7 +44,6 @@ fn item_to_pending(
             .filter(|img| img.image_set_id == item.id)
             .map(|img| PendingFile {
                 path: img.storage_path.clone(),
-                original_name: img.original_name.clone(),
             })
             .collect(),
     };
