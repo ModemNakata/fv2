@@ -46,19 +46,18 @@
 </div>
 
 <div class="profile-nav">
-  <button class="profile-tab{% if active_tab == " videos" %} active{% endif %}" data-tab="videos">Videos ({{ video_count
-    }})</button>
-  <button class="profile-tab{% if active_tab == " galleries" %} active{% endif %}" data-tab="galleries">Galleries ({{
+  <button class="profile-tab{% if active_tab == "videos" %} active{% endif %}" data-tab="videos">Videos ({{ video_count }})</button>
+  <button class="profile-tab{% if active_tab == "galleries" %} active{% endif %}" data-tab="galleries">Galleries ({{
     gallery_count }})</button>
 </div>
 
-<div class="profile-content{% if active_tab != " videos" %} hidden{% endif %}" id="tab-videos">
+<div class="profile-content{% if active_tab != "videos" %} hidden{% endif %}" id="tab-videos">
   <div class="video-grid" id="videosGrid"></div>
   <div class="profile-loader" id="videosLoader">Loading videos...</div>
   <div class="empty-state" id="videosEmpty" style="display:none">No videos yet.</div>
 </div>
 
-<div class="profile-content{% if active_tab != " galleries" %} hidden{% endif %}" id="tab-galleries">
+<div class="profile-content{% if active_tab != "galleries" %} hidden{% endif %}" id="tab-galleries">
   <div class="gallery-grid" id="galleriesGrid"></div>
   <div class="profile-loader" id="galleriesLoader">Loading galleries...</div>
   <div class="empty-state" id="galleriesEmpty" style="display:none">No galleries yet.</div>

@@ -39,13 +39,6 @@ pub async fn user_profile(
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
 
-    let default_tab = "videos".to_string();
-    let active_tab = query
-        .get("tab")
-        .filter(|v| *v == "galleries")
-        .cloned()
-        .unwrap_or(default_tab);
-
     let profile_username = username.into_inner();
     let is_owner = session_user.as_deref() == Some(&profile_username);
 
@@ -79,6 +72,18 @@ pub async fn user_profile(
         .count(&state.conn)
         .await
         .unwrap_or(0);
+
+    let default_tab = if gallery_count > video_count {
+        "galleries"
+    } else {
+        "videos"
+    };
+    let active_tab = query
+        .get("tab")
+        .filter(|v| *v == "videos" || *v == "galleries")
+        .map(String::as_str)
+        .unwrap_or(default_tab)
+        .to_string();
 
     let html = ProfilePage {
         username: session_user,
