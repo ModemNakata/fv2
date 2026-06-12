@@ -23,14 +23,12 @@
     });
   }
 
-  var scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-
   function toggleSidebar(open) {
     if (!sidebar) return;
     var isOpen = open !== undefined ? open : !sidebar.classList.contains('open');
     sidebar.classList.toggle('open', isOpen);
     if (sidebarBackdrop) sidebarBackdrop.classList.toggle('open', isOpen);
-    document.body.style.paddingRight = isOpen ? scrollbarWidth + 'px' : '';
+    document.body.style.paddingRight = isOpen ? (window.innerWidth - document.documentElement.clientWidth) + 'px' : '';
     document.body.classList.toggle('sidebar-open', isOpen);
   }
 
