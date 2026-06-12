@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ display_name }} - fevid{% endblock %}
+{% block title %}{{ display_name }} - FeVid{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="/static/css/profile.css">
 <link rel="stylesheet" href="/static/css/index.css">
@@ -17,10 +17,12 @@
         <div class="profile-details-text">
           <h1 class="profile-name">{{ display_name }}</h1>
           <p class="profile-handle">@{{ handle }}</p>
-          <button class="follow-btn">Follow</button>
-          <div class="profile-stats">
-            <span class="profile-stat"><strong>{{ follower_count }}</strong> followers</span>
-            <span class="profile-stat"><strong>{{ profile_views }}</strong> profile views</span>
+          <div class="profile-actions">
+            <button class="follow-btn">Follow</button>
+            <div class="profile-stats">
+              <span class="profile-stat"><strong>{{ follower_count }}</strong> followers</span>
+              <span class="profile-stat"><strong>{{ profile_views }}</strong> profile views</span>
+            </div>
           </div>
         </div>
         {% if is_owner %}
@@ -36,11 +38,11 @@
         </a>
         {% endif %}
       </div>
-      {% if about_me.is_some() %}
-      <div class="profile-about">{{ about_me.as_ref().unwrap() }}</div>
-      {% endif %}
     </div>
   </div>
+  {% if about_me.is_some() %}
+  <div class="profile-about">{{ about_me.as_ref().unwrap() }}</div>
+  {% endif %}
 </div>
 
 <div class="profile-nav">
