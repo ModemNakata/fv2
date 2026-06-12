@@ -199,7 +199,8 @@ pub async fn update_settings(
 
 fn process_avatar(data: &[u8], user_id: Uuid) -> Result<String, String> {
     let img = image::load_from_memory(data).map_err(|e| format!("Invalid image: {e}"))?;
-    let resized = img.resize_to_fill(256, 256, image::imageops::FilterType::Lanczos3);
+    let resized = img.resize_to_fill(256, 256, image::imageops::FilterType::Lanczos3); // 128
+    // 300, 500 |
 
     let filename = format!("{user_id}.webp");
     let path = format!("static/avatars/{filename}");
