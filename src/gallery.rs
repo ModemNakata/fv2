@@ -7,7 +7,9 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::auth;
-use crate::entity::{content_items, image_sets, images, sea_orm_active_enums::*, users};
+use crate::entity::prelude::*;
+use crate::entity::sea_orm_active_enums::*;
+use crate::entity::{content_items, image_sets, images, users};
 
 // ---- gallery listing (/gallery) ----
 
@@ -63,7 +65,7 @@ pub async fn index(
 
     let offset = (page - 1) * limit;
 
-    let total = content_items::Entity::find()
+    let total = ContentItems::find()
         .filter(content_items::Column::Status.eq(ContentStatus::Ready))
         .filter(content_items::Column::Type.eq(ContentType::ImageSet))
         .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
@@ -73,7 +75,7 @@ pub async fn index(
 
     let total_pages = ((total as u32) + limit - 1) / limit;
 
-    let items = content_items::Entity::find()
+    let items = ContentItems::find()
         .filter(content_items::Column::Status.eq(ContentStatus::Ready))
         .filter(content_items::Column::Type.eq(ContentType::ImageSet))
         .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
@@ -87,7 +89,7 @@ pub async fn index(
     let ids: Vec<Uuid> = items.iter().map(|c| c.id).collect();
 
     let image_set_map: std::collections::HashMap<Uuid, image_sets::Model> = if !ids.is_empty() {
-        let all = image_sets::Entity::find()
+        let all = ImageSets::find()
             .filter(image_sets::Column::ContentId.is_in(ids.clone()))
             .all(&state.conn)
             .await
@@ -102,7 +104,7 @@ pub async fn index(
     };
 
     let image_map: std::collections::HashMap<Uuid, Vec<images::Model>> = if !ids.is_empty() {
-        let all = images::Entity::find()
+        let all = Images::find()
             .filter(images::Column::ImageSetId.is_in(ids))
             .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
             .all(&state.conn)
@@ -122,7 +124,7 @@ pub async fn index(
     let users_map: std::collections::HashMap<Uuid, Option<String>> = if uploader_ids.is_empty() {
         std::collections::HashMap::new()
     } else {
-        users::Entity::find()
+        Users::find()
             .filter(users::Column::Id.is_in(uploader_ids))
             .all(&state.conn)
             .await
@@ -232,7 +234,7 @@ pub async fn gallery(
     let logged_in = session_user.is_some();
     let content_id = content_id.into_inner();
 
-    let content = content_items::Entity::find_by_id(content_id)
+    let content = ContentItems::find_by_id(content_id)
         .one(&state.conn)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?
@@ -245,13 +247,13 @@ pub async fn gallery(
         return Err(actix_web::error::ErrorNotFound("Gallery not found"));
     }
 
-    let uploader = users::Entity::find_by_id(content.uploader_id)
+    let uploader = Users::find_by_id(content.uploader_id)
         .one(&state.conn)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?
         .ok_or_else(|| actix_web::error::ErrorNotFound("Uploader not found"))?;
 
-    let image_rows = images::Entity::find()
+    let image_rows = Images::find()
         .filter(images::Column::ImageSetId.eq(content_id))
         .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
         .all(&state.conn)

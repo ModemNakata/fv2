@@ -5,7 +5,8 @@ use sea_orm::EntityTrait;
 use uuid::Uuid;
 
 use crate::auth;
-use crate::entity::{content_items, sea_orm_active_enums::*, users};
+use crate::entity::prelude::*;
+use crate::entity::sea_orm_active_enums::*;
 use crate::AppState;
 
 #[derive(Template)]
@@ -36,7 +37,7 @@ pub async fn video(
     let logged_in = session_user.is_some();
     let content_id = content_id.into_inner();
 
-    let content = content_items::Entity::find_by_id(content_id)
+    let content = ContentItems::find_by_id(content_id)
         .one(&state.conn)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?
@@ -49,7 +50,7 @@ pub async fn video(
         return Err(actix_web::error::ErrorNotFound("Video not found"));
     }
 
-    let uploader = users::Entity::find_by_id(content.uploader_id)
+    let uploader = Users::find_by_id(content.uploader_id)
         .one(&state.conn)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?

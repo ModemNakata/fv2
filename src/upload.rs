@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::auth;
+use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
 use crate::entity::{content_items, image_sets, images, video_formats, videos};
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
@@ -279,7 +280,7 @@ pub async fn upload_video(
         log::error!("DB error inserting video_format: {e}");
     }
 
-    if let Ok(Some(content_model)) = content_items::Entity::find_by_id(content_id)
+    if let Ok(Some(content_model)) = ContentItems::find_by_id(content_id)
         .one(&state.conn)
         .await
     {
@@ -458,7 +459,7 @@ pub async fn upload_gallery(
         }
     }
 
-    if let Ok(Some(content_model)) = content_items::Entity::find_by_id(content_id)
+    if let Ok(Some(content_model)) = ContentItems::find_by_id(content_id)
         .one(&state.conn)
         .await
     {

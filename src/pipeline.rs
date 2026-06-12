@@ -3,6 +3,7 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrde
 use serde::Serialize;
 use uuid::Uuid;
 
+use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::{ContentStatus, ContentType};
 use crate::entity::{content_items, image_sets, images, video_formats, videos};
 use crate::AppState;
@@ -57,7 +58,7 @@ fn item_to_pending(
 }
 
 pub async fn pending_processing(state: web::Data<AppState>) -> HttpResponse {
-    let items = match content_items::Entity::find()
+    let items = match ContentItems::find()
         .filter(content_items::Column::Status.eq(ContentStatus::Processing))
         .all(&state.conn)
         .await
@@ -85,7 +86,7 @@ pub async fn pending_processing(state: web::Data<AppState>) -> HttpResponse {
     }
 
     let video_formats = if !video_ids.is_empty() {
-        video_formats::Entity::find()
+        VideoFormats::find()
             .filter(video_formats::Column::VideoId.is_in(video_ids))
             .filter(video_formats::Column::Resolution.eq("original"))
             .all(&state.conn)
@@ -96,7 +97,7 @@ pub async fn pending_processing(state: web::Data<AppState>) -> HttpResponse {
     };
 
     let all_images = if !image_set_ids.is_empty() {
-        images::Entity::find()
+        Images::find()
             .filter(images::Column::ImageSetId.is_in(image_set_ids))
             .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
             .all(&state.conn)
@@ -120,7 +121,7 @@ pub async fn get_content(
 ) -> HttpResponse {
     let content_id = content_id.into_inner();
 
-    let item = match content_items::Entity::find_by_id(content_id).one(&state.conn).await {
+    let item = match ContentItems::find_by_id(content_id).one(&state.conn).await {
         Ok(Some(item)) => item,
         Ok(None) => {
             return HttpResponse::NotFound().json(serde_json::json!({
@@ -136,7 +137,7 @@ pub async fn get_content(
     };
 
     let video_formats = match item.r#type {
-        ContentType::Video => video_formats::Entity::find()
+        ContentType::Video => VideoFormats::find()
             .filter(video_formats::Column::VideoId.eq(content_id))
             .filter(video_formats::Column::Resolution.eq("original"))
             .all(&state.conn)
@@ -146,7 +147,7 @@ pub async fn get_content(
     };
 
     let all_images = match item.r#type {
-        ContentType::ImageSet => images::Entity::find()
+        ContentType::ImageSet => Images::find()
             .filter(images::Column::ImageSetId.eq(content_id))
             .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
             .all(&state.conn)
@@ -207,7 +208,7 @@ pub async fn update_status(
         }
     };
 
-    match content_items::Entity::find_by_id(content_id).one(&state.conn).await {
+    match ContentItems::find_by_id(content_id).one(&state.conn).await {
         Ok(Some(content)) => {
             let content_type = content.r#type.clone();
             let now = chrono::Utc::now().naive_utc();
@@ -229,7 +230,7 @@ pub async fn update_status(
             if let Some(ref preview) = body.preview_path {
                 match content_type {
                     ContentType::Video => {
-                        if let Ok(Some(video)) = videos::Entity::find_by_id(content_id).one(&state.conn).await {
+                        if let Ok(Some(video)) = Videos::find_by_id(content_id).one(&state.conn).await {
                             let mut video: videos::ActiveModel = video.into();
                             video.preview_path = Set(Some(preview.clone()));
                             if let Err(e) = video.update(&state.conn).await {
@@ -240,7 +241,7 @@ pub async fn update_status(
                         }
                     }
                     ContentType::ImageSet => {
-                        if let Ok(Some(image_set)) = image_sets::Entity::find_by_id(content_id).one(&state.conn).await {
+                        if let Ok(Some(image_set)) = ImageSets::find_by_id(content_id).one(&state.conn).await {
                             let mut image_set: image_sets::ActiveModel = image_set.into();
                             image_set.preview_path = Set(Some(preview.clone()));
                             if let Err(e) = image_set.update(&state.conn).await {
@@ -255,7 +256,7 @@ pub async fn update_status(
 
             if let Some(dur) = body.duration {
                 let duration_secs = dur.round() as i32;
-                if let Ok(Some(video)) = videos::Entity::find_by_id(content_id).one(&state.conn).await {
+                if let Ok(Some(video)) = Videos::find_by_id(content_id).one(&state.conn).await {
                     let mut video: videos::ActiveModel = video.into();
                     video.duration_seconds = Set(Some(duration_secs));
                     if let Err(e) = video.update(&state.conn).await {
@@ -270,7 +271,7 @@ pub async fn update_status(
                 match content_type {
                     ContentType::Video => {
                         if let Some(path) = files.first() {
-                            if let Ok(Some(fmt)) = video_formats::Entity::find()
+                            if let Ok(Some(fmt)) = VideoFormats::find()
                                 .filter(video_formats::Column::VideoId.eq(content_id))
                                 .filter(video_formats::Column::Resolution.eq("original"))
                                 .one(&state.conn)
@@ -285,7 +286,7 @@ pub async fn update_status(
                         }
                     }
                     ContentType::ImageSet => {
-                        if let Ok(imgs) = images::Entity::find()
+                        if let Ok(imgs) = Images::find()
                             .filter(images::Column::ImageSetId.eq(content_id))
                             .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
                             .all(&state.conn)

@@ -7,7 +7,9 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::auth;
-use crate::entity::{content_items, sea_orm_active_enums::*, users, videos};
+use crate::entity::prelude::*;
+use crate::entity::sea_orm_active_enums::*;
+use crate::entity::{content_items, users};
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -63,7 +65,7 @@ pub async fn index(
 
     let offset = (page - 1) * limit;
 
-    let total = content_items::Entity::find()
+    let total = ContentItems::find()
         .filter(content_items::Column::Status.eq(ContentStatus::Ready))
         .filter(content_items::Column::Type.eq(ContentType::Video))
         .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
@@ -73,14 +75,14 @@ pub async fn index(
 
     let total_pages = ((total as u32) + limit - 1) / limit;
 
-    let items = content_items::Entity::find()
+    let items = ContentItems::find()
         .filter(content_items::Column::Status.eq(ContentStatus::Ready))
         .filter(content_items::Column::Type.eq(ContentType::Video))
         .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
         .order_by_desc(content_items::Column::CreatedAt)
         .limit(limit as u64)
         .offset(offset as u64)
-        .find_also_related(videos::Entity)
+        .find_also_related(Videos)
         .all(&state.conn)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
@@ -89,7 +91,7 @@ pub async fn index(
     let users_map: std::collections::HashMap<Uuid, (String, Option<String>)> = if uploader_ids.is_empty() {
         std::collections::HashMap::new()
     } else {
-        users::Entity::find()
+        Users::find()
             .filter(users::Column::Id.is_in(uploader_ids))
             .all(&state.conn)
             .await

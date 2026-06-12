@@ -7,8 +7,9 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::auth;
+use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
-use crate::entity::{content_items, image_sets, images, users, videos};
+use crate::entity::{content_items, image_sets, images, users};
 use crate::gallery;
 
 // ---- page handler ----
@@ -42,7 +43,7 @@ pub async fn user_profile(
     let profile_username = username.into_inner();
     let is_owner = session_user.as_deref() == Some(&profile_username);
 
-    let user = match users::Entity::find()
+    let user = match Users::find()
         .filter(users::Column::Username.eq(&profile_username))
         .one(&state.conn)
         .await
@@ -55,7 +56,7 @@ pub async fn user_profile(
         }
     };
 
-    let video_count = content_items::Entity::find()
+    let video_count = ContentItems::find()
         .filter(content_items::Column::UploaderId.eq(user.id))
         .filter(content_items::Column::Type.eq(ContentType::Video))
         .filter(content_items::Column::Status.eq(ContentStatus::Ready))
@@ -64,7 +65,7 @@ pub async fn user_profile(
         .await
         .unwrap_or(0);
 
-    let gallery_count = content_items::Entity::find()
+    let gallery_count = ContentItems::find()
         .filter(content_items::Column::UploaderId.eq(user.id))
         .filter(content_items::Column::Type.eq(ContentType::ImageSet))
         .filter(content_items::Column::Status.eq(ContentStatus::Ready))
@@ -143,7 +144,7 @@ pub async fn api_videos(
         .and_then(|v| v.parse().ok())
         .unwrap_or(0);
 
-    let user = match users::Entity::find()
+    let user = match Users::find()
         .filter(users::Column::Username.eq(&username))
         .one(&state.conn)
         .await
@@ -157,7 +158,7 @@ pub async fn api_videos(
         }
     };
 
-    let total = content_items::Entity::find()
+    let total = ContentItems::find()
         .filter(content_items::Column::UploaderId.eq(user.id))
         .filter(content_items::Column::Type.eq(ContentType::Video))
         .filter(content_items::Column::Status.eq(ContentStatus::Ready))
@@ -166,7 +167,7 @@ pub async fn api_videos(
         .await
         .unwrap_or(0);
 
-    let items = content_items::Entity::find()
+    let items = ContentItems::find()
         .filter(content_items::Column::UploaderId.eq(user.id))
         .filter(content_items::Column::Type.eq(ContentType::Video))
         .filter(content_items::Column::Status.eq(ContentStatus::Ready))
@@ -174,7 +175,7 @@ pub async fn api_videos(
         .order_by_desc(content_items::Column::CreatedAt)
         .limit(limit)
         .offset(offset)
-        .find_also_related(videos::Entity)
+        .find_also_related(Videos)
         .all(&state.conn)
         .await
         .unwrap_or_default();
@@ -283,7 +284,7 @@ pub async fn api_galleries(
         .and_then(|v| v.parse().ok())
         .unwrap_or(0);
 
-    let user = match users::Entity::find()
+    let user = match Users::find()
         .filter(users::Column::Username.eq(&username))
         .one(&state.conn)
         .await
@@ -297,7 +298,7 @@ pub async fn api_galleries(
         }
     };
 
-    let total = content_items::Entity::find()
+    let total = ContentItems::find()
         .filter(content_items::Column::UploaderId.eq(user.id))
         .filter(content_items::Column::Type.eq(ContentType::ImageSet))
         .filter(content_items::Column::Status.eq(ContentStatus::Ready))
@@ -306,7 +307,7 @@ pub async fn api_galleries(
         .await
         .unwrap_or(0);
 
-    let gallery_items = content_items::Entity::find()
+    let gallery_items = ContentItems::find()
         .filter(content_items::Column::UploaderId.eq(user.id))
         .filter(content_items::Column::Type.eq(ContentType::ImageSet))
         .filter(content_items::Column::Status.eq(ContentStatus::Ready))
@@ -321,7 +322,7 @@ pub async fn api_galleries(
     let ids: Vec<Uuid> = gallery_items.iter().map(|c| c.id).collect();
 
     let image_set_map: std::collections::HashMap<Uuid, image_sets::Model> = if !ids.is_empty() {
-        let all = image_sets::Entity::find()
+        let all = ImageSets::find()
             .filter(image_sets::Column::ContentId.is_in(ids.clone()))
             .all(&state.conn)
             .await
@@ -336,7 +337,7 @@ pub async fn api_galleries(
     };
 
     let image_map: std::collections::HashMap<Uuid, Vec<images::Model>> = if !ids.is_empty() {
-        let all = images::Entity::find()
+        let all = Images::find()
             .filter(images::Column::ImageSetId.is_in(ids))
             .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
             .all(&state.conn)
