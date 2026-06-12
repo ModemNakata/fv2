@@ -1,3 +1,7 @@
+.main-content {
+    padding: 0;
+}
+
 .profile-header {
     margin-bottom: 24px;
 }
@@ -153,6 +157,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: clamp(16px, 2.5vw, 24px) clamp(8px, 1.5vw, 16px);
+    padding: 0 clamp(16px, 2vw, 24px);
 }
 
 .profile-videos .video-card .video-info {
