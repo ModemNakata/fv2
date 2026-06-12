@@ -22,15 +22,24 @@ struct ProfilePage {
     display_name: String,
     handle: String,
     avatar_initial: String,
+    active_tab: String,
 }
 
 pub async fn user_profile(
     session: Session,
     state: web::Data<AppState>,
     username: web::Path<String>,
+    query: web::Query<std::collections::HashMap<String, String>>,
 ) -> HttpResponse {
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
+
+    let default_tab = "videos".to_string();
+    let active_tab = query
+        .get("tab")
+        .filter(|v| *v == "galleries")
+        .cloned()
+        .unwrap_or(default_tab);
 
     let profile_username = username.into_inner();
     let is_owner = session_user.as_deref() == Some(&profile_username);
@@ -62,6 +71,7 @@ pub async fn user_profile(
         display_name: user.display_name,
         handle: user.username,
         avatar_initial,
+        active_tab,
     }
     .render()
     .expect("profile.html should be valid");

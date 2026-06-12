@@ -32,17 +32,17 @@
 </div>
 
 <div class="profile-nav">
-  <button class="profile-tab active" data-tab="videos">Videos</button>
-  <button class="profile-tab" data-tab="galleries">Galleries</button>
+  <button class="profile-tab{% if active_tab == "videos" %} active{% endif %}" data-tab="videos">Videos</button>
+  <button class="profile-tab{% if active_tab == "galleries" %} active{% endif %}" data-tab="galleries">Galleries</button>
 </div>
 
-<div class="profile-content" id="tab-videos">
+<div class="profile-content{% if active_tab != "videos" %} hidden{% endif %}" id="tab-videos">
   <div class="video-grid" id="videosGrid"></div>
   <div class="profile-loader" id="videosLoader">Loading videos...</div>
   <div class="empty-state" id="videosEmpty" style="display:none">No videos yet.</div>
 </div>
 
-<div class="profile-content hidden" id="tab-galleries">
+<div class="profile-content{% if active_tab != "galleries" %} hidden{% endif %}" id="tab-galleries">
   <div class="gallery-grid" id="galleriesGrid"></div>
   <div class="profile-loader" id="galleriesLoader">Loading galleries...</div>
   <div class="empty-state" id="galleriesEmpty" style="display:none">No galleries yet.</div>
@@ -51,6 +51,7 @@
 <script>
 (function() {
   var handle = '{{ handle }}';
+  var activeTab = '{{ active_tab }}';
   var loading = { videos: false, galleries: false };
   var offsets = { videos: 0, galleries: 0 };
   var hasMore = { videos: true, galleries: true };
@@ -169,6 +170,10 @@
         loadItems(tab);
       }
 
+      var url = new URL(window.location);
+      url.searchParams.set('tab', tab);
+      history.replaceState(null, '', url);
+
       setTimeout(function() {
         observer.disconnect();
         var active = document.querySelector('.profile-tab.active');
@@ -182,11 +187,11 @@
     });
   }
 
-  // kick off videos on load
-  initialized.videos = true;
-  contents.videos.appendChild(sentinel);
+  // kick off initial tab on load
+  initialized[activeTab] = true;
+  contents[activeTab].appendChild(sentinel);
   observer.observe(sentinel);
-  loadItems('videos');
+  loadItems(activeTab);
 })();
 </script>
 {% endblock %}
