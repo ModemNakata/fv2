@@ -21,6 +21,7 @@ impl MigrationTrait for Migration {
                     // | copied from username on initial registration, can be changed later in settings
                     .col(string_len("display_name", 32)) // 50
                     .col(string_len("password_hash", 255))
+                    .col(string_len("avatar_url", 1024).null()) // profile pic path /// or string("")
                     .col(timestamp("password_changed_at").default(Expr::current_timestamp()))
                     .col(timestamp("created_at").default(Expr::current_timestamp()))
                     .col(timestamp("updated_at").default(Expr::current_timestamp()))
