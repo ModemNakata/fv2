@@ -37,87 +37,156 @@
 </div>
 
 <div class="profile-content" id="tab-videos">
-  {% if videos.is_empty() %}
-  <div class="empty-state">No videos yet.</div>
-  {% else %}
-  <div class="video-grid">
-  {% for v in videos %}
-    <a href="/video/{{ v.id }}" class="video-card">
-      <div class="thumbnail">
-        {% if v.thumbnail_url.is_some() %}
-        <img src="{{ v.thumbnail_url.as_ref().unwrap() }}" alt="{{ v.title }}" class="thumb-img">
-        {% else %}
-        <div class="thumb-placeholder" style="--hue: {{ v.hue }}">
-          <span class="thumb-icon">
-            <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-              <path d="M72,39.88V216.12a8,8,0,0,0,12.15,6.69l144.08-88.12a7.82,7.82,0,0,0,0-13.38L84.15,33.19A8,8,0,0,0,72,39.88Z" fill="currentColor"/>
-            </svg>
-          </span>
-        </div>
-        {% endif %}
-        <span class="duration">{{ v.duration }}</span>
-      </div>
-      <div class="video-info">
-        <div class="video-details">
-          <h3 class="video-title">{{ v.title }}</h3>
-          <p class="video-meta">{{ v.views }} · {{ v.time_ago }}</p>
-        </div>
-      </div>
-    </a>
-  {% endfor %}
-  </div>
-  {% endif %}
+  <div class="video-grid" id="videosGrid"></div>
+  <div class="profile-loader" id="videosLoader">Loading videos...</div>
+  <div class="empty-state" id="videosEmpty" style="display:none">No videos yet.</div>
 </div>
 
 <div class="profile-content hidden" id="tab-galleries">
-  {% if galleries.is_empty() %}
-  <div class="empty-state">No galleries yet.</div>
-  {% else %}
-  <div class="gallery-grid">
-  {% for g in galleries %}
-    <a href="/gallery/{{ g.id }}" class="gallery-card">
-      <div class="gallery-card-thumb">
-        {% if g.thumbnail_url.is_some() %}
-        <img src="{{ g.thumbnail_url.as_ref().unwrap() }}" alt="{{ g.title }}" class="gallery-card-img" loading="lazy">
-        {% else %}
-        <div class="gallery-card-placeholder">
-          <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-            <rect width="256" height="256" fill="none"/>
-            <rect x="72" y="40" width="144" height="144" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-            <circle cx="120" cy="88" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-            <path d="M184,184v24a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-            <path d="M96.69,184l77.65-77.66a8,8,0,0,1,11.32,0L216,136.69" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-          </svg>
-        </div>
-        {% endif %}
-        <span class="gallery-card-pictures">{{ g.image_count }} pictures</span>
-      </div>
-      <div class="gallery-card-info">
-        <h3 class="gallery-card-title">{{ g.title }}</h3>
-        <p class="gallery-card-meta">{{ g.views }} · {{ g.time_ago }}</p>
-      </div>
-    </a>
-  {% endfor %}
-  </div>
-  {% endif %}
+  <div class="gallery-grid" id="galleriesGrid"></div>
+  <div class="profile-loader" id="galleriesLoader">Loading galleries...</div>
+  <div class="empty-state" id="galleriesEmpty" style="display:none">No galleries yet.</div>
 </div>
 
 <script>
 (function() {
+  var handle = '{{ handle }}';
+  var loading = { videos: false, galleries: false };
+  var offsets = { videos: 0, galleries: 0 };
+  var hasMore = { videos: true, galleries: true };
+  var initialized = { videos: false, galleries: false };
+  var LIMIT = 20;
+
+  function videoHtml(item) {
+    var thumb = item.thumbnail_url
+      ? '<img src="' + item.thumbnail_url + '" alt="' + item.title + '" class="thumb-img">'
+      : '<div class="thumb-placeholder" style="--hue: ' + item.hue + '">'
+        + '<span class="thumb-icon">'
+        + '<svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">'
+        + '<path d="M72,39.88V216.12a8,8,0,0,0,12.15,6.69l144.08-88.12a7.82,7.82,0,0,0,0-13.38L84.15,33.19A8,8,0,0,0,72,39.88Z" fill="currentColor"/>'
+        + '</svg></span></div>';
+    return '<a href="/video/' + item.id + '" class="video-card">'
+      + '<div class="thumbnail">' + thumb + '<span class="duration">' + item.duration + '</span></div>'
+      + '<div class="video-info"><div class="video-details">'
+      + '<h3 class="video-title">' + item.title + '</h3>'
+      + '<p class="video-meta">' + item.views + ' &middot; ' + item.time_ago + '</p>'
+      + '</div></div></a>';
+  }
+
+  function galleryHtml(item) {
+    var thumb = item.thumbnail_url
+      ? '<img src="' + item.thumbnail_url + '" alt="' + item.title + '" class="gallery-card-img" loading="lazy">'
+      : '<div class="gallery-card-placeholder">'
+        + '<svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">'
+        + '<rect width="256" height="256" fill="none"/>'
+        + '<rect x="72" y="40" width="144" height="144" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>'
+        + '<circle cx="120" cy="88" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>'
+        + '<path d="M184,184v24a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>'
+        + '<path d="M96.69,184l77.65-77.66a8,8,0,0,1,11.32,0L216,136.69" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>'
+        + '</svg></div>';
+    return '<a href="/gallery/' + item.id + '" class="gallery-card">'
+      + '<div class="gallery-card-thumb">' + thumb + '<span class="gallery-card-pictures">' + item.image_count + ' pictures</span></div>'
+      + '<div class="gallery-card-info">'
+      + '<h3 class="gallery-card-title">' + item.title + '</h3>'
+      + '<p class="gallery-card-meta">' + item.views + ' &middot; ' + item.time_ago + '</p>'
+      + '</div></a>';
+  }
+
+  function loadItems(type) {
+    if (loading[type] || !hasMore[type]) return;
+    loading[type] = true;
+
+    var url = '/api/profile/' + handle + '/' + type + '?limit=' + LIMIT + '&offset=' + offsets[type];
+    var grid = document.getElementById(type + 'Grid');
+    var loader = document.getElementById(type + 'Loader');
+    var empty = document.getElementById(type + 'Empty');
+
+    loader.textContent = 'Loading...';
+    loader.style.display = '';
+
+    fetch(url)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.items.length === 0 && offsets[type] === 0) {
+          empty.style.display = '';
+          loader.style.display = 'none';
+          loading[type] = false;
+          hasMore[type] = false;
+          return;
+        }
+
+        var html = '';
+        for (var i = 0; i < data.items.length; i++) {
+          html += (type === 'videos' ? videoHtml : galleryHtml)(data.items[i]);
+        }
+        grid.insertAdjacentHTML('beforeend', html);
+
+        offsets[type] += data.items.length;
+        hasMore[type] = data.has_more;
+        loading[type] = false;
+
+        if (!hasMore[type]) {
+          loader.style.display = 'none';
+        } else {
+          loader.textContent = 'Scroll for more...';
+        }
+      })
+      .catch(function() {
+        loader.textContent = 'Failed to load.';
+        loading[type] = false;
+      });
+  }
+
+  var sentinel = document.createElement('div');
+  sentinel.className = 'scroll-sentinel';
+
+  var observer = new IntersectionObserver(function(entries) {
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].isIntersecting) {
+        var activeTab = document.querySelector('.profile-tab.active');
+        if (activeTab) loadItems(activeTab.dataset.tab);
+      }
+    }
+  }, { rootMargin: '200px' });
+
   var tabs = document.querySelectorAll('.profile-tab');
   var contents = {};
   contents.videos = document.getElementById('tab-videos');
   contents.galleries = document.getElementById('tab-galleries');
+
   for (var i = 0; i < tabs.length; i++) {
     tabs[i].addEventListener('click', function() {
       var tab = this.dataset.tab;
       for (var j = 0; j < tabs.length; j++) tabs[j].classList.remove('active');
       this.classList.add('active');
       for (var key in contents) {
-        if (contents[key]) contents[key].classList.toggle('hidden', key !== tab);
+        contents[key].classList.toggle('hidden', key !== tab);
       }
+
+      if (!initialized[tab]) {
+        initialized[tab] = true;
+        contents[tab].appendChild(sentinel);
+        loadItems(tab);
+      }
+
+      setTimeout(function() {
+        observer.disconnect();
+        var active = document.querySelector('.profile-tab.active');
+        if (active) {
+          var c = contents[active.dataset.tab];
+          if (c && c.contains(sentinel)) {
+            observer.observe(sentinel);
+          }
+        }
+      }, 50);
     });
   }
+
+  // kick off videos on load
+  initialized.videos = true;
+  contents.videos.appendChild(sentinel);
+  observer.observe(sentinel);
+  loadItems('videos');
 })();
 </script>
 {% endblock %}

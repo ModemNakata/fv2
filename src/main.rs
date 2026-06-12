@@ -89,7 +89,9 @@ async fn main() -> std::io::Result<()> {
                 web::scope("/api")
                     .route("/pending-processing", web::get().to(pipeline::pending_processing))
                     .route("/content/{id}", web::get().to(pipeline::get_content))
-                    .route("/content/{id}/status", web::patch().to(pipeline::update_status)),
+                    .route("/content/{id}/status", web::patch().to(pipeline::update_status))
+                    .route("/profile/{username}/videos", web::get().to(profile::api_videos))
+                    .route("/profile/{username}/galleries", web::get().to(profile::api_galleries)),
             )
     })
     .bind(("0.0.0.0", 8080))?

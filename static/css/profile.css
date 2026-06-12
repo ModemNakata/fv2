@@ -154,3 +154,14 @@
 .profile-content .gallery-grid {
     padding: 0;
 }
+
+.profile-loader {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-tertiary);
+    font-size: 0.88rem;
+}
+
+.scroll-sentinel {
+    height: 1px;
+}

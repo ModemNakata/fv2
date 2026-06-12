@@ -2,6 +2,7 @@ use actix_session::Session;
 use actix_web::{HttpResponse, web};
 use askama::Template;
 use sea_orm::*;
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::AppState;
@@ -9,6 +10,8 @@ use crate::auth;
 use crate::entity::sea_orm_active_enums::*;
 use crate::entity::{content_items, image_sets, images, users, videos};
 use crate::gallery;
+
+// ---- page handler ----
 
 #[derive(Template)]
 #[template(path = "profile.html")]
@@ -19,27 +22,6 @@ struct ProfilePage {
     display_name: String,
     handle: String,
     avatar_initial: String,
-    videos: Vec<ProfileVideo>,
-    galleries: Vec<ProfileGallery>,
-}
-
-struct ProfileVideo {
-    id: Uuid,
-    title: String,
-    thumbnail_url: Option<String>,
-    duration: String,
-    views: String,
-    time_ago: String,
-    hue: u32,
-}
-
-struct ProfileGallery {
-    id: Uuid,
-    title: String,
-    thumbnail_url: Option<String>,
-    image_count: usize,
-    views: String,
-    time_ago: String,
 }
 
 pub async fn user_profile(
@@ -73,6 +55,93 @@ pub async fn user_profile(
         .map(|c| c.to_uppercase().to_string())
         .unwrap_or_else(|| "?".to_string());
 
+    let html = ProfilePage {
+        username: session_user,
+        logged_in,
+        is_owner,
+        display_name: user.display_name,
+        handle: user.username,
+        avatar_initial,
+    }
+    .render()
+    .expect("profile.html should be valid");
+
+    HttpResponse::Ok().body(html)
+}
+
+// ---- API: videos ----
+
+#[derive(Serialize)]
+struct ApiVideoItem {
+    id: Uuid,
+    title: String,
+    thumbnail_url: Option<String>,
+    duration: String,
+    views: String,
+    time_ago: String,
+    hue: u32,
+}
+
+#[derive(Serialize)]
+struct ApiVideosResponse {
+    items: Vec<ApiVideoItem>,
+    has_more: bool,
+}
+
+pub async fn api_videos(
+    state: web::Data<AppState>,
+    username: web::Path<String>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+) -> HttpResponse {
+    let username = username.into_inner();
+
+    let limit: u64 = query
+        .get("limit")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(20)
+        .min(50);
+
+    let offset: u64 = query
+        .get("offset")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
+
+    let user = match users::Entity::find()
+        .filter(users::Column::Username.eq(&username))
+        .one(&state.conn)
+        .await
+    {
+        Ok(Some(u)) => u,
+        _ => {
+            return HttpResponse::Ok().json(ApiVideosResponse {
+                items: Vec::new(),
+                has_more: false,
+            });
+        }
+    };
+
+    let total = content_items::Entity::find()
+        .filter(content_items::Column::UploaderId.eq(user.id))
+        .filter(content_items::Column::Type.eq(ContentType::Video))
+        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
+        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
+        .count(&state.conn)
+        .await
+        .unwrap_or(0);
+
+    let items = content_items::Entity::find()
+        .filter(content_items::Column::UploaderId.eq(user.id))
+        .filter(content_items::Column::Type.eq(ContentType::Video))
+        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
+        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
+        .order_by_desc(content_items::Column::CreatedAt)
+        .limit(limit)
+        .offset(offset)
+        .find_also_related(videos::Entity)
+        .all(&state.conn)
+        .await
+        .unwrap_or_default();
+
     let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
     let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
     let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
@@ -83,19 +152,7 @@ pub async fn user_profile(
 
     let now = chrono::Utc::now();
 
-    // ---- videos ----
-    let video_items = content_items::Entity::find()
-        .filter(content_items::Column::UploaderId.eq(user.id))
-        .filter(content_items::Column::Type.eq(ContentType::Video))
-        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
-        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
-        .order_by_desc(content_items::Column::CreatedAt)
-        .find_also_related(videos::Entity)
-        .all(&state.conn)
-        .await
-        .unwrap_or_default();
-
-    let profile_videos: Vec<ProfileVideo> = video_items
+    let video_items: Vec<ApiVideoItem> = items
         .into_iter()
         .map(|(content, video_opt)| {
             let duration_secs = video_opt
@@ -126,7 +183,7 @@ pub async fn user_profile(
                 .filter(|k| !k.is_empty())
                 .map(|key| format!("{}/{}", s3_base, key));
 
-            ProfileVideo {
+            ApiVideoItem {
                 id: content.id,
                 title: content.title,
                 thumbnail_url,
@@ -138,22 +195,90 @@ pub async fn user_profile(
         })
         .collect();
 
-    // ---- galleries ----
+    let has_more = (offset as u64 + limit) < total;
+
+    HttpResponse::Ok().json(ApiVideosResponse {
+        items: video_items,
+        has_more,
+    })
+}
+
+// ---- API: galleries ----
+
+#[derive(Serialize)]
+struct ApiGalleryItem {
+    id: Uuid,
+    title: String,
+    thumbnail_url: Option<String>,
+    image_count: usize,
+    views: String,
+    time_ago: String,
+}
+
+#[derive(Serialize)]
+struct ApiGalleriesResponse {
+    items: Vec<ApiGalleryItem>,
+    has_more: bool,
+}
+
+pub async fn api_galleries(
+    state: web::Data<AppState>,
+    username: web::Path<String>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+) -> HttpResponse {
+    let username = username.into_inner();
+
+    let limit: u64 = query
+        .get("limit")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(20)
+        .min(50);
+
+    let offset: u64 = query
+        .get("offset")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
+
+    let user = match users::Entity::find()
+        .filter(users::Column::Username.eq(&username))
+        .one(&state.conn)
+        .await
+    {
+        Ok(Some(u)) => u,
+        _ => {
+            return HttpResponse::Ok().json(ApiGalleriesResponse {
+                items: Vec::new(),
+                has_more: false,
+            });
+        }
+    };
+
+    let total = content_items::Entity::find()
+        .filter(content_items::Column::UploaderId.eq(user.id))
+        .filter(content_items::Column::Type.eq(ContentType::ImageSet))
+        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
+        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
+        .count(&state.conn)
+        .await
+        .unwrap_or(0);
+
     let gallery_items = content_items::Entity::find()
         .filter(content_items::Column::UploaderId.eq(user.id))
         .filter(content_items::Column::Type.eq(ContentType::ImageSet))
         .filter(content_items::Column::Status.eq(ContentStatus::Ready))
         .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
         .order_by_desc(content_items::Column::CreatedAt)
+        .limit(limit)
+        .offset(offset)
         .all(&state.conn)
         .await
         .unwrap_or_default();
 
-    let gallery_ids: Vec<Uuid> = gallery_items.iter().map(|c| c.id).collect();
+    let ids: Vec<Uuid> = gallery_items.iter().map(|c| c.id).collect();
 
-    let image_set_map: std::collections::HashMap<Uuid, image_sets::Model> = if !gallery_ids.is_empty() {
+    let image_set_map: std::collections::HashMap<Uuid, image_sets::Model> = if !ids.is_empty() {
         let all = image_sets::Entity::find()
-            .filter(image_sets::Column::ContentId.is_in(gallery_ids.clone()))
+            .filter(image_sets::Column::ContentId.is_in(ids.clone()))
             .all(&state.conn)
             .await
             .unwrap_or_default();
@@ -166,9 +291,9 @@ pub async fn user_profile(
         std::collections::HashMap::new()
     };
 
-    let image_map: std::collections::HashMap<Uuid, Vec<images::Model>> = if !gallery_ids.is_empty() {
+    let image_map: std::collections::HashMap<Uuid, Vec<images::Model>> = if !ids.is_empty() {
         let all = images::Entity::find()
-            .filter(images::Column::ImageSetId.is_in(gallery_ids))
+            .filter(images::Column::ImageSetId.is_in(ids))
             .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
             .all(&state.conn)
             .await
@@ -183,7 +308,17 @@ pub async fn user_profile(
         std::collections::HashMap::new()
     };
 
-    let profile_galleries: Vec<ProfileGallery> = gallery_items
+    let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
+    let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
+    let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
+        String::new()
+    } else {
+        format!("{}/{}", s3_endpoint.trim_end_matches('/'), s3_bucket)
+    };
+
+    let now = chrono::Utc::now();
+
+    let items: Vec<ApiGalleryItem> = gallery_items
         .into_iter()
         .map(|content| {
             let image_set = image_set_map.get(&content.id);
@@ -200,7 +335,7 @@ pub async fn user_profile(
 
             let view_count = image_set.map(|is| is.view_count).unwrap_or(0);
 
-            ProfileGallery {
+            ApiGalleryItem {
                 id: content.id,
                 title: content.title,
                 thumbnail_url,
@@ -211,18 +346,10 @@ pub async fn user_profile(
         })
         .collect();
 
-    let html = ProfilePage {
-        username: session_user,
-        logged_in,
-        is_owner,
-        display_name: user.display_name,
-        handle: user.username,
-        avatar_initial,
-        videos: profile_videos,
-        galleries: profile_galleries,
-    }
-    .render()
-    .expect("profile.html should be valid");
+    let has_more = (offset as u64 + limit) < total;
 
-    HttpResponse::Ok().body(html)
+    HttpResponse::Ok().json(ApiGalleriesResponse {
+        items,
+        has_more,
+    })
 }
