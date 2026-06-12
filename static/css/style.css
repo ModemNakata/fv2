@@ -333,7 +333,7 @@ input {
 }
 
 .main-content {
-  min-height: 100vh;
+  /* min-height: 100vh; */
   padding: clamp(16px, 2vh, 24px) clamp(8px, 2vw, 24px);
 }
 
