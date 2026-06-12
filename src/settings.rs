@@ -22,6 +22,7 @@ struct SettingsPage {
     current_username: String,
     current_display_name: String,
     current_avatar_url: Option<String>,
+    current_about_me: Option<String>,
 }
 
 pub async fn settings_page(session: Session, state: web::Data<AppState>) -> HttpResponse {
@@ -39,6 +40,7 @@ pub async fn settings_page(session: Session, state: web::Data<AppState>) -> Http
         current_username: user.username.clone(),
         current_display_name: user.display_name,
         current_avatar_url: user.avatar_url,
+        current_about_me: user.about_me,
     }
     .render()
     .expect("settings.html should be valid");
@@ -67,6 +69,7 @@ pub async fn update_settings(
 
     let mut username: Option<String> = None;
     let mut display_name: Option<String> = None;
+    let mut about_me: Option<String> = None;
     let mut avatar_data: Option<Vec<u8>> = None;
     let mut remove_avatar = false;
 
@@ -97,6 +100,13 @@ pub async fn update_settings(
                 if !val.is_empty() {
                     display_name = Some(val);
                 }
+            }
+            "about_me" => {
+                let mut data = Vec::new();
+                while let Some(Ok(chunk)) = field.next().await {
+                    data.extend_from_slice(&chunk);
+                }
+                about_me = Some(String::from_utf8(data).unwrap_or_default());
             }
             "avatar" => {
                 let mut data = Vec::new();
@@ -163,6 +173,11 @@ pub async fn update_settings(
 
     if let Some(ref name) = display_name {
         user.display_name = Set(name.clone());
+    }
+
+    if let Some(about) = about_me {
+        let trimmed = about.trim().to_string();
+        user.about_me = Set(if trimmed.is_empty() { None } else { Some(trimmed) });
     }
 
     if remove_avatar {

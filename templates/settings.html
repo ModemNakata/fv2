@@ -45,6 +45,12 @@
       <p class="settings-hint">Your public display name (max 32 characters).</p>
     </div>
 
+    <div class="settings-section">
+      <label class="settings-label" for="aboutMeInput">About me</label>
+      <textarea id="aboutMeInput" name="about_me" class="settings-textarea" rows="4" maxlength="500">{% if current_about_me.is_some() %}{{ current_about_me.as_ref().unwrap() }}{% endif %}</textarea>
+      <p class="settings-hint">Tell people about yourself (max 500 characters).</p>
+    </div>
+
     <button type="submit" class="settings-save-btn" id="saveBtn">Save Changes</button>
     <p class="settings-status" id="settingsStatus"></p>
   </form>

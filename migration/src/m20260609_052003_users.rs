@@ -23,7 +23,8 @@ impl MigrationTrait for Migration {
                     .col(string_len("password_hash", 255))
                     .col(string_len("avatar_url", 1024).null()) // profile pic path /// or string("")
                     // add profile background image (e.g. `profile-banner`)
-                    .col(string_len("about_me", 280).null()) // 160
+                    // .col(string_len("about_me", 280).null()) // 160
+                    .col(string_len("about_me", 500).null())
                     .col(timestamp("password_changed_at").default(Expr::current_timestamp()))
                     .col(timestamp("created_at").default(Expr::current_timestamp()))
                     .col(timestamp("updated_at").default(Expr::current_timestamp()))
