@@ -4,7 +4,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::entity::sea_orm_active_enums::{ContentStatus, ContentType};
-use crate::entity::{content_items, images, video_formats, videos};
+use crate::entity::{content_items, image_sets, images, video_formats, videos};
 use crate::AppState;
 
 #[derive(Serialize)]
@@ -227,14 +227,29 @@ pub async fn update_status(
             }
 
             if let Some(ref preview) = body.preview_path {
-                if let Ok(Some(video)) = videos::Entity::find_by_id(content_id).one(&state.conn).await {
-                    let mut video: videos::ActiveModel = video.into();
-                    video.preview_path = Set(Some(preview.clone()));
-                    if let Err(e) = video.update(&state.conn).await {
-                        log::error!("DB error updating preview_path: {e}");
+                match content_type {
+                    ContentType::Video => {
+                        if let Ok(Some(video)) = videos::Entity::find_by_id(content_id).one(&state.conn).await {
+                            let mut video: videos::ActiveModel = video.into();
+                            video.preview_path = Set(Some(preview.clone()));
+                            if let Err(e) = video.update(&state.conn).await {
+                                log::error!("DB error updating video preview_path: {e}");
+                            }
+                        } else {
+                            log::warn!("video record not found for content_id {content_id}, skipping preview_path");
+                        }
                     }
-                } else {
-                    log::warn!("video record not found for content_id {content_id}, skipping preview_path");
+                    ContentType::ImageSet => {
+                        if let Ok(Some(image_set)) = image_sets::Entity::find_by_id(content_id).one(&state.conn).await {
+                            let mut image_set: image_sets::ActiveModel = image_set.into();
+                            image_set.preview_path = Set(Some(preview.clone()));
+                            if let Err(e) = image_set.update(&state.conn).await {
+                                log::error!("DB error updating image_set preview_path: {e}");
+                            }
+                        } else {
+                            log::warn!("image_set record not found for content_id {content_id}, skipping preview_path");
+                        }
+                    }
                 }
             }
 

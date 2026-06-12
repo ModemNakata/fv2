@@ -427,6 +427,8 @@ pub async fn upload_gallery(
     let image_set = image_sets::ActiveModel {
         content_id: Set(content_id),
         layout_preference: Set(None),
+        preview_path: Set(None),
+        view_count: Set(0),
     };
 
     if let Err(e) = image_set.insert(&state.conn).await {

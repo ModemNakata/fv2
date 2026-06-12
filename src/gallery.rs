@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::auth;
-use crate::entity::{content_items, images, sea_orm_active_enums::*};
+use crate::entity::{content_items, image_sets, images, sea_orm_active_enums::*};
 
 // ---- gallery listing (/gallery) ----
 
@@ -24,6 +24,7 @@ struct GalleryCard {
     title: String,
     image_count: usize,
     thumbnail_url: Option<String>,
+    views: String,
     time_ago: String,
 }
 
@@ -83,6 +84,22 @@ pub async fn index(
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
     let ids: Vec<Uuid> = items.iter().map(|c| c.id).collect();
+
+    let image_set_map: std::collections::HashMap<Uuid, image_sets::Model> = if !ids.is_empty() {
+        let all = image_sets::Entity::find()
+            .filter(image_sets::Column::ContentId.is_in(ids.clone()))
+            .all(&state.conn)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+        let mut map = std::collections::HashMap::new();
+        for img_set in all {
+            map.insert(img_set.content_id, img_set);
+        }
+        map
+    } else {
+        std::collections::HashMap::new()
+    };
+
     let image_map: std::collections::HashMap<Uuid, Vec<images::Model>> = if !ids.is_empty() {
         let all = images::Entity::find()
             .filter(images::Column::ImageSetId.is_in(ids))
@@ -113,12 +130,21 @@ pub async fn index(
     let galleries: Vec<GalleryCard> = items
         .into_iter()
         .map(|content| {
+            let image_set = image_set_map.get(&content.id);
             let images = image_map.get(&content.id);
             let image_count = images.map(|v| v.len()).unwrap_or(0);
-            let thumbnail_url = images
-                .and_then(|v| v.first())
-                .map(|img| format!("{}/{}", s3_base, img.storage_path.as_ref().unwrap_or(&img.orig_storage_path)));
 
+            let thumbnail_url = image_set
+                .and_then(|is| is.preview_path.as_ref())
+                .or_else(|| {
+                    images
+                        .and_then(|imgs| imgs.first())
+                        .map(|img| img.storage_path.as_ref().unwrap_or(&img.orig_storage_path))
+                })
+                .map(|path| format!("{}/{}", s3_base, path));
+
+            let view_count = image_set.map(|is| is.view_count).unwrap_or(0);
+            let views = format_view_count(view_count);
             let time_ago_str = time_ago(&content.created_at, now);
 
             GalleryCard {
@@ -126,6 +152,7 @@ pub async fn index(
                 title: content.title,
                 image_count,
                 thumbnail_url,
+                views,
                 time_ago: time_ago_str,
             }
         })
@@ -228,6 +255,26 @@ pub async fn gallery(
     .expect("gallery.html should be valid");
 
     Ok(web::Html::new(html))
+}
+
+fn format_view_count(count: i64) -> String {
+    if count >= 1_000_000 {
+        let millions = count as f64 / 1_000_000.0;
+        if millions < 10.0 {
+            format!("{:.1}M views", millions)
+        } else {
+            format!("{:.0}M views", millions)
+        }
+    } else if count >= 1_000 {
+        let thousands = count as f64 / 1_000.0;
+        if thousands < 10.0 {
+            format!("{:.1}K views", thousands)
+        } else {
+            format!("{:.0}K views", thousands)
+        }
+    } else {
+        format!("{} views", count)
+    }
 }
 
 fn time_ago(created_at: &sea_orm::prelude::DateTime, now: ChronoDateTime<Utc>) -> String {

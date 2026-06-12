@@ -154,7 +154,7 @@ Updates the processing status of a content item after the pipeline finishes.
 |-------|------|----------|-------------|
 | `status` | string | yes | `"ready"` or `"failed"` |
 | `thumbnail_url` | string | no | S3 key of the generated 1280×720 thumbnail image (stored in `S3_BUCKET`). Only applies to videos. |
-| `preview_path` | string | no | S3 key of the 3–5 second hover preview clip (stored in `S3_BUCKET`). Only applies to videos. |
+| `preview_path` | string | no | S3 key of the hover preview asset (stored in `S3_BUCKET`). For videos: 3–5 second clip. For image sets: typically the first image converted to a lightweight WebP. |
 | `duration` | float | no | Video duration in seconds (e.g. `13.2`). Rounded to integer and stored in `videos.duration_seconds`. Only applies to videos. |
 | `processed_files` | array of strings | no | Processed file paths in **S3_BUCKET**, stored in `storage_path`. For videos: exactly one path (e.g. HLS manifest). For image sets: one path per original image, in the same order as `files[]`. |
 
@@ -215,26 +215,36 @@ loop:
         upload preview to S3_BUCKET / videos/{content_id}/preview.webm
       
       if item.content_type == "image_set":
-        webp = webp_encode(original, qualities=[80, 50])
-        upload to S3_BUCKET / galleries/{content_id}/
+        # Encode all images to WebP (no don't do it)
+        <!-- webp = webp_encode(original, qualities=[80, 50]) -->
+        <!-- upload to S3_BUCKET / galleries/{content_id}/ -->
+        
+        # Generate preview (first image at lower quality)
+        first = item.files[0]
+        preview = webp_encode(first, quality=100, max_dim=720)
+        upload preview to S3_BUCKET / galleries/{content_id}/preview.webp
     
     processed_files = []
     
     if item.content_type == "video":
       processed_files = ["videos/{content_id}/master.m3u8"]
+      thumbnail_url = "videos/{content_id}/thumbnail.jpg"
+      preview_path = "videos/{content_id}/preview.webm"
     elif item.content_type == "image_set":
       # list each processed .webp in the same order as item.files
       processed_files = [
         "galleries/{content_id}/{image_id}.webp"
         for each original in item.files
       ]
+      thumbnail_url = "galleries/{content_id}/thumbnail.jpg"     # optional
+      preview_path = "galleries/{content_id}/preview.webp"        # optional
     
     PATCH http://app:8080/api/content/{item.content_id}/status
       X-Api-Key: {S3_ACCESS_KEY}
       {
         "status": "ready",
-        "thumbnail_url": "videos/{content_id}/thumbnail.jpg",
-        "preview_path": "videos/{content_id}/preview.webm",
+        "thumbnail_url": thumbnail_url,
+        "preview_path": preview_path,
         "processed_files": processed_files
       }
 ```
