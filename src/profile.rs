@@ -10,7 +10,9 @@ use crate::entity::users;
 #[derive(Template)]
 #[template(path = "profile.html")]
 struct UserProfilePage {
+    username: Option<String>,
     logged_in: bool,
+    is_owner: bool,
 }
 
 pub async fn user_profile(
@@ -18,19 +20,19 @@ pub async fn user_profile(
     state: web::Data<AppState>,
     username: web::Path<String>,
 ) -> HttpResponse {
-    let logged_in = auth::get_session_user(&session, &state.conn)
-        .await
-        .is_some();
+    let session_user = auth::get_session_user(&session, &state.conn).await;
+    let logged_in = session_user.is_some();
 
-    let username = username.into_inner();
+    let profile_username = username.into_inner();
+    let is_owner = session_user.as_deref() == Some(&profile_username);
 
     match users::Entity::find()
-        .filter(users::Column::Username.eq(&username))
+        .filter(users::Column::Username.eq(&profile_username))
         .one(&state.conn)
         .await
     {
         Ok(Some(_user)) => {
-            let html = UserProfilePage { logged_in }
+            let html = UserProfilePage { username: session_user, logged_in, is_owner }
                 .render()
                 .expect("profile.html should be valid");
             HttpResponse::Ok().body(html)

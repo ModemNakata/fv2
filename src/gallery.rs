@@ -14,6 +14,7 @@ use crate::entity::{content_items, image_sets, images, sea_orm_active_enums::*, 
 #[derive(Template)]
 #[template(path = "galleries.html")]
 struct GalleriesPage {
+    username: Option<String>,
     logged_in: bool,
     galleries: Vec<GalleryCard>,
     pagination: GalleryPagination,
@@ -45,9 +46,8 @@ pub async fn index(
     state: web::Data<AppState>,
     query: web::Query<std::collections::HashMap<String, String>>,
 ) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn)
-        .await
-        .is_some();
+    let session_user = auth::get_session_user(&session, &state.conn).await;
+    let logged_in = session_user.is_some();
 
     let limit: u32 = query
         .get("limit")
@@ -173,6 +173,7 @@ pub async fn index(
     };
 
     let html = GalleriesPage {
+        username: session_user.clone(),
         logged_in,
         galleries,
         pagination,
@@ -188,6 +189,7 @@ pub async fn index(
 #[derive(Template)]
 #[template(path = "gallery.html")]
 struct GalleryPage {
+    username: Option<String>,
     logged_in: bool,
     title: String,
     description: Option<String>,
@@ -208,9 +210,8 @@ pub async fn gallery(
     state: web::Data<AppState>,
     content_id: web::Path<Uuid>,
 ) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn)
-        .await
-        .is_some();
+    let session_user = auth::get_session_user(&session, &state.conn).await;
+    let logged_in = session_user.is_some();
     let content_id = content_id.into_inner();
 
     let content = content_items::Entity::find_by_id(content_id)
@@ -258,6 +259,7 @@ pub async fn gallery(
     let created_at = content.created_at.format("%b %e, %Y").to_string();
 
     let html = GalleryPage {
+        username: session_user.clone(),
         logged_in,
         title: content.title,
         description: content.description,

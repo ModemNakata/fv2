@@ -12,6 +12,7 @@ use crate::entity::{content_items, sea_orm_active_enums::*, users, videos};
 #[derive(Template)]
 #[template(path = "index.html")]
 struct HomePage {
+    username: Option<String>,
     logged_in: bool,
     videos: Vec<VideoItem>,
     pagination: Pagination,
@@ -42,20 +43,13 @@ struct Pagination {
     pages: Vec<PageButton>,
 }
 
-#[derive(Template)]
-#[template(path = "profile.html")]
-struct ProfilePage {
-    logged_in: bool,
-}
-
 pub async fn index(
     session: Session,
     state: web::Data<AppState>,
     query: web::Query<std::collections::HashMap<String, String>>,
 ) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn)
-        .await
-        .is_some();
+    let session_user = auth::get_session_user(&session, &state.conn).await;
+    let logged_in = session_user.is_some();
 
     let limit: u32 = query
         .get("limit")
@@ -195,6 +189,7 @@ pub async fn index(
     };
 
     let html = HomePage {
+        username: session_user.clone(),
         logged_in,
         videos: video_items,
         pagination,
@@ -260,35 +255,26 @@ fn time_ago(created_at: &sea_orm::prelude::DateTime, now: ChronoDateTime<Utc>) -
     format!("{} years ago", years)
 }
 
-// ---- profile, upload_video, upload_gallery handlers (unchanged) ----
-
-pub async fn profile(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn)
-        .await
-        .is_some();
-    let html = ProfilePage { logged_in }
-        .render()
-        .expect("profile.html should be valid");
-    Ok(web::Html::new(html))
-}
+// ---- upload handlers ----
 
 #[derive(Template)]
 #[template(path = "upload-video.html")]
 struct UploadVideoPage {
+    username: Option<String>,
     logged_in: bool,
 }
 
 #[derive(Template)]
 #[template(path = "upload-gallery.html")]
 struct UploadGalleryPage {
+    username: Option<String>,
     logged_in: bool,
 }
 
 pub async fn upload_video(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn)
-        .await
-        .is_some();
-    let html = UploadVideoPage { logged_in }
+    let session_user = auth::get_session_user(&session, &state.conn).await;
+    let logged_in = session_user.is_some();
+    let html = UploadVideoPage { username: session_user, logged_in }
         .render()
         .expect("upload-video.html should be valid");
     Ok(web::Html::new(html))
@@ -298,10 +284,9 @@ pub async fn upload_gallery(
     session: Session,
     state: web::Data<AppState>,
 ) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn)
-        .await
-        .is_some();
-    let html = UploadGalleryPage { logged_in }
+    let session_user = auth::get_session_user(&session, &state.conn).await;
+    let logged_in = session_user.is_some();
+    let html = UploadGalleryPage { username: session_user, logged_in }
         .render()
         .expect("upload-gallery.html should be valid");
     Ok(web::Html::new(html))

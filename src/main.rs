@@ -64,7 +64,7 @@ async fn main() -> std::io::Result<()> {
             )
             .wrap(middleware::Logger::default())
             .service(web::resource("/").route(web::get().to(home::index)))
-            .service(web::resource("/profile").route(web::get().to(home::profile)))
+
             .service(web::resource("/upload/video")
                 .route(web::get().to(home::upload_video))
                 .route(web::post().to(upload::upload_video))

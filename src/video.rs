@@ -11,6 +11,7 @@ use crate::AppState;
 #[derive(Template)]
 #[template(path = "video.html")]
 struct VideoPage {
+    username: Option<String>,
     logged_in: bool,
     video_title: String,
     source_url: String,
@@ -27,7 +28,8 @@ pub async fn video(
     state: web::Data<AppState>,
     content_id: web::Path<Uuid>,
 ) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn).await.is_some();
+    let session_user = auth::get_session_user(&session, &state.conn).await;
+    let logged_in = session_user.is_some();
     let content_id = content_id.into_inner();
 
     let content = content_items::Entity::find_by_id(content_id)
@@ -57,6 +59,7 @@ pub async fn video(
     };
 
     let html = VideoPage {
+        username: session_user.clone(),
         logged_in,
         video_title: content.title,
         source_url,
