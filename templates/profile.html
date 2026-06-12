@@ -81,8 +81,10 @@
         + '<svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">'
         + '<path d="M72,39.88V216.12a8,8,0,0,0,12.15,6.69l144.08-88.12a7.82,7.82,0,0,0,0-13.38L84.15,33.19A8,8,0,0,0,72,39.88Z" fill="currentColor"/>'
         + '</svg></span></div>';
-      return '<a href="/video/' + item.id + '" class="video-card">'
-        + '<div class="thumbnail">' + thumb + '<span class="duration">' + item.duration + '</span></div>'
+      return '<a href="/video/' + item.id + '" class="video-card"' + (item.preview_url ? ' data-preview="true"' : '') + '>'
+        + '<div class="thumbnail">' + thumb
+        + (item.preview_url ? '<video class="thumb-preview" src="' + item.preview_url + '" muted playsinline preload="none" loop' + (item.thumbnail_url ? ' poster="' + item.thumbnail_url + '"' : '') + '></video><div class="thumb-spinner"></div>' : '')
+        + '<span class="duration">' + item.duration + '</span></div>'
         + '<div class="video-info"><div class="video-details">'
         + '<h3 class="video-title">' + item.title + '</h3>'
         + '<p class="video-meta">' + item.views + ' &middot; ' + item.time_ago + '</p>'
@@ -138,6 +140,33 @@
             html += (type === 'videos' ? videoHtml : galleryHtml)(data.items[i]);
           }
           grid.insertAdjacentHTML('beforeend', html);
+
+          if (type === 'videos') {
+            var cards = grid.querySelectorAll('.video-card[data-preview="true"]');
+            for (var i = 0; i < cards.length; i++) {
+              (function(card) {
+                var video = card.querySelector('.thumb-preview');
+                var spinner = card.querySelector('.thumb-spinner');
+                if (!video) return;
+
+                card.addEventListener('mouseenter', function() {
+                  video.currentTime = 0;
+                  if (spinner) spinner.classList.add('active');
+                  video.play().catch(function(){});
+                });
+
+                card.addEventListener('mouseleave', function() {
+                  video.pause();
+                  video.currentTime = 0;
+                  if (spinner) spinner.classList.remove('active');
+                });
+
+                video.addEventListener('playing', function() {
+                  if (spinner) spinner.classList.remove('active');
+                });
+              })(cards[i]);
+            }
+          }
 
           offsets[type] += data.items.length;
           hasMore[type] = data.has_more;

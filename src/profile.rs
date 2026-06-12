@@ -112,6 +112,7 @@ struct ApiVideoItem {
     id: Uuid,
     title: String,
     thumbnail_url: Option<String>,
+    preview_url: Option<String>,
     duration: String,
     views: String,
     time_ago: String,
@@ -219,10 +220,17 @@ pub async fn api_videos(
                 .filter(|k| !k.is_empty())
                 .map(|key| format!("{}/{}", s3_base, key));
 
+            let preview_url = video_opt
+                .as_ref()
+                .and_then(|v| v.preview_path.as_ref())
+                .filter(|k| !k.is_empty())
+                .map(|key| format!("{}/{}", s3_base, key));
+
             ApiVideoItem {
                 id: content.id,
                 title: content.title,
                 thumbnail_url,
+                preview_url,
                 duration: duration_str,
                 views: gallery::format_view_count(view_count),
                 time_ago: gallery::time_ago(&content.created_at, now),
