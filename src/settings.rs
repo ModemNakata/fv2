@@ -3,7 +3,10 @@ use actix_session::Session;
 use actix_web::{HttpResponse, web};
 use askama::Template;
 use futures_util::StreamExt;
-use sea_orm::{ActiveModelTrait, EntityTrait, QueryFilter, Set, sea_query::{Expr, Func}};
+use sea_orm::{
+    ActiveModelTrait, EntityTrait, QueryFilter, Set,
+    sea_query::{Expr, Func},
+};
 use uuid::Uuid;
 
 use crate::AppState;
@@ -21,10 +24,7 @@ struct SettingsPage {
     current_avatar_url: Option<String>,
 }
 
-pub async fn settings_page(
-    session: Session,
-    state: web::Data<AppState>,
-) -> HttpResponse {
+pub async fn settings_page(session: Session, state: web::Data<AppState>) -> HttpResponse {
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
 
@@ -133,7 +133,10 @@ pub async fn update_settings(
 
         if new_username.to_lowercase() != original_username.to_lowercase() {
             let existing = Users::find()
-                .filter(Expr::expr(Func::lower(Expr::col(users::Column::Username))).eq(new_username.to_lowercase()))
+                .filter(
+                    Expr::expr(Func::lower(Expr::col(users::Column::Username)))
+                        .eq(new_username.to_lowercase()),
+                )
                 .one(&state.conn)
                 .await;
 
@@ -196,14 +199,16 @@ pub async fn update_settings(
 
 fn process_avatar(data: &[u8], user_id: Uuid) -> Result<String, String> {
     let img = image::load_from_memory(data).map_err(|e| format!("Invalid image: {e}"))?;
-    let resized = img.resize_to_fill(128, 128, image::imageops::FilterType::Lanczos3);
+    let resized = img.resize_to_fill(256, 256, image::imageops::FilterType::Lanczos3);
 
     let filename = format!("{user_id}.webp");
     let path = format!("static/avatars/{filename}");
 
-    let mut output = std::fs::File::create(&path).map_err(|e| format!("Failed to create file: {e}"))?;
-    let encoder = webp::Encoder::from_image(&resized).map_err(|e| format!("WebP encoding failed: {e}"))?;
-    let webp_data = encoder.encode(90.0);
+    let mut output =
+        std::fs::File::create(&path).map_err(|e| format!("Failed to create file: {e}"))?;
+    let encoder =
+        webp::Encoder::from_image(&resized).map_err(|e| format!("WebP encoding failed: {e}"))?;
+    let webp_data = encoder.encode(100.0); // 90 /// //// /////
     std::io::Write::write_all(&mut output, &webp_data)
         .map_err(|e| format!("Failed to write avatar: {e}"))?;
 
