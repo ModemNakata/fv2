@@ -80,6 +80,7 @@
           var img = document.createElement('img');
           img.className = 'file-thumb';
           img.src = file._preview || '';
+          img.draggable = false;
           preview.appendChild(img);
         } else {
           var icon = document.createElement('div');
