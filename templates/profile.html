@@ -7,7 +7,7 @@
 {% endblock %}
 {% block content %}
 <div class="profile-header">
-  <div class="profile-banner"></div>
+  <!-- <div class="profile-banner"></div> -->
   <div class="profile-info">
     {% if avatar_url.is_some() %}
     <div class="profile-avatar-large"><img src="{{ avatar_url.as_ref().unwrap() }}" alt="" class="avatar-img"></div>
@@ -21,9 +21,12 @@
         {% if is_owner %}
         <a href="/settings" class="icon-btn settings-btn" aria-label="Settings">
           <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-            <rect width="256" height="256" fill="none"/>
-            <circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-            <path d="M130.05,206.11c-1.34,0-2.69,0-4,0L94,224a104.61,104.61,0,0,1-34.11-19.2l-.12-36c-.71-1.12-1.38-2.25-2-3.41L25.9,147.24a99.15,99.15,0,0,1,0-38.46l31.84-18.1c.65-1.15,1.32-2.29,2-3.41l.16-36A104.58,104.58,0,0,1,94,32l32,17.89c1.34,0,2.69,0,4,0L162,32a104.61,104.61,0,0,1,34.11,19.2l.12,36c.71,1.12,1.38,2.25,2,3.41l31.85,18.14a99.15,99.15,0,0,1,0,38.46l-31.84,18.1c-.65,1.15-1.32,2.29-2,3.41l-.16,36A104.58,104.58,0,0,1,162,224Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+            <rect width="256" height="256" fill="none" />
+            <circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round"
+              stroke-linejoin="round" stroke-width="16" />
+            <path
+              d="M130.05,206.11c-1.34,0-2.69,0-4,0L94,224a104.61,104.61,0,0,1-34.11-19.2l-.12-36c-.71-1.12-1.38-2.25-2-3.41L25.9,147.24a99.15,99.15,0,0,1,0-38.46l31.84-18.1c.65-1.15,1.32-2.29,2-3.41l.16-36A104.58,104.58,0,0,1,94,32l32,17.89c1.34,0,2.69,0,4,0L162,32a104.61,104.61,0,0,1,34.11,19.2l.12,36c.71,1.12,1.38,2.25,2,3.41l31.85,18.14a99.15,99.15,0,0,1,0,38.46l-31.84,18.1c-.65,1.15-1.32,2.29-2,3.41l-.16,36A104.58,104.58,0,0,1,162,224Z"
+              fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
           </svg>
         </a>
         {% endif %}
@@ -34,52 +37,54 @@
 </div>
 
 <div class="profile-nav">
-  <button class="profile-tab{% if active_tab == "videos" %} active{% endif %}" data-tab="videos">Videos ({{ video_count }})</button>
-  <button class="profile-tab{% if active_tab == "galleries" %} active{% endif %}" data-tab="galleries">Galleries ({{ gallery_count }})</button>
+  <button class="profile-tab{% if active_tab == " videos" %} active{% endif %}" data-tab="videos">Videos ({{ video_count
+    }})</button>
+  <button class="profile-tab{% if active_tab == " galleries" %} active{% endif %}" data-tab="galleries">Galleries ({{
+    gallery_count }})</button>
 </div>
 
-<div class="profile-content{% if active_tab != "videos" %} hidden{% endif %}" id="tab-videos">
+<div class="profile-content{% if active_tab != " videos" %} hidden{% endif %}" id="tab-videos">
   <div class="video-grid" id="videosGrid"></div>
   <div class="profile-loader" id="videosLoader">Loading videos...</div>
   <div class="empty-state" id="videosEmpty" style="display:none">No videos yet.</div>
 </div>
 
-<div class="profile-content{% if active_tab != "galleries" %} hidden{% endif %}" id="tab-galleries">
+<div class="profile-content{% if active_tab != " galleries" %} hidden{% endif %}" id="tab-galleries">
   <div class="gallery-grid" id="galleriesGrid"></div>
   <div class="profile-loader" id="galleriesLoader">Loading galleries...</div>
   <div class="empty-state" id="galleriesEmpty" style="display:none">No galleries yet.</div>
 </div>
 
 <script>
-(function() {
-  var handle = '{{ handle }}';
-  var activeTab = '{{ active_tab }}';
-  var loading = { videos: false, galleries: false };
-  var offsets = { videos: 0, galleries: 0 };
-  var hasMore = { videos: true, galleries: true };
-  var initialized = { videos: false, galleries: false };
-  var LIMIT = 20;
+  (function () {
+    var handle = '{{ handle }}';
+    var activeTab = '{{ active_tab }}';
+    var loading = {videos: false, galleries: false};
+    var offsets = {videos: 0, galleries: 0};
+    var hasMore = {videos: true, galleries: true};
+    var initialized = {videos: false, galleries: false};
+    var LIMIT = 20;
 
-  function videoHtml(item) {
-    var thumb = item.thumbnail_url
-      ? '<img src="' + item.thumbnail_url + '" alt="' + item.title + '" class="thumb-img">'
-      : '<div class="thumb-placeholder" style="--hue: ' + item.hue + '">'
+    function videoHtml(item) {
+      var thumb = item.thumbnail_url
+        ? '<img src="' + item.thumbnail_url + '" alt="' + item.title + '" class="thumb-img">'
+        : '<div class="thumb-placeholder" style="--hue: ' + item.hue + '">'
         + '<span class="thumb-icon">'
         + '<svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">'
         + '<path d="M72,39.88V216.12a8,8,0,0,0,12.15,6.69l144.08-88.12a7.82,7.82,0,0,0,0-13.38L84.15,33.19A8,8,0,0,0,72,39.88Z" fill="currentColor"/>'
         + '</svg></span></div>';
-    return '<a href="/video/' + item.id + '" class="video-card">'
-      + '<div class="thumbnail">' + thumb + '<span class="duration">' + item.duration + '</span></div>'
-      + '<div class="video-info"><div class="video-details">'
-      + '<h3 class="video-title">' + item.title + '</h3>'
-      + '<p class="video-meta">' + item.views + ' &middot; ' + item.time_ago + '</p>'
-      + '</div></div></a>';
-  }
+      return '<a href="/video/' + item.id + '" class="video-card">'
+        + '<div class="thumbnail">' + thumb + '<span class="duration">' + item.duration + '</span></div>'
+        + '<div class="video-info"><div class="video-details">'
+        + '<h3 class="video-title">' + item.title + '</h3>'
+        + '<p class="video-meta">' + item.views + ' &middot; ' + item.time_ago + '</p>'
+        + '</div></div></a>';
+    }
 
-  function galleryHtml(item) {
-    var thumb = item.thumbnail_url
-      ? '<img src="' + item.thumbnail_url + '" alt="' + item.title + '" class="gallery-card-img" loading="lazy">'
-      : '<div class="gallery-card-placeholder">'
+    function galleryHtml(item) {
+      var thumb = item.thumbnail_url
+        ? '<img src="' + item.thumbnail_url + '" alt="' + item.title + '" class="gallery-card-img" loading="lazy">'
+        : '<div class="gallery-card-placeholder">'
         + '<svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">'
         + '<rect width="256" height="256" fill="none"/>'
         + '<rect x="72" y="40" width="144" height="144" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>'
@@ -87,115 +92,115 @@
         + '<path d="M184,184v24a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>'
         + '<path d="M96.69,184l77.65-77.66a8,8,0,0,1,11.32,0L216,136.69" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>'
         + '</svg></div>';
-    return '<a href="/gallery/' + item.id + '" class="gallery-card">'
-      + '<div class="gallery-card-thumb">' + thumb + '<span class="gallery-card-pictures">' + item.image_count + ' pictures</span></div>'
-      + '<div class="gallery-card-info">'
-      + '<div class="gallery-card-details">'
-      + '<h3 class="gallery-card-title">' + item.title + '</h3>'
-      + '<p class="gallery-card-meta">' + item.views + ' &middot; ' + item.time_ago + '</p>'
-      + '</div>'
-      + '</div></a>';
-  }
-
-  function loadItems(type) {
-    if (loading[type] || !hasMore[type]) return;
-    loading[type] = true;
-
-    var url = '/api/profile/' + handle + '/' + type + '?limit=' + LIMIT + '&offset=' + offsets[type];
-    var grid = document.getElementById(type + 'Grid');
-    var loader = document.getElementById(type + 'Loader');
-    var empty = document.getElementById(type + 'Empty');
-
-    loader.textContent = 'Loading...';
-    loader.style.display = '';
-
-    fetch(url)
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.items.length === 0 && offsets[type] === 0) {
-          empty.style.display = '';
-          loader.style.display = 'none';
-          loading[type] = false;
-          hasMore[type] = false;
-          return;
-        }
-
-        var html = '';
-        for (var i = 0; i < data.items.length; i++) {
-          html += (type === 'videos' ? videoHtml : galleryHtml)(data.items[i]);
-        }
-        grid.insertAdjacentHTML('beforeend', html);
-
-        offsets[type] += data.items.length;
-        hasMore[type] = data.has_more;
-        loading[type] = false;
-
-        if (!hasMore[type]) {
-          loader.style.display = 'none';
-        } else {
-          loader.textContent = 'Scroll for more...';
-        }
-      })
-      .catch(function() {
-        loader.textContent = 'Failed to load.';
-        loading[type] = false;
-      });
-  }
-
-  var sentinel = document.createElement('div');
-  sentinel.className = 'scroll-sentinel';
-
-  var observer = new IntersectionObserver(function(entries) {
-    for (var i = 0; i < entries.length; i++) {
-      if (entries[i].isIntersecting) {
-        var activeTab = document.querySelector('.profile-tab.active');
-        if (activeTab) loadItems(activeTab.dataset.tab);
-      }
+      return '<a href="/gallery/' + item.id + '" class="gallery-card">'
+        + '<div class="gallery-card-thumb">' + thumb + '<span class="gallery-card-pictures">' + item.image_count + ' pictures</span></div>'
+        + '<div class="gallery-card-info">'
+        + '<div class="gallery-card-details">'
+        + '<h3 class="gallery-card-title">' + item.title + '</h3>'
+        + '<p class="gallery-card-meta">' + item.views + ' &middot; ' + item.time_ago + '</p>'
+        + '</div>'
+        + '</div></a>';
     }
-  }, { rootMargin: '200px' });
 
-  var tabs = document.querySelectorAll('.profile-tab');
-  var contents = {};
-  contents.videos = document.getElementById('tab-videos');
-  contents.galleries = document.getElementById('tab-galleries');
+    function loadItems(type) {
+      if (loading[type] || !hasMore[type]) return;
+      loading[type] = true;
 
-  for (var i = 0; i < tabs.length; i++) {
-    tabs[i].addEventListener('click', function() {
-      var tab = this.dataset.tab;
-      for (var j = 0; j < tabs.length; j++) tabs[j].classList.remove('active');
-      this.classList.add('active');
-      for (var key in contents) {
-        contents[key].classList.toggle('hidden', key !== tab);
-      }
+      var url = '/api/profile/' + handle + '/' + type + '?limit=' + LIMIT + '&offset=' + offsets[type];
+      var grid = document.getElementById(type + 'Grid');
+      var loader = document.getElementById(type + 'Loader');
+      var empty = document.getElementById(type + 'Empty');
 
-      if (!initialized[tab]) {
-        initialized[tab] = true;
-        contents[tab].appendChild(sentinel);
-        loadItems(tab);
-      }
+      loader.textContent = 'Loading...';
+      loader.style.display = '';
 
-      var url = new URL(window.location);
-      url.searchParams.set('tab', tab);
-      history.replaceState(null, '', url);
-
-      setTimeout(function() {
-        observer.disconnect();
-        var active = document.querySelector('.profile-tab.active');
-        if (active) {
-          var c = contents[active.dataset.tab];
-          if (c && c.contains(sentinel)) {
-            observer.observe(sentinel);
+      fetch(url)
+        .then(function (r) {return r.json();})
+        .then(function (data) {
+          if (data.items.length === 0 && offsets[type] === 0) {
+            empty.style.display = '';
+            loader.style.display = 'none';
+            loading[type] = false;
+            hasMore[type] = false;
+            return;
           }
-        }
-      }, 50);
-    });
-  }
 
-  // kick off initial tab on load
-  initialized[activeTab] = true;
-  contents[activeTab].appendChild(sentinel);
-  observer.observe(sentinel);
-  loadItems(activeTab);
-})();
+          var html = '';
+          for (var i = 0; i < data.items.length; i++) {
+            html += (type === 'videos' ? videoHtml : galleryHtml)(data.items[i]);
+          }
+          grid.insertAdjacentHTML('beforeend', html);
+
+          offsets[type] += data.items.length;
+          hasMore[type] = data.has_more;
+          loading[type] = false;
+
+          if (!hasMore[type]) {
+            loader.style.display = 'none';
+          } else {
+            loader.textContent = 'Scroll for more...';
+          }
+        })
+        .catch(function () {
+          loader.textContent = 'Failed to load.';
+          loading[type] = false;
+        });
+    }
+
+    var sentinel = document.createElement('div');
+    sentinel.className = 'scroll-sentinel';
+
+    var observer = new IntersectionObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i].isIntersecting) {
+          var activeTab = document.querySelector('.profile-tab.active');
+          if (activeTab) loadItems(activeTab.dataset.tab);
+        }
+      }
+    }, {rootMargin: '200px'});
+
+    var tabs = document.querySelectorAll('.profile-tab');
+    var contents = {};
+    contents.videos = document.getElementById('tab-videos');
+    contents.galleries = document.getElementById('tab-galleries');
+
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].addEventListener('click', function () {
+        var tab = this.dataset.tab;
+        for (var j = 0; j < tabs.length; j++) tabs[j].classList.remove('active');
+        this.classList.add('active');
+        for (var key in contents) {
+          contents[key].classList.toggle('hidden', key !== tab);
+        }
+
+        if (!initialized[tab]) {
+          initialized[tab] = true;
+          contents[tab].appendChild(sentinel);
+          loadItems(tab);
+        }
+
+        var url = new URL(window.location);
+        url.searchParams.set('tab', tab);
+        history.replaceState(null, '', url);
+
+        setTimeout(function () {
+          observer.disconnect();
+          var active = document.querySelector('.profile-tab.active');
+          if (active) {
+            var c = contents[active.dataset.tab];
+            if (c && c.contains(sentinel)) {
+              observer.observe(sentinel);
+            }
+          }
+        }, 50);
+      });
+    }
+
+    // kick off initial tab on load
+    initialized[activeTab] = true;
+    contents[activeTab].appendChild(sentinel);
+    observer.observe(sentinel);
+    loadItems(activeTab);
+  })();
 </script>
 {% endblock %}
