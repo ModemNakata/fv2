@@ -109,7 +109,8 @@ impl MigrationTrait for Migration {
                     .col(uuid("video_id"))
                     .col(string_len("resolution", 50))
                     .col(string_len("format", 50))
-                    .col(string_len("storage_path", 1024))
+                    .col(string_len("orig_storage_path", 1024)) // original
+                    .col(string_len("storage_path", 1024).null())
                     .col(string_len("original_name", 1024)) // should
                     .col(big_integer_null("file_size_bytes"))
                     .col(timestamp("created_at").default(Expr::current_timestamp()))
@@ -161,7 +162,8 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(uuid("image_set_id"))
-                    .col(string_len("storage_path", 1024))
+                    .col(string_len("orig_storage_path", 1024))
+                    .col(string_len("storage_path", 1024).null())
                     .col(string_len("original_name", 1024))
                     .col(integer("sort_order").default(0))
                     .col(string_len_null("alt_text", 255))

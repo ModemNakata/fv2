@@ -8,7 +8,8 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub image_set_id: Uuid,
-    pub storage_path: String,
+    pub orig_storage_path: String,
+    pub storage_path: Option<String>,
     pub original_name: String,
     pub sort_order: i32,
     pub alt_text: Option<String>,

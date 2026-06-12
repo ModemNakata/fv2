@@ -13,7 +13,8 @@ pub struct Model {
     pub resolution: String,
     #[sea_orm(unique_key = "uq_video_formats")]
     pub format: String,
-    pub storage_path: String,
+    pub orig_storage_path: String,
+    pub storage_path: Option<String>,
     pub original_name: String,
     pub file_size_bytes: Option<i64>,
     pub created_at: DateTime,
