@@ -32,8 +32,8 @@
 </div>
 
 <div class="profile-nav">
-  <button class="profile-tab{% if active_tab == "videos" %} active{% endif %}" data-tab="videos">Videos</button>
-  <button class="profile-tab{% if active_tab == "galleries" %} active{% endif %}" data-tab="galleries">Galleries</button>
+  <button class="profile-tab{% if active_tab == "videos" %} active{% endif %}" data-tab="videos">Videos ({{ video_count }})</button>
+  <button class="profile-tab{% if active_tab == "galleries" %} active{% endif %}" data-tab="galleries">Galleries ({{ gallery_count }})</button>
 </div>
 
 <div class="profile-content{% if active_tab != "videos" %} hidden{% endif %}" id="tab-videos">

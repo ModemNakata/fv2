@@ -23,6 +23,8 @@ struct ProfilePage {
     handle: String,
     avatar_initial: String,
     active_tab: String,
+    video_count: i64,
+    gallery_count: i64,
 }
 
 pub async fn user_profile(
@@ -64,6 +66,24 @@ pub async fn user_profile(
         .map(|c| c.to_uppercase().to_string())
         .unwrap_or_else(|| "?".to_string());
 
+    let video_count = content_items::Entity::find()
+        .filter(content_items::Column::UploaderId.eq(user.id))
+        .filter(content_items::Column::Type.eq(ContentType::Video))
+        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
+        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
+        .count(&state.conn)
+        .await
+        .unwrap_or(0);
+
+    let gallery_count = content_items::Entity::find()
+        .filter(content_items::Column::UploaderId.eq(user.id))
+        .filter(content_items::Column::Type.eq(ContentType::ImageSet))
+        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
+        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
+        .count(&state.conn)
+        .await
+        .unwrap_or(0);
+
     let html = ProfilePage {
         username: session_user,
         logged_in,
@@ -72,6 +92,8 @@ pub async fn user_profile(
         handle: user.username,
         avatar_initial,
         active_tab,
+        video_count: video_count as i64,
+        gallery_count: gallery_count as i64,
     }
     .render()
     .expect("profile.html should be valid");
