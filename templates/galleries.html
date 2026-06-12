@@ -55,10 +55,11 @@
             </svg>
           </div>
           {% endif %}
+          <span class="gallery-card-pictures">{{ g.image_count }} pictures</span>
         </div>
         <div class="gallery-card-info">
           <h3 class="gallery-card-title">{{ g.title }}</h3>
-          <p class="gallery-card-meta">{{ g.views }} · {{ g.image_count }} photos · {{ g.time_ago }}</p>
+          <p class="gallery-card-meta">{{ g.views }} · {{ g.time_ago }}</p>
         </div>
       </a>
     {% endfor %}

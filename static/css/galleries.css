@@ -12,9 +12,22 @@
 .gallery-card-thumb {
     position: relative;
     width: 100%;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 1 / 1;
     overflow: hidden;
     background: var(--bg-tertiary);
+}
+
+.gallery-card-pictures {
+    position: absolute;
+    bottom: clamp(6px, 1vw, 8px);
+    right: clamp(6px, 1vw, 8px);
+    background: rgba(0, 0, 0, 0.85);
+    color: var(--text-primary);
+    padding: clamp(1px, 0.3vw, 2px) clamp(5px, 0.8vw, 6px);
+    font-size: clamp(0.7rem, 1vw, 0.75rem);
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    backdrop-filter: blur(4px);
 }
 
 .gallery-card-img {
