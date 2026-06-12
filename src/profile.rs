@@ -21,7 +21,7 @@ struct ProfilePage {
     is_owner: bool,
     display_name: String,
     handle: String,
-    avatar_initial: String,
+    avatar_url: Option<String>,
     active_tab: String,
     video_count: i64,
     gallery_count: i64,
@@ -59,13 +59,6 @@ pub async fn user_profile(
         }
     };
 
-    let avatar_initial = user
-        .display_name
-        .chars()
-        .next()
-        .map(|c| c.to_uppercase().to_string())
-        .unwrap_or_else(|| "?".to_string());
-
     let video_count = content_items::Entity::find()
         .filter(content_items::Column::UploaderId.eq(user.id))
         .filter(content_items::Column::Type.eq(ContentType::Video))
@@ -90,7 +83,7 @@ pub async fn user_profile(
         is_owner,
         display_name: user.display_name,
         handle: user.username,
-        avatar_initial,
+        avatar_url: user.avatar_url,
         active_tab,
         video_count: video_count as i64,
         gallery_count: gallery_count as i64,

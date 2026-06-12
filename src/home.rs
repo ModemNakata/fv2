@@ -27,7 +27,6 @@ struct VideoItem {
     thumbnail_url: Option<String>,
     preview_url: Option<String>,
     uploader_avatar_url: Option<String>,
-    uploader_initials: String,
     hue: u32,
 }
 
@@ -87,7 +86,7 @@ pub async fn index(
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
     let uploader_ids: Vec<Uuid> = items.iter().map(|(c, _)| c.uploader_id).collect();
-    let users_map: std::collections::HashMap<Uuid, String> = if uploader_ids.is_empty() {
+    let users_map: std::collections::HashMap<Uuid, (String, Option<String>)> = if uploader_ids.is_empty() {
         std::collections::HashMap::new()
     } else {
         users::Entity::find()
@@ -96,7 +95,7 @@ pub async fn index(
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?
             .into_iter()
-            .map(|u| (u.id, u.display_name))
+            .map(|u| (u.id, (u.display_name, u.avatar_url)))
             .collect()
     };
 
@@ -129,14 +128,10 @@ pub async fn index(
             let view_count = video_opt.as_ref().map(|v| v.view_count).unwrap_or(0);
             let views_str = format_view_count(view_count);
 
-            let initials = users_map
+            let (_, uploader_avatar_url) = users_map
                 .get(&content.uploader_id)
                 .cloned()
-                .unwrap_or_else(|| "?".to_string())
-                .chars()
-                .next()
-                .map(|c| c.to_uppercase().to_string())
-                .unwrap_or_else(|| "?".to_string());
+                .unwrap_or_else(|| ("?".to_string(), None));
 
             let hue = (content
                 .id
@@ -167,8 +162,7 @@ pub async fn index(
                 time_ago: time_ago_str,
                 thumbnail_url,
                 preview_url,
-                uploader_avatar_url: None,
-                uploader_initials: initials,
+                uploader_avatar_url,
                 hue,
             }
         })

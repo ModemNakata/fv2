@@ -47,7 +47,14 @@
 }
 
 .gallery-card-info {
+    display: flex;
+    gap: clamp(10px, 1.5vw, 12px);
     padding-top: clamp(10px, 1.5vw, 12px);
+}
+
+.gallery-card-details {
+    flex: 1;
+    min-width: 0;
 }
 
 .gallery-card-title {

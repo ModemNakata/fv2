@@ -50,7 +50,9 @@
     </div>
     <div class="video-info">
       {% if v.uploader_avatar_url.is_some() %}
-      <div class="channel-avatar" style="--hue: {{ v.hue }}">{{ v.uploader_initials }}</div>
+      <div class="channel-avatar" style="--hue: {{ v.hue }}">
+        <img src="{{ v.uploader_avatar_url.as_ref().unwrap() }}" alt="" class="avatar-img">
+      </div>
       {% endif %}
       <div class="video-details">
         <h3 class="video-title">{{ v.title }}</h3>

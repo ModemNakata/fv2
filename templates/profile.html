@@ -9,7 +9,9 @@
 <div class="profile-header">
   <div class="profile-banner"></div>
   <div class="profile-info">
-    <div class="profile-avatar-large">{{ avatar_initial }}</div>
+    {% if avatar_url.is_some() %}
+    <div class="profile-avatar-large"><img src="{{ avatar_url.as_ref().unwrap() }}" alt="" class="avatar-img"></div>
+    {% endif %}
     <div class="profile-details">
       <div class="profile-details-top">
         <div class="profile-details-text">

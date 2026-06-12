@@ -34,8 +34,15 @@
           <span class="gallery-card-pictures">{{ g.image_count }} pictures</span>
         </div>
         <div class="gallery-card-info">
-          <h3 class="gallery-card-title">{{ g.title }}</h3>
-          <p class="gallery-card-meta">{{ g.views }} · {{ g.time_ago }}</p>
+          {% if g.uploader_avatar_url.is_some() %}
+          <div class="channel-avatar">
+            <img src="{{ g.uploader_avatar_url.as_ref().unwrap() }}" alt="" class="avatar-img">
+          </div>
+          {% endif %}
+          <div class="gallery-card-details">
+            <h3 class="gallery-card-title">{{ g.title }}</h3>
+            <p class="gallery-card-meta">{{ g.views }} · {{ g.time_ago }}</p>
+          </div>
         </div>
       </a>
     {% endfor %}

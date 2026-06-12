@@ -27,6 +27,7 @@ struct GalleryCard {
     thumbnail_url: Option<String>,
     views: String,
     time_ago: String,
+    uploader_avatar_url: Option<String>,
 }
 
 struct GalleryPageButton {
@@ -117,6 +118,20 @@ pub async fn index(
         std::collections::HashMap::new()
     };
 
+    let uploader_ids: Vec<Uuid> = items.iter().map(|c| c.uploader_id).collect();
+    let users_map: std::collections::HashMap<Uuid, Option<String>> = if uploader_ids.is_empty() {
+        std::collections::HashMap::new()
+    } else {
+        users::Entity::find()
+            .filter(users::Column::Id.is_in(uploader_ids))
+            .all(&state.conn)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?
+            .into_iter()
+            .map(|u| (u.id, u.avatar_url))
+            .collect()
+    };
+
     let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
     let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
     let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
@@ -147,6 +162,8 @@ pub async fn index(
             let views = format_view_count(view_count);
             let time_ago_str = time_ago(&content.created_at, now);
 
+            let avatar_url = users_map.get(&content.uploader_id).cloned().flatten();
+
             GalleryCard {
                 id: content.id,
                 title: content.title,
@@ -154,6 +171,7 @@ pub async fn index(
                 thumbnail_url,
                 views,
                 time_ago: time_ago_str,
+                uploader_avatar_url: avatar_url,
             }
         })
         .collect();
@@ -265,7 +283,7 @@ pub async fn gallery(
         description: content.description,
         uploader_username: uploader.username,
         uploader_display_name: uploader.display_name.clone(),
-        uploader_avatar_url: None,
+        uploader_avatar_url: uploader.avatar_url,
         created_at,
         images,
     }
