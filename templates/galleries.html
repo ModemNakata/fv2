@@ -45,7 +45,7 @@
     {% if pagination.total_pages > 1 %}
     <div class="pagination">
       {% if pagination.current_page > 1 %}
-      <a href="/gallery?page={{ pagination.current_page - 1 }}&limit={{ pagination.limit }}" class="page-btn">Prev</a>
+      <a href="/gallery?page={{ pagination.current_page - 1 }}&limit={{ pagination.limit }}" class="page-btn" data-page="prev">Prev</a>
       {% endif %}
       {% for p in pagination.pages %}
         {% if p.is_active %}
@@ -55,8 +55,21 @@
         {% endif %}
       {% endfor %}
       {% if pagination.current_page < pagination.total_pages %}
-      <a href="/gallery?page={{ pagination.current_page + 1 }}&limit={{ pagination.limit }}" class="page-btn">Next</a>
+      <a href="/gallery?page={{ pagination.current_page + 1 }}&limit={{ pagination.limit }}" class="page-btn" data-page="next">Next</a>
       {% endif %}
     </div>
     {% endif %}
+
+<script>
+document.addEventListener('keydown', function(e) {
+  if (e.target.closest('input, textarea, select, [contenteditable]')) return;
+  if (e.key === 'ArrowLeft') {
+    var prev = document.querySelector('[data-page="prev"]');
+    if (prev) prev.click();
+  } else if (e.key === 'ArrowRight') {
+    var next = document.querySelector('[data-page="next"]');
+    if (next) next.click();
+  }
+});
+</script>
 {% endblock %}
