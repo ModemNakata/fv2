@@ -275,7 +275,7 @@ pub async fn gallery(
     Ok(web::Html::new(html))
 }
 
-fn format_view_count(count: i64) -> String {
+pub(crate) fn format_view_count(count: i64) -> String {
     if count >= 1_000_000 {
         let millions = count as f64 / 1_000_000.0;
         if millions < 10.0 {
@@ -295,7 +295,7 @@ fn format_view_count(count: i64) -> String {
     }
 }
 
-fn time_ago(created_at: &sea_orm::prelude::DateTime, now: ChronoDateTime<Utc>) -> String {
+pub(crate) fn time_ago(created_at: &sea_orm::prelude::DateTime, now: ChronoDateTime<Utc>) -> String {
     let now_naive = now.naive_utc();
     let duration = now_naive - *created_at;
     let seconds = duration.num_seconds().max(0);

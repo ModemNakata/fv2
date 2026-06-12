@@ -1,98 +1,123 @@
 {% extends "base.html" %}
-
-{% block title %}Profile - FeVid{% endblock %}
-
+{% block title %}{{ display_name }} - fevid{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="/static/css/profile.css">
+<link rel="stylesheet" href="/static/css/index.css">
+<link rel="stylesheet" href="/static/css/galleries.css">
 {% endblock %}
-
 {% block content %}
 <div class="profile-header">
   <div class="profile-banner"></div>
   <div class="profile-info">
-    <div class="profile-avatar-large">U</div>
+    <div class="profile-avatar-large">{{ avatar_initial }}</div>
     <div class="profile-details">
-      <h1 class="profile-name">User</h1>
-      <p class="profile-handle">@user</p>
-      <div class="profile-stats">
-        <span class="stat"><strong>128</strong> subscribers</span>
-        <span class="stat"><strong>47</strong> videos</span>
+      <div class="profile-details-top">
+        <div class="profile-details-text">
+          <h1 class="profile-name">{{ display_name }}</h1>
+          <p class="profile-handle">@{{ handle }}</p>
+        </div>
+        {% if is_owner %}
+        <a href="/settings" class="icon-btn settings-btn" aria-label="Settings">
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+            <rect width="256" height="256" fill="none"/>
+            <circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+            <path d="M130.05,206.11c-1.34,0-2.69,0-4,0L94,224a104.61,104.61,0,0,1-34.11-19.2l-.12-36c-.71-1.12-1.38-2.25-2-3.41L25.9,147.24a99.15,99.15,0,0,1,0-38.46l31.84-18.1c.65-1.15,1.32-2.29,2-3.41l.16-36A104.58,104.58,0,0,1,94,32l32,17.89c1.34,0,2.69,0,4,0L162,32a104.61,104.61,0,0,1,34.11,19.2l.12,36c.71,1.12,1.38,2.25,2,3.41l31.85,18.14a99.15,99.15,0,0,1,0,38.46l-31.84,18.1c-.65,1.15-1.32,2.29-2,3.41l-.16,36A104.58,104.58,0,0,1,162,224Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          </svg>
+        </a>
+        {% endif %}
       </div>
-      <p class="profile-bio">Building the future of video sharing with Rust 🦀</p>
-      <button class="subscribe-btn">Subscribe</button>
+      <button class="follow-btn">Follow</button>
     </div>
   </div>
 </div>
 
 <div class="profile-nav">
-  <button class="profile-tab active">Videos</button>
-  <button class="profile-tab">Shorts</button>
-  <button class="profile-tab">Playlists</button>
-  <button class="profile-tab">About</button>
+  <button class="profile-tab active" data-tab="videos">Videos</button>
+  <button class="profile-tab" data-tab="galleries">Galleries</button>
 </div>
 
-<div class="profile-videos">
-  <div class="video-card">
-    <div class="thumbnail">
-      <div class="thumb-placeholder" style="--hue: 120">
-        <span class="thumb-icon">
-          <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-            <path
-              d="M72,39.88V216.12a8,8,0,0,0,12.15,6.69l144.08-88.12a7.82,7.82,0,0,0,0-13.38L84.15,33.19A8,8,0,0,0,72,39.88Z"
-              fill="currentColor" />
-          </svg>
-        </span>
+<div class="profile-content" id="tab-videos">
+  {% if videos.is_empty() %}
+  <div class="empty-state">No videos yet.</div>
+  {% else %}
+  <div class="video-grid">
+  {% for v in videos %}
+    <a href="/video/{{ v.id }}" class="video-card">
+      <div class="thumbnail">
+        {% if v.thumbnail_url.is_some() %}
+        <img src="{{ v.thumbnail_url.as_ref().unwrap() }}" alt="{{ v.title }}" class="thumb-img">
+        {% else %}
+        <div class="thumb-placeholder" style="--hue: {{ v.hue }}">
+          <span class="thumb-icon">
+            <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+              <path d="M72,39.88V216.12a8,8,0,0,0,12.15,6.69l144.08-88.12a7.82,7.82,0,0,0,0-13.38L84.15,33.19A8,8,0,0,0,72,39.88Z" fill="currentColor"/>
+            </svg>
+          </span>
+        </div>
+        {% endif %}
+        <span class="duration">{{ v.duration }}</span>
       </div>
-      <span class="duration">12:34</span>
-    </div>
-    <div class="video-info">
-      <div class="video-details">
-        <h3 class="video-title">Building a YouTube Clone with Rust &amp; Actix</h3>
-        <p class="video-meta">234K views · 3 days ago</p>
+      <div class="video-info">
+        <div class="video-details">
+          <h3 class="video-title">{{ v.title }}</h3>
+          <p class="video-meta">{{ v.views }} · {{ v.time_ago }}</p>
+        </div>
       </div>
-    </div>
+    </a>
+  {% endfor %}
   </div>
-
-  <div class="video-card">
-    <div class="thumbnail">
-      <div class="thumb-placeholder" style="--hue: 80">
-        <span class="thumb-icon">
-          <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-            <path
-              d="M72,39.88V216.12a8,8,0,0,0,12.15,6.69l144.08-88.12a7.82,7.82,0,0,0,0-13.38L84.15,33.19A8,8,0,0,0,72,39.88Z"
-              fill="currentColor" />
-          </svg>
-        </span>
-      </div>
-      <span class="duration">31:20</span>
-    </div>
-    <div class="video-info">
-      <div class="video-details">
-        <h3 class="video-title">Server-Side Rendering with Askama Templates</h3>
-        <p class="video-meta">67K views · 6 days ago</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="video-card">
-    <div class="thumbnail">
-      <div class="thumb-placeholder" style="--hue: 260">
-        <span class="thumb-icon">
-          <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-            <path
-              d="M72,39.88V216.12a8,8,0,0,0,12.15,6.69l144.08-88.12a7.82,7.82,0,0,0,0-13.38L84.15,33.19A8,8,0,0,0,72,39.88Z"
-              fill="currentColor" />
-          </svg>
-        </span>
-      </div>
-      <span class="duration">9:45</span>
-    </div>
-    <div class="video-info">
-      <div class="video-details">
-        <h3 class="video-title">Async Rust: From Zero to Actix</h3>
-        <p class="video-meta">123K views · 4 days ago</p>
-      </div>
-    </div>
-  </div>
+  {% endif %}
 </div>
+
+<div class="profile-content hidden" id="tab-galleries">
+  {% if galleries.is_empty() %}
+  <div class="empty-state">No galleries yet.</div>
+  {% else %}
+  <div class="gallery-grid">
+  {% for g in galleries %}
+    <a href="/gallery/{{ g.id }}" class="gallery-card">
+      <div class="gallery-card-thumb">
+        {% if g.thumbnail_url.is_some() %}
+        <img src="{{ g.thumbnail_url.as_ref().unwrap() }}" alt="{{ g.title }}" class="gallery-card-img" loading="lazy">
+        {% else %}
+        <div class="gallery-card-placeholder">
+          <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+            <rect width="256" height="256" fill="none"/>
+            <rect x="72" y="40" width="144" height="144" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+            <circle cx="120" cy="88" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+            <path d="M184,184v24a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+            <path d="M96.69,184l77.65-77.66a8,8,0,0,1,11.32,0L216,136.69" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          </svg>
+        </div>
+        {% endif %}
+        <span class="gallery-card-pictures">{{ g.image_count }} pictures</span>
+      </div>
+      <div class="gallery-card-info">
+        <h3 class="gallery-card-title">{{ g.title }}</h3>
+        <p class="gallery-card-meta">{{ g.views }} · {{ g.time_ago }}</p>
+      </div>
+    </a>
+  {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+(function() {
+  var tabs = document.querySelectorAll('.profile-tab');
+  var contents = {};
+  contents.videos = document.getElementById('tab-videos');
+  contents.galleries = document.getElementById('tab-galleries');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].addEventListener('click', function() {
+      var tab = this.dataset.tab;
+      for (var j = 0; j < tabs.length; j++) tabs[j].classList.remove('active');
+      this.classList.add('active');
+      for (var key in contents) {
+        if (contents[key]) contents[key].classList.toggle('hidden', key !== tab);
+      }
+    });
+  }
+})();
+</script>
 {% endblock %}
