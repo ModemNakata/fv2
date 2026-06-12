@@ -16,59 +16,58 @@
 }
 
 .gallery-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-    text-decoration: none;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  flex-shrink: 0;
+  text-decoration: none;
 }
 
 .gallery-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .gallery-avatar:hover {
-    opacity: 0.85;
+  opacity: 0.85;
 }
 
 .gallery-uploader-info {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .gallery-uploader-name {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
 }
 
 .gallery-uploader-name:hover {
-    color: var(--accent);
+  color: var(--accent);
 }
 
 .gallery-uploader-handle {
-    font-size: 0.85rem;
-    color: var(--text-tertiary);
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
 }
 
 .gallery-detail-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    line-height: 1.35;
-    color: var(--text-primary);
-    margin-top: 8px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-primary);
+  margin-top: 8px;
 }
 
 .gallery-detail-desc {
-    margin-top: 8px;
-    font-size: 0.92rem;
-    color: var(--text-secondary);
-    line-height: 1.55;
+  margin-top: 8px;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
 }
 
 .gallery-images {

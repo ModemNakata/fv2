@@ -90,8 +90,10 @@
     return '<a href="/gallery/' + item.id + '" class="gallery-card">'
       + '<div class="gallery-card-thumb">' + thumb + '<span class="gallery-card-pictures">' + item.image_count + ' pictures</span></div>'
       + '<div class="gallery-card-info">'
+      + '<div class="gallery-card-details">'
       + '<h3 class="gallery-card-title">' + item.title + '</h3>'
       + '<p class="gallery-card-meta">' + item.views + ' &middot; ' + item.time_ago + '</p>'
+      + '</div>'
       + '</div></a>';
   }
 
