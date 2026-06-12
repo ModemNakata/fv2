@@ -140,6 +140,9 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid("content_id").primary_key())
                     .col(string_len_null("layout_preference", 50).default("gallery"))
+                    .col(string_len("preview_path", 1024).null())
+                    .col(big_integer("view_count").default(0))
+                    // .col(integer("image_count"))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_image_set_content")

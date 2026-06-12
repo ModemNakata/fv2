@@ -8,6 +8,8 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub content_id: Uuid,
     pub layout_preference: Option<String>,
+    pub preview_path: Option<String>,
+    pub view_count: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
