@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::auth;
-use crate::entity::{content_items, image_sets, images, sea_orm_active_enums::*};
+use crate::entity::{content_items, image_sets, images, sea_orm_active_enums::*, users};
 
 // ---- gallery listing (/gallery) ----
 
@@ -191,6 +191,9 @@ struct GalleryPage {
     logged_in: bool,
     title: String,
     description: Option<String>,
+    uploader_username: String,
+    uploader_display_name: String,
+    uploader_initial: String,
     images: Vec<GalleryImage>,
 }
 
@@ -222,6 +225,12 @@ pub async fn gallery(
         return Err(actix_web::error::ErrorNotFound("Gallery not found"));
     }
 
+    let uploader = users::Entity::find_by_id(content.uploader_id)
+        .one(&state.conn)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?
+        .ok_or_else(|| actix_web::error::ErrorNotFound("Uploader not found"))?;
+
     let image_rows = images::Entity::find()
         .filter(images::Column::ImageSetId.eq(content_id))
         .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
@@ -249,6 +258,9 @@ pub async fn gallery(
         logged_in,
         title: content.title,
         description: content.description,
+        uploader_username: uploader.username,
+        uploader_display_name: uploader.display_name.clone(),
+        uploader_initial: uploader.display_name.chars().next().map(|c| c.to_string()).unwrap_or_default(),
         images,
     }
     .render()

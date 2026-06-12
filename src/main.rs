@@ -13,6 +13,7 @@ mod entity;
 mod gallery;
 mod home;
 mod pipeline;
+mod profile;
 mod s3;
 mod upload;
 mod video;
@@ -76,6 +77,7 @@ async fn main() -> std::io::Result<()> {
             .service(web::resource("/video/{uuid}").route(web::get().to(video::video)))
             .service(web::resource("/gallery").route(web::get().to(gallery::index)))
             .service(web::resource("/gallery/{uuid}").route(web::get().to(gallery::gallery)))
+            .service(web::resource("/@{username}").route(web::get().to(profile::user_profile)))
             .service(
                 web::scope("/auth")
                     .service(auth::auth_check)
