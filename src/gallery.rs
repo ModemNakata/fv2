@@ -117,7 +117,7 @@ pub async fn index(
             let image_count = images.map(|v| v.len()).unwrap_or(0);
             let thumbnail_url = images
                 .and_then(|v| v.first())
-                .map(|img| format!("{}/{}", s3_base, img.storage_path));
+                .map(|img| format!("{}/{}", s3_base, img.storage_path.as_ref().unwrap_or(&img.orig_storage_path)));
 
             let time_ago_str = time_ago(&content.created_at, now);
 
@@ -213,7 +213,7 @@ pub async fn gallery(
     let images: Vec<GalleryImage> = image_rows
         .into_iter()
         .map(|img| GalleryImage {
-            url: format!("{}/{}", s3_base, img.storage_path),
+            url: format!("{}/{}", s3_base, img.storage_path.as_ref().unwrap_or(&img.orig_storage_path)),
             alt: img.alt_text.unwrap_or(img.original_name),
         })
         .collect();

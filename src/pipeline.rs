@@ -36,14 +36,14 @@ fn item_to_pending(
             .iter()
             .filter(|f| f.video_id == item.id)
             .map(|f| PendingFile {
-                path: f.storage_path.clone(),
+                path: f.orig_storage_path.clone(),
             })
             .collect(),
         ContentType::ImageSet => all_images
             .iter()
             .filter(|img| img.image_set_id == item.id)
             .map(|img| PendingFile {
-                path: img.storage_path.clone(),
+                path: img.orig_storage_path.clone(),
             })
             .collect(),
     };
@@ -168,6 +168,8 @@ pub(crate) struct StatusUpdate {
     preview_path: Option<String>,
     #[serde(default)]
     duration: Option<f64>,
+    #[serde(default)]
+    processed_files: Option<Vec<String>>,
 }
 
 pub async fn update_status(
@@ -207,6 +209,7 @@ pub async fn update_status(
 
     match content_items::Entity::find_by_id(content_id).one(&state.conn).await {
         Ok(Some(content)) => {
+            let content_type = content.r#type.clone();
             let now = chrono::Utc::now().naive_utc();
             let mut content: content_items::ActiveModel = content.into();
             content.status = Set(new_status);
@@ -245,6 +248,45 @@ pub async fn update_status(
                     }
                 } else {
                     log::warn!("video record not found for content_id {content_id}, skipping duration");
+                }
+            }
+
+            if let Some(ref files) = body.processed_files {
+                match content_type {
+                    ContentType::Video => {
+                        if let Some(path) = files.first() {
+                            if let Ok(Some(fmt)) = video_formats::Entity::find()
+                                .filter(video_formats::Column::VideoId.eq(content_id))
+                                .filter(video_formats::Column::Resolution.eq("original"))
+                                .one(&state.conn)
+                                .await
+                            {
+                                let mut fmt: video_formats::ActiveModel = fmt.into();
+                                fmt.storage_path = Set(Some(path.clone()));
+                                if let Err(e) = fmt.update(&state.conn).await {
+                                    log::error!("DB error updating video_format storage_path: {e}");
+                                }
+                            }
+                        }
+                    }
+                    ContentType::ImageSet => {
+                        if let Ok(imgs) = images::Entity::find()
+                            .filter(images::Column::ImageSetId.eq(content_id))
+                            .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
+                            .all(&state.conn)
+                            .await
+                        {
+                            for (i, img) in imgs.iter().enumerate() {
+                                if let Some(path) = files.get(i) {
+                                    let mut img: images::ActiveModel = img.clone().into();
+                                    img.storage_path = Set(Some(path.clone()));
+                                    if let Err(e) = img.update(&state.conn).await {
+                                        log::error!("DB error updating image storage_path: {e}");
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

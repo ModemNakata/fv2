@@ -81,13 +81,14 @@ Returns all content items with `status = processing` (upload complete, awaiting 
 | `content_type` | string | Either `"video"` or `"image_set"` |
 | `title` | string | User-provided title |
 | `files` | array | One file for video, potentially multiple for image_set |
-| `files[].path` | string | Key in **S3_ORIG_BUCKET** (the upload bucket), suitable for `GetObject` |
+| `files[].path` | string | Key of the **original** file in **S3_ORIG_BUCKET** (before processing), suitable for `GetObject`. Stored in `orig_storage_path`. |
 
 ### Notes
 
 - `path` values are relative to `S3_ORIG_BUCKET` — if you have endpoint `https://s3.example.com/origin-bucket`, the full URL would be `https://s3.example.com/origin-bucket/videos/uuid.mp4`
 - Videos always return exactly one file (the original upload)
 - Image sets return all images ordered by `sort_order`
+- After processing, the pipeline must send back the processed file paths via `processed_files` in the status PATCH
 
 ---
 
@@ -140,7 +141,10 @@ Updates the processing status of a content item after the pipeline finishes.
   "status": "ready",
   "thumbnail_url": "videos/550e8400-e29b-41d4-a716-446655440000/thumbnail.jpg",
   "preview_path": "videos/550e8400-e29b-41d4-a716-446655440000/preview.webm",
-  "duration": 13.2
+  "duration": 13.2,
+  "processed_files": [
+    "videos/550e8400-e29b-41d4-a716-446655440000/master.m3u8"
+  ]
 }
 ```
 
@@ -152,6 +156,7 @@ Updates the processing status of a content item after the pipeline finishes.
 | `thumbnail_url` | string | no | S3 key of the generated 1280×720 thumbnail image (stored in `S3_BUCKET`). Only applies to videos. |
 | `preview_path` | string | no | S3 key of the 3–5 second hover preview clip (stored in `S3_BUCKET`). Only applies to videos. |
 | `duration` | float | no | Video duration in seconds (e.g. `13.2`). Rounded to integer and stored in `videos.duration_seconds`. Only applies to videos. |
+| `processed_files` | array of strings | no | Processed file paths in **S3_BUCKET**, stored in `storage_path`. For videos: exactly one path (e.g. HLS manifest). For image sets: one path per original image, in the same order as `files[]`. |
 
 ### Valid Status Values
 
@@ -213,11 +218,23 @@ loop:
         webp = webp_encode(original, qualities=[80, 50])
         upload to S3_BUCKET / galleries/{content_id}/
     
+    processed_files = []
+    
+    if item.content_type == "video":
+      processed_files = ["videos/{content_id}/master.m3u8"]
+    elif item.content_type == "image_set":
+      # list each processed .webp in the same order as item.files
+      processed_files = [
+        "galleries/{content_id}/{image_id}.webp"
+        for each original in item.files
+      ]
+    
     PATCH http://app:8080/api/content/{item.content_id}/status
       X-Api-Key: {S3_ACCESS_KEY}
       {
         "status": "ready",
         "thumbnail_url": "videos/{content_id}/thumbnail.jpg",
-        "preview_path": "videos/{content_id}/preview.webm"
+        "preview_path": "videos/{content_id}/preview.webm",
+        "processed_files": processed_files
       }
 ```
