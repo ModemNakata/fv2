@@ -9,6 +9,25 @@
 <div class="video-player-wrapper">
   <div id="video-target"></div>
 </div>
+<div class="video-info-section">
+  <h1 class="video-info-title">{{ video_title }}</h1>
+  <div class="video-uploader-row">
+    {% if uploader_avatar_url.is_some() %}
+    <a href="/@{{ uploader_username }}" class="video-uploader-avatar">
+      <img src="{{ uploader_avatar_url.as_ref().unwrap() }}" alt="" class="avatar-img">
+    </a>
+    {% endif %}
+    <div class="video-uploader-info">
+      <a href="/@{{ uploader_username }}" class="video-uploader-name">{{ uploader_display_name }}</a>
+      <span class="video-uploader-handle">@{{ uploader_username }}</span>
+    </div>
+  </div>
+  {% if video_description.is_some() %}
+  <div class="video-description">
+    <p>{{ video_description.as_ref().unwrap() }}</p>
+  </div>
+  {% endif %}
+</div>
 <script src="/static/js/vidstack.min.js"></script>
 <script type="module">
   const player = await VidstackPlayer.create({
