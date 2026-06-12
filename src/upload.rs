@@ -308,6 +308,7 @@ pub async fn upload_gallery(
     let mut title = String::new();
     let mut description: Option<String> = None;
     let mut uploaded: Vec<UploadedFile> = Vec::new();
+    let content_id = Uuid::new_v4();
 
     while let Some(Ok(mut field)) = payload.next().await {
         let cd = field
@@ -342,7 +343,7 @@ pub async fn upload_gallery(
                 {
                     Some(e) => e,
                     None => {
-                        cleanup_s3(&state.s3_orig, "galleries", &uploaded).await;
+                        cleanup_s3(&state.s3_orig, &format!("galleries/{}", content_id), &uploaded).await;
                         return HttpResponse::BadRequest().json(UploadResponse {
                             ok: false,
                             error: Some("Could not determine file extension".to_string()),
@@ -353,7 +354,7 @@ pub async fn upload_gallery(
 
                 let original_name = field_filename.unwrap_or_else(|| String::from("image"));
                 let file_id = Uuid::new_v4();
-                let key = s3_key("galleries", file_id, &ext);
+                let key = s3_key(&format!("galleries/{}", content_id), file_id, &ext);
                 let mime = mime_for_ext(&ext);
 
                 match s3_put_stream(&state.s3_orig, &key, &mime, field).await {
@@ -367,7 +368,7 @@ pub async fn upload_gallery(
                     }
                     Err(e) => {
                         log::error!("S3 upload failed: {e}");
-                        cleanup_s3(&state.s3_orig, "galleries", &uploaded).await;
+                        cleanup_s3(&state.s3_orig, &format!("galleries/{}", content_id), &uploaded).await;
                         return HttpResponse::InternalServerError().json(UploadResponse {
                             ok: false,
                             error: Some("Upload failed".to_string()),
@@ -381,7 +382,7 @@ pub async fn upload_gallery(
     }
 
     if title.is_empty() {
-        cleanup_s3(&state.s3_orig, "galleries", &uploaded).await;
+        cleanup_s3(&state.s3_orig, &format!("galleries/{}", content_id), &uploaded).await;
         return HttpResponse::BadRequest().json(UploadResponse {
             ok: false,
             error: Some("Title is required".to_string()),
@@ -397,7 +398,6 @@ pub async fn upload_gallery(
         });
     }
 
-    let content_id = Uuid::new_v4();
     let now = chrono::Utc::now().naive_utc();
 
     let content = content_items::ActiveModel {
@@ -415,7 +415,7 @@ pub async fn upload_gallery(
 
     if let Err(e) = content.insert(&state.conn).await {
         log::error!("DB error inserting content_item: {e}");
-        cleanup_s3(&state.s3_orig, "galleries", &uploaded).await;
+        cleanup_s3(&state.s3_orig, &format!("galleries/{}", content_id), &uploaded).await;
         return HttpResponse::InternalServerError().json(UploadResponse {
             ok: false,
             error: Some("Failed to create record".to_string()),
@@ -430,7 +430,7 @@ pub async fn upload_gallery(
 
     if let Err(e) = image_set.insert(&state.conn).await {
         log::error!("DB error inserting image_set: {e}");
-        cleanup_s3(&state.s3_orig, "galleries", &uploaded).await;
+        cleanup_s3(&state.s3_orig, &format!("galleries/{}", content_id), &uploaded).await;
         return HttpResponse::InternalServerError().json(UploadResponse {
             ok: false,
             error: Some("Failed to create record".to_string()),
@@ -442,7 +442,7 @@ pub async fn upload_gallery(
         let image = images::ActiveModel {
             id: Set(f.id),
             image_set_id: Set(content_id),
-            storage_path: Set(s3_key("galleries", f.id, &f.ext)),
+            storage_path: Set(s3_key(&format!("galleries/{}", content_id), f.id, &f.ext)),
             original_name: Set(f.original_name.clone()),
             sort_order: Set(i as i32),
             alt_text: Set(None),

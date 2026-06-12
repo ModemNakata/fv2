@@ -5,9 +5,9 @@ use chrono::{DateTime as ChronoDateTime, Utc};
 use sea_orm::*;
 use uuid::Uuid;
 
+use crate::AppState;
 use crate::auth;
 use crate::entity::{content_items, images, sea_orm_active_enums::*};
-use crate::AppState;
 
 // ---- gallery listing (/gallery) ----
 
@@ -44,13 +44,17 @@ pub async fn index(
     state: web::Data<AppState>,
     query: web::Query<std::collections::HashMap<String, String>>,
 ) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn).await.is_some();
+    let logged_in = auth::get_session_user(&session, &state.conn)
+        .await
+        .is_some();
 
-    let limit: u32 = query.get("limit")
+    let limit: u32 = query
+        .get("limit")
         .and_then(|v| v.parse().ok())
         .unwrap_or(20)
         .min(50);
-    let page: u32 = query.get("page")
+    let page: u32 = query
+        .get("page")
         .and_then(|v| v.parse().ok())
         .unwrap_or(1)
         .max(1);
@@ -86,7 +90,8 @@ pub async fn index(
             .all(&state.conn)
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?;
-        let mut map: std::collections::HashMap<Uuid, Vec<images::Model>> = std::collections::HashMap::new();
+        let mut map: std::collections::HashMap<Uuid, Vec<images::Model>> =
+            std::collections::HashMap::new();
         for img in all {
             map.entry(img.image_set_id).or_default().push(img);
         }
@@ -127,7 +132,10 @@ pub async fn index(
         .collect();
 
     let pages: Vec<GalleryPageButton> = (1..=total_pages)
-        .map(|num| GalleryPageButton { num, is_active: num == page })
+        .map(|num| GalleryPageButton {
+            num,
+            is_active: num == page,
+        })
         .collect();
 
     let pagination = GalleryPagination {
@@ -169,7 +177,9 @@ pub async fn gallery(
     state: web::Data<AppState>,
     content_id: web::Path<Uuid>,
 ) -> Result<impl Responder> {
-    let logged_in = auth::get_session_user(&session, &state.conn).await.is_some();
+    let logged_in = auth::get_session_user(&session, &state.conn)
+        .await
+        .is_some();
     let content_id = content_id.into_inner();
 
     let content = content_items::Entity::find_by_id(content_id)
