@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Settings - FeVid{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/css/settings.css">
+{% endblock %}
+{% block content %}
+<div class="settings-container">
+  <h1 class="settings-title">Settings</h1>
+
+  <form id="settingsForm" class="settings-form">
+    <div class="settings-section">
+      <label class="settings-label">Avatar</label>
+      <div class="avatar-upload">
+        <div class="avatar-preview" id="avatarPreview">
+          {% if current_avatar_url.is_some() %}
+          <img src="{{ current_avatar_url.as_ref().unwrap() }}" alt="" class="avatar-img">
+          {% else %}
+          <svg class="avatar-placeholder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+            <rect width="256" height="256" fill="none"/>
+            <circle cx="128" cy="96" r="64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+            <path d="M32,216c19.37-33.47,54.55-56,96-56s76.63,22.53,96,56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          </svg>
+          {% endif %}
+        </div>
+        <label class="avatar-file-btn">
+          <input type="file" name="avatar" accept="image/*" id="avatarInput">
+          Choose image
+        </label>
+        <p class="settings-hint">PNG, JPEG, or WebP. Will be resized to 128×128.</p>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <label class="settings-label" for="usernameInput">Username</label>
+      <input type="text" id="usernameInput" name="username" class="settings-input" value="{{ current_username }}" maxlength="16" pattern="[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]|[a-zA-Z0-9]" required>
+      <p class="settings-hint">3–16 characters. Letters, digits, hyphens only. No consecutive hyphens.</p>
+    </div>
+
+    <div class="settings-section">
+      <label class="settings-label" for="displayNameInput">Display name</label>
+      <input type="text" id="displayNameInput" name="display_name" class="settings-input" value="{{ current_display_name }}" maxlength="32" required>
+      <p class="settings-hint">Your public display name (max 32 characters).</p>
+    </div>
+
+    <button type="submit" class="settings-save-btn" id="saveBtn">Save Changes</button>
+    <p class="settings-status" id="settingsStatus"></p>
+  </form>
+</div>
+
+<script>
+document.getElementById('avatarInput').addEventListener('change', function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var preview = document.getElementById('avatarPreview');
+    preview.innerHTML = '<img src="' + ev.target.result + '" alt="" class="avatar-img">';
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('settingsForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var btn = document.getElementById('saveBtn');
+  var status = document.getElementById('settingsStatus');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  status.textContent = '';
+  status.className = 'settings-status';
+
+  var formData = new FormData(this);
+
+  fetch('/settings', { method: 'POST', body: formData })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        status.textContent = 'Saved! Redirecting...';
+        status.className = 'settings-status settings-status--success';
+        setTimeout(function() {
+          var name = document.getElementById('usernameInput').value;
+          window.location.href = '/@' + encodeURIComponent(name);
+        }, 800);
+      } else {
+        status.textContent = data.error || 'Something went wrong.';
+        status.className = 'settings-status settings-status--error';
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+      }
+    })
+    .catch(function() {
+      status.textContent = 'Network error. Please try again.';
+      status.className = 'settings-status settings-status--error';
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+    });
+});
+</script>
+{% endblock %}

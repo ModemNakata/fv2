@@ -14,6 +14,7 @@ mod gallery;
 mod home;
 mod pipeline;
 mod profile;
+mod settings;
 mod s3;
 mod upload;
 mod video;
@@ -78,6 +79,10 @@ async fn main() -> std::io::Result<()> {
             .service(web::resource("/gallery").route(web::get().to(gallery::index)))
             .service(web::resource("/gallery/{uuid}").route(web::get().to(gallery::gallery)))
             .service(web::resource("/@{username}").route(web::get().to(profile::user_profile)))
+            .service(web::resource("/settings")
+                .route(web::get().to(settings::settings_page))
+                .route(web::post().to(settings::update_settings))
+            )
             .service(
                 web::scope("/auth")
                     .service(auth::auth_check)

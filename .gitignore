@@ -2,3 +2,4 @@
 .env
 phosphor-icons/
 /static/node_modules
+static/avatars/

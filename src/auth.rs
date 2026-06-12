@@ -33,7 +33,7 @@ pub struct AuthResponse {
     pub error: Option<String>,
 }
 
-fn validate_username(username: &str) -> Result<(), &'static str> {
+pub(crate) fn validate_username(username: &str) -> Result<(), &'static str> {
     if username.len() < 3 {
         return Err("Username must be at least 3 characters");
     }
