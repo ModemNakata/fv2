@@ -193,7 +193,8 @@ struct GalleryPage {
     description: Option<String>,
     uploader_username: String,
     uploader_display_name: String,
-    uploader_initial: String,
+    uploader_avatar_url: Option<String>,
+    created_at: String,
     images: Vec<GalleryImage>,
 }
 
@@ -254,13 +255,16 @@ pub async fn gallery(
         })
         .collect();
 
+    let created_at = content.created_at.format("%b %e, %Y").to_string();
+
     let html = GalleryPage {
         logged_in,
         title: content.title,
         description: content.description,
         uploader_username: uploader.username,
         uploader_display_name: uploader.display_name.clone(),
-        uploader_initial: uploader.display_name.chars().next().map(|c| c.to_string()).unwrap_or_default(),
+        uploader_avatar_url: None,
+        created_at,
         images,
     }
     .render()

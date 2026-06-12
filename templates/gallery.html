@@ -6,10 +6,12 @@
 {% block content %}
 <div class="gallery-detail">
   <div class="gallery-uploader">
-    <a href="/@{{ uploader_username }}" class="gallery-avatar">{{ uploader_initial }}</a>
+    {% if uploader_avatar_url.is_some() %}
+    <a href="/@{{ uploader_username }}" class="gallery-avatar"><img src="{{ uploader_avatar_url.as_ref().unwrap() }}" alt=""></a>
+    {% endif %}
     <div class="gallery-uploader-info">
       <a href="/@{{ uploader_username }}" class="gallery-uploader-name">{{ uploader_display_name }}</a>
-      <span class="gallery-uploader-handle">@{{ uploader_username }}</span>
+      <span class="gallery-uploader-handle">@{{ uploader_username }} · {{ created_at }}</span>
     </div>
   </div>
   <h1 class="gallery-detail-title">{{ title }}</h1>
