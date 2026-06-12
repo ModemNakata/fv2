@@ -17,6 +17,11 @@
         <div class="profile-details-text">
           <h1 class="profile-name">{{ display_name }}</h1>
           <p class="profile-handle">@{{ handle }}</p>
+          <button class="follow-btn">Follow</button>
+          <div class="profile-stats">
+            <span class="profile-stat"><strong>{{ follower_count }}</strong> followers</span>
+            <span class="profile-stat"><strong>{{ profile_views }}</strong> profile views</span>
+          </div>
         </div>
         {% if is_owner %}
         <a href="/settings" class="icon-btn settings-btn" aria-label="Settings">
@@ -31,7 +36,9 @@
         </a>
         {% endif %}
       </div>
-      <button class="follow-btn">Follow</button>
+      {% if about_me.is_some() %}
+      <div class="profile-about">{{ about_me.as_ref().unwrap() }}</div>
+      {% endif %}
     </div>
   </div>
 </div>

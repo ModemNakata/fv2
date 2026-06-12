@@ -100,16 +100,41 @@
 }
 
 .follow-btn {
-  padding: clamp(6px, 0.8vw, 8px) clamp(18px, 2vw, 22px);
+  padding: clamp(5px, 0.6vw, 7px) clamp(16px, 1.8vw, 20px);
   background: var(--accent);
   color: var(--bg-primary);
   font-size: clamp(0.82rem, 1vw, 0.88rem);
   font-weight: 600;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .follow-btn:hover {
   background: var(--accent-dim);
+}
+
+.profile-stats {
+  display: flex;
+  gap: clamp(12px, 2vw, 20px);
+  margin-top: 10px;
+}
+
+.profile-stat {
+  font-size: clamp(0.82rem, 1vw, 0.88rem);
+  color: var(--text-secondary);
+}
+
+.profile-stat strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.profile-about {
+  margin-top: 14px;
+  font-size: clamp(0.88rem, 1.1vw, 0.95rem);
+  color: var(--text-secondary);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .profile-nav {
