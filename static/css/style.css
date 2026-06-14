@@ -254,7 +254,7 @@ input {
   display: none;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 680px) {
   .logo svg {
     display: inline;
   }
@@ -396,8 +396,8 @@ input {
 }
 
 .channel-avatar {
-  width: clamp(32px, 3vw, 36px);
-  height: clamp(32px, 3vw, 36px);
+  width: clamp(42px, 3vw, 46px);
+  height: clamp(42px, 3vw, 46px);
   background: hsl(var(--hue, 120), 50%, 25%);
   color: var(--text-primary);
   display: flex;
@@ -427,6 +427,7 @@ input {
   line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin-bottom: 4px;

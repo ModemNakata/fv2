@@ -1,119 +1,119 @@
 .gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: clamp(16px, 2.5vw, 24px) clamp(8px, 1.5vw, 16px);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: clamp(16px, 2.5vw, 24px) clamp(8px, 1.5vw, 16px);
 }
 
 .gallery-card {
-    display: block;
-    cursor: pointer;
+  display: block;
+  cursor: pointer;
 }
 
 .gallery-card-thumb {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    overflow: hidden;
-    background: var(--bg-tertiary);
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--bg-tertiary);
 }
 
 .gallery-card-pictures {
-    position: absolute;
-    bottom: clamp(6px, 1vw, 8px);
-    right: clamp(6px, 1vw, 8px);
-    background: rgba(0, 0, 0, 0.85);
-    color: var(--text-primary);
-    padding: clamp(1px, 0.3vw, 2px) clamp(5px, 0.8vw, 6px);
-    font-size: clamp(0.7rem, 1vw, 0.75rem);
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    backdrop-filter: blur(4px);
+  position: absolute;
+  bottom: clamp(6px, 1vw, 8px);
+  right: clamp(6px, 1vw, 8px);
+  background: rgba(0, 0, 0, 0.85);
+  color: var(--text-primary);
+  padding: clamp(1px, 0.3vw, 2px) clamp(5px, 0.8vw, 6px);
+  font-size: clamp(0.7rem, 1vw, 0.75rem);
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(4px);
 }
 
 .gallery-card-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .gallery-card-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-tertiary);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
 }
 
 .gallery-card-info {
-    display: flex;
-    gap: clamp(10px, 1.5vw, 12px);
-    padding-top: clamp(10px, 1.5vw, 12px);
+  display: flex;
+  gap: clamp(10px, 1.5vw, 12px);
+  padding-top: clamp(10px, 1.5vw, 12px);
 }
 
 .gallery-card-details {
-    flex: 1;
-    min-width: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .gallery-card-title {
-    font-size: clamp(0.85rem, 1.2vw, 0.9rem);
-    font-weight: 600;
-    line-height: 1.35;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    margin-bottom: 4px;
+  font-size: clamp(0.85rem, 1.2vw, 0.9rem);
+  font-weight: 600;
+  line-height: 1.35;
+  display: -webkit-box;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 4px;
 }
 
 .gallery-card-meta {
-    display: flex;
-    justify-content: space-between;
-    font-size: clamp(0.75rem, 1vw, 0.8rem);
-    color: var(--text-tertiary);
+  display: flex;
+  justify-content: space-between;
+  font-size: clamp(0.75rem, 1vw, 0.8rem);
+  color: var(--text-tertiary);
 }
 
 .empty-state {
-    text-align: center;
-    padding: 64px 16px;
-    color: var(--text-tertiary);
-    font-size: 1rem;
+  text-align: center;
+  padding: 64px 16px;
+  color: var(--text-tertiary);
+  font-size: 1rem;
 }
 
 .pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    padding-top: clamp(24px, 3vh, 32px);
-    padding-bottom: clamp(16px, 2vh, 24px);
-    flex-wrap: wrap;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding-top: clamp(24px, 3vh, 32px);
+  padding-bottom: clamp(16px, 2vh, 24px);
+  flex-wrap: wrap;
 }
 
 .page-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 36px;
-    height: 36px;
-    padding: 0 10px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    background: var(--bg-tertiary);
-    border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border-radius: 4px;
 }
 
 .page-btn:hover {
-    background: var(--bg-hover);
+  background: var(--bg-hover);
 }
 
 .page-btn.active {
-    background: var(--accent);
-    color: var(--bg-primary);
-    font-weight: 700;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-weight: 700;
 }
-
-
