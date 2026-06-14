@@ -9,6 +9,10 @@
   padding: clamp(16px, 2vh, 32px) 0;
 }
 
+.video-player-wrapper [data-media-player] {
+  display: flex;
+}
+
 .video-info-stats {
   display: flex;
   justify-content: space-between;
