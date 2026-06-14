@@ -112,7 +112,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 125px;
+  min-width: 140px;
+  min-height: 35px;
   padding: clamp(5px, 0.6vw, 7px) clamp(16px, 1.8vw, 20px);
   background: var(--accent);
   color: var(--bg-primary);

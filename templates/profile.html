@@ -18,10 +18,26 @@
           <h1 class="profile-name">{{ display_name }}</h1>
           <p class="profile-handle">@{{ handle }}</p>
           <div class="profile-actions">
-            <button class="follow-btn" id="followBtn"><svg class="follow-icon" id="followIcon" style="display:none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M84.27,171.73l-55.09-20.3a7.92,7.92,0,0,1,0-14.86l55.09-20.3,20.3-55.09a7.92,7.92,0,0,1,14.86,0l20.3,55.09,55.09,20.3a7.92,7.92,0,0,1,0,14.86l-55.09,20.3-20.3,55.09a7.92,7.92,0,0,1-14.86,0Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="176" y1="16" x2="176" y2="64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="224" y1="72" x2="224" y2="104" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="152" y1="40" x2="200" y2="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="208" y1="88" x2="240" y2="88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> <span>Follow</span></button>
+            <button class="follow-btn" id="followBtn"><svg class="follow-icon" id="followIcon" style="display:none"
+                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+                <rect width="256" height="256" fill="none" />
+                <path
+                  d="M84.27,171.73l-55.09-20.3a7.92,7.92,0,0,1,0-14.86l55.09-20.3,20.3-55.09a7.92,7.92,0,0,1,14.86,0l20.3,55.09,55.09,20.3a7.92,7.92,0,0,1,0,14.86l-55.09,20.3-20.3,55.09a7.92,7.92,0,0,1-14.86,0Z"
+                  fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
+                <line x1="176" y1="16" x2="176" y2="64" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round" stroke-width="16" />
+                <line x1="224" y1="72" x2="224" y2="104" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round" stroke-width="16" />
+                <line x1="152" y1="40" x2="200" y2="40" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round" stroke-width="16" />
+                <line x1="208" y1="88" x2="240" y2="88" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round" stroke-width="16" />
+              </svg> <span>Follow</span></button>
             <div class="profile-stats">
-              <button class="profile-stat-btn" data-list="followers"><strong>{{ follower_count }}</strong> followers</button>
-              <button class="profile-stat-btn" data-list="following"><strong>{{ following_count }}</strong> following</button>
+              <button class="profile-stat-btn" data-list="followers"><strong>{{ follower_count }}</strong>
+                followers</button>
+              <button class="profile-stat-btn" data-list="following"><strong>{{ following_count }}</strong>
+                following</button>
               <span class="profile-stat"><strong>{{ profile_views }}</strong> profile views</span>
             </div>
           </div>
@@ -47,18 +63,19 @@
 </div>
 
 <div class="profile-nav">
-  <button class="profile-tab{% if active_tab == "videos" %} active{% endif %}" data-tab="videos">Videos ({{ video_count }})</button>
-  <button class="profile-tab{% if active_tab == "galleries" %} active{% endif %}" data-tab="galleries">Galleries ({{
+  <button class="profile-tab{% if active_tab == " videos" %} active{% endif %}" data-tab="videos">Videos ({{ video_count
+    }})</button>
+  <button class="profile-tab{% if active_tab == " galleries" %} active{% endif %}" data-tab="galleries">Galleries ({{
     gallery_count }})</button>
 </div>
 
-<div class="profile-content{% if active_tab != "videos" %} hidden{% endif %}" id="tab-videos">
+<div class="profile-content{% if active_tab != " videos" %} hidden{% endif %}" id="tab-videos">
   <div class="video-grid" id="videosGrid"></div>
   <div class="profile-loader" id="videosLoader">Loading videos...</div>
   <div class="empty-state" id="videosEmpty" style="display:none">No videos yet.</div>
 </div>
 
-<div class="profile-content{% if active_tab != "galleries" %} hidden{% endif %}" id="tab-galleries">
+<div class="profile-content{% if active_tab != " galleries" %} hidden{% endif %}" id="tab-galleries">
   <div class="gallery-grid" id="galleriesGrid"></div>
   <div class="profile-loader" id="galleriesLoader">Loading galleries...</div>
   <div class="empty-state" id="galleriesEmpty" style="display:none">No galleries yet.</div>
@@ -166,24 +183,24 @@
           if (type === 'videos') {
             var cards = grid.querySelectorAll('.video-card[data-preview="true"]');
             for (var i = 0; i < cards.length; i++) {
-              (function(card) {
+              (function (card) {
                 var video = card.querySelector('.thumb-preview');
                 var spinner = card.querySelector('.thumb-spinner');
                 if (!video) return;
 
-                card.addEventListener('mouseenter', function() {
+                card.addEventListener('mouseenter', function () {
                   video.currentTime = 0;
                   if (spinner) spinner.classList.add('active');
-                  video.play().catch(function(){});
+                  video.play().catch(function () { });
                 });
 
-                card.addEventListener('mouseleave', function() {
+                card.addEventListener('mouseleave', function () {
                   video.pause();
                   video.currentTime = 0;
                   if (spinner) spinner.classList.remove('active');
                 });
 
-                video.addEventListener('playing', function() {
+                video.addEventListener('playing', function () {
                   if (spinner) spinner.classList.remove('active');
                 });
               })(cards[i]);
@@ -299,7 +316,7 @@
       relModalLoader.style.display = '';
 
       fetch(url)
-        .then(function (r) { return r.json(); })
+        .then(function (r) {return r.json();})
         .then(function (data) {
           if (data.items.length === 0 && relOffset === 0) {
             relModalEmpty.style.display = '';
@@ -337,7 +354,7 @@
       relLoading = false;
       relHasMore = true;
 
-      relModalBody.querySelectorAll('.rel-card').forEach(function (el) { el.remove(); });
+      relModalBody.querySelectorAll('.rel-card').forEach(function (el) {el.remove();});
       relModalEmpty.style.display = 'none';
       relModalLoader.style.display = '';
       relModalLoader.textContent = 'Loading...';
