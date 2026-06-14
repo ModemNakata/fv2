@@ -57,8 +57,14 @@
 
 .gallery-detail-stats {
   display: flex;
-  gap: 24px;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 4px;
+}
+
+.gallery-detail-stats .stats-group {
+  display: flex;
+  gap: 24px;
 }
 
 .gallery-detail-stats .stat-item {
@@ -118,4 +124,50 @@
   width: 100%;
   height: auto;
   background: var(--bg-tertiary);
+}
+
+.like-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 100px;
+  padding: 6px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: clamp(0.82rem, 1vw, 0.88rem);
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.like-btn:hover {
+  background: var(--bg-hover);
+}
+
+.like-btn.liked {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-color: var(--accent);
+}
+
+.like-btn.liked:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+}
+
+.like-btn .follow-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: like-spin 0.6s linear infinite;
+}
+
+@keyframes like-spin {
+  to { transform: rotate(360deg); }
 }

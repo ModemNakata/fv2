@@ -12,13 +12,11 @@
 <div class="video-info-section">
   <h1 class="video-info-title">{{ video_title }}</h1>
   <p class="video-info-stats">
-    <span class="stat-item">{{ view_count }} <span class="stat-label">views</span></span>
-    <span class="stat-item"><svg class="stat-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-        <rect width="256" height="256" fill="none" />
-        <path
-          d="M128,189.09l54.72,33.65a8.4,8.4,0,0,0,12.52-9.17l-14.88-62.79,48.7-42A8.46,8.46,0,0,0,224.27,94L160.36,88.8,135.74,29.2a8.36,8.36,0,0,0-15.48,0L95.64,88.8,31.73,94a8.46,8.46,0,0,0-4.79,14.83l48.7,42L60.76,213.57a8.4,8.4,0,0,0,12.52,9.17Z"
-          fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
-      </svg> {{ favourite_count }} <span class="stat-label"></span></span><!-- favorites -->
+    <span class="stats-group">
+      <span class="stat-item">{{ view_count }} <span class="stat-label">views</span></span>
+      <span class="stat-item"><svg class="stat-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,189.09l54.72,33.65a8.4,8.4,0,0,0,12.52-9.17l-14.88-62.79,48.7-42A8.46,8.46,0,0,0,224.27,94L160.36,88.8,135.74,29.2a8.36,8.36,0,0,0-15.48,0L95.64,88.8,31.73,94a8.46,8.46,0,0,0-4.79,14.83l48.7,42L60.76,213.57a8.4,8.4,0,0,0,12.52,9.17Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> {{ favourite_count }} <span class="stat-label">favourites</span></span>
+    </span>
+    <button class="like-btn" id="likeBtn"><span>I like it</span></button>
   </p>
   <div class="video-uploader-row">
     {% if uploader_avatar_url.is_some() %}
@@ -51,6 +49,26 @@
     if (provider.type === 'hls') {
       provider.library = '/static/js/hls.min.js';
     }
+  });
+</script>
+
+<script>
+  document.getElementById('likeBtn')?.addEventListener('click', function () {
+    if (this.disabled) return;
+    var span = this.querySelector('span');
+    var liked = this.classList.contains('liked');
+    var spinner = document.createElement('span');
+    spinner.className = 'follow-spinner';
+    span.style.display = 'none';
+    this.insertBefore(spinner, span);
+    this.disabled = true;
+    setTimeout(function () {
+      this.removeChild(spinner);
+      span.style.display = '';
+      this.classList.toggle('liked');
+      span.textContent = this.classList.contains('liked') ? 'Liked' : 'I like it';
+      this.disabled = false;
+    }.bind(this), 600);
   });
 </script>
 {% endblock %}
