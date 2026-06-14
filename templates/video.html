@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ video_title }} - fevid{% endblock %}
+{% block title %}{{ video_title }} - FeVid{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="/static/css/vidstack-theme.css">
 <link rel="stylesheet" href="/static/css/vidstack-layout.css">
@@ -32,7 +32,7 @@
 <script type="module">
   const player = await VidstackPlayer.create({
     target: '#video-target',
-    title: '{{ video_title }}',
+    title: 'FeVid.Cloud',
     src: '{{ source_url }}',
     layout: new VidstackPlayerLayout(),
   });

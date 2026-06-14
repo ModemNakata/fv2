@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ title }} - fevid{% endblock %}
+{% block title %}{{ title }} - FeVid{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="/static/css/gallery.css">
 {% endblock %}
@@ -7,7 +7,8 @@
 <div class="gallery-detail">
   <div class="gallery-uploader">
     {% if uploader_avatar_url.is_some() %}
-    <a href="/@{{ uploader_username }}" class="gallery-avatar"><img src="{{ uploader_avatar_url.as_ref().unwrap() }}" alt=""></a>
+    <a href="/@{{ uploader_username }}" class="gallery-avatar"><img src="{{ uploader_avatar_url.as_ref().unwrap() }}"
+        alt=""></a>
     {% endif %}
     <div class="gallery-uploader-info">
       <a href="/@{{ uploader_username }}" class="gallery-uploader-name">{{ uploader_display_name }}</a>

@@ -42,10 +42,26 @@ impl MigrationTrait for Migration {
                     .table("content_items")
                     .if_not_exists()
                     .col(
-                        uuid("id")
+                        uuid("id") // uuid | primary
                             .default(Expr::cust("gen_random_uuid()"))
                             .primary_key(),
                     )
+                    //  generate short version of url (slug?) id encoded to base62? #47
+                    //
+                    //    use it with short version of path: e.g. /v/ instead of /video/, or /g/ instead of /gallery/
+                    //
+                    // .col(
+                    //     ColumnDef::new("id_digit")
+                    //         .big_integer() // Use integer() if you expect < 2.1 billion items
+                    //         .auto_increment()
+                    //         .primary_key(),
+                    // )
+                    // .col(
+                    //     ColumnDef::new("base62_id") // short encoded digital id
+                    //         .string_len(11)
+                    //         .unique_key() // Crucial for fast lookups
+                    //         .not_null(),
+                    // )
                     .col(uuid("uploader_id"))
                     .col(ColumnDef::new("type").custom("content_type").not_null())
                     .col(string_len("title", 255))
