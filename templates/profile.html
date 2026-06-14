@@ -20,7 +20,8 @@
           <div class="profile-actions">
             <button class="follow-btn">Follow</button>
             <div class="profile-stats">
-              <span class="profile-stat"><strong>{{ follower_count }}</strong> followers</span>
+              <button class="profile-stat-btn" data-list="followers"><strong>{{ follower_count }}</strong> followers</button>
+              <button class="profile-stat-btn" data-list="following"><strong>{{ following_count }}</strong> following</button>
               <span class="profile-stat"><strong>{{ profile_views }}</strong> profile views</span>
             </div>
           </div>
@@ -62,6 +63,27 @@
   <div class="profile-loader" id="galleriesLoader">Loading galleries...</div>
   <div class="empty-state" id="galleriesEmpty" style="display:none">No galleries yet.</div>
 </div>
+
+<dialog class="rel-modal" id="relModal">
+  <div class="rel-modal-inner">
+    <div class="rel-modal-header">
+      <h2 class="rel-modal-title" id="relModalTitle">Followers</h2>
+      <button class="rel-modal-close icon-btn" id="relModalClose" aria-label="Close">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+          <rect width="256" height="256" fill="none" />
+          <line x1="200" y1="56" x2="56" y2="200" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+          <line x1="200" y1="200" x2="56" y2="56" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+        </svg>
+      </button>
+    </div>
+    <div class="rel-modal-body" id="relModalBody">
+      <div class="rel-modal-loader" id="relModalLoader">Loading...</div>
+      <div class="rel-modal-empty" id="relModalEmpty" style="display:none">Nothing here yet.</div>
+    </div>
+  </div>
+</dialog>
 
 <script>
   (function () {
@@ -238,6 +260,127 @@
     contents[activeTab].appendChild(sentinel);
     observer.observe(sentinel);
     loadItems(activeTab);
+
+    // ---- followers / following modal ----
+    var relModal = document.getElementById('relModal');
+    var relModalBody = document.getElementById('relModalBody');
+    var relModalTitle = document.getElementById('relModalTitle');
+    var relModalLoader = document.getElementById('relModalLoader');
+    var relModalEmpty = document.getElementById('relModalEmpty');
+    var relModalClose = document.getElementById('relModalClose');
+    var relModalSentinel = document.createElement('div');
+    relModalSentinel.className = 'scroll-sentinel';
+    var relListType = '';
+    var relOffset = 0;
+    var relLoading = false;
+    var relHasMore = true;
+    var relObserver = null;
+
+    function profileCardHtml(item) {
+      var avatar = item.avatar_url
+        ? '<img src="' + item.avatar_url + '" alt="" class="avatar-img">'
+        : '';
+      return '<a href="/@' + item.handle + '" class="rel-card">'
+        + '<div class="rel-card-avatar avatar' + (item.avatar_url ? '' : ' avatar--empty') + '">' + avatar + '</div>'
+        + '<div class="rel-card-info">'
+        + '<div class="rel-card-name">' + item.display_name + '</div>'
+        + '<div class="rel-card-handle">@' + item.handle + '</div>'
+        + '<div class="rel-card-meta">' + item.follower_count + ' followers</div>'
+        + '</div>'
+        + '</a>';
+    }
+
+    function loadRelItems() {
+      if (relLoading || !relHasMore) return;
+      relLoading = true;
+
+      var url = '/api/profile/' + handle + '/' + relListType + '?limit=20&offset=' + relOffset;
+      relModalLoader.textContent = 'Loading...';
+      relModalLoader.style.display = '';
+
+      fetch(url)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.items.length === 0 && relOffset === 0) {
+            relModalEmpty.style.display = '';
+            relModalLoader.style.display = 'none';
+            relLoading = false;
+            relHasMore = false;
+            return;
+          }
+
+          var html = '';
+          for (var i = 0; i < data.items.length; i++) {
+            html += profileCardHtml(data.items[i]);
+          }
+          relModalBody.insertAdjacentHTML('beforeend', html);
+
+          relOffset += data.items.length;
+          relHasMore = data.has_more;
+          relLoading = false;
+
+          if (!relHasMore) {
+            relModalLoader.style.display = 'none';
+          } else {
+            relModalLoader.textContent = 'Scroll for more...';
+          }
+        })
+        .catch(function () {
+          relModalLoader.textContent = 'Failed to load.';
+          relLoading = false;
+        });
+    }
+
+    function openRelModal(listType) {
+      relListType = listType;
+      relOffset = 0;
+      relLoading = false;
+      relHasMore = true;
+
+      relModalBody.querySelectorAll('.rel-card').forEach(function (el) { el.remove(); });
+      relModalEmpty.style.display = 'none';
+      relModalLoader.style.display = '';
+      relModalLoader.textContent = 'Loading...';
+
+      relModalTitle.textContent = listType === 'followers' ? 'Followers' : 'Following';
+      relModal.showModal();
+
+      loadRelItems();
+
+      if (relObserver) relObserver.disconnect();
+      relObserver = new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          if (entries[i].isIntersecting) {
+            loadRelItems();
+          }
+        }
+      }, {rootMargin: '200px'});
+      relModalBody.appendChild(relModalSentinel);
+      relObserver.observe(relModalSentinel);
+    }
+
+    document.querySelectorAll('.profile-stat-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        openRelModal(this.dataset.list);
+      });
+    });
+
+    relModalClose.addEventListener('click', function () {
+      relModal.close();
+    });
+
+    relModal.addEventListener('click', function (e) {
+      if (e.target === relModal) {
+        relModal.close();
+      }
+    });
+
+    relModal.addEventListener('close', function () {
+      if (relObserver) {
+        relObserver.disconnect();
+        relObserver = null;
+      }
+    });
   })();
 </script>
 {% endblock %}

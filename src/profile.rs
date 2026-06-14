@@ -25,6 +25,7 @@ struct ProfilePage {
     avatar_url: Option<String>,
     about_me: Option<String>,
     follower_count: String,
+    following_count: String,
     profile_views: String,
     active_tab: String,
     video_count: i64,
@@ -95,6 +96,7 @@ pub async fn user_profile(
         avatar_url: user.avatar_url,
         about_me: user.about_me,
         follower_count: "1.2K".to_string(),
+        following_count: "42".to_string(),
         profile_views: "8.7K".to_string(),
         active_tab,
         video_count: video_count as i64,
@@ -397,4 +399,141 @@ pub async fn api_galleries(
         items,
         has_more,
     })
+}
+
+// ---- API: followers / following ----
+
+#[derive(Serialize)]
+struct ProfileCard {
+    handle: String,
+    display_name: String,
+    avatar_url: Option<String>,
+    follower_count: String,
+}
+
+#[derive(Serialize)]
+struct ApiFollowersResponse {
+    items: Vec<ProfileCard>,
+    has_more: bool,
+}
+
+fn mock_profile_cards() -> Vec<ProfileCard> {
+    vec![
+        ProfileCard {
+            handle: "alice".into(),
+            display_name: "Alice".into(),
+            avatar_url: None,
+            follower_count: "1.1K".into(),
+        },
+        ProfileCard {
+            handle: "bob".into(),
+            display_name: "Bob".into(),
+            avatar_url: None,
+            follower_count: "856".into(),
+        },
+        ProfileCard {
+            handle: "charlie".into(),
+            display_name: "Charlie".into(),
+            avatar_url: None,
+            follower_count: "2.3K".into(),
+        },
+        ProfileCard {
+            handle: "diana".into(),
+            display_name: "Diana".into(),
+            avatar_url: None,
+            follower_count: "412".into(),
+        },
+        ProfileCard {
+            handle: "eve".into(),
+            display_name: "Eve".into(),
+            avatar_url: None,
+            follower_count: "1.8K".into(),
+        },
+        ProfileCard {
+            handle: "frank".into(),
+            display_name: "Frank".into(),
+            avatar_url: None,
+            follower_count: "234".into(),
+        },
+        ProfileCard {
+            handle: "grace".into(),
+            display_name: "Grace".into(),
+            avatar_url: None,
+            follower_count: "3.1K".into(),
+        },
+        ProfileCard {
+            handle: "henry".into(),
+            display_name: "Henry".into(),
+            avatar_url: None,
+            follower_count: "789".into(),
+        },
+        ProfileCard {
+            handle: "ivy".into(),
+            display_name: "Ivy".into(),
+            avatar_url: None,
+            follower_count: "567".into(),
+        },
+        ProfileCard {
+            handle: "jack".into(),
+            display_name: "Jack".into(),
+            avatar_url: None,
+            follower_count: "1.0K".into(),
+        },
+        ProfileCard {
+            handle: "kate".into(),
+            display_name: "Kate".into(),
+            avatar_url: None,
+            follower_count: "923".into(),
+        },
+        ProfileCard {
+            handle: "leo".into(),
+            display_name: "Leo".into(),
+            avatar_url: None,
+            follower_count: "2.0K".into(),
+        },
+    ]
+}
+
+pub async fn api_followers(
+    _username: web::Path<String>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+) -> HttpResponse {
+    let limit: usize = query
+        .get("limit")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(20)
+        .min(50);
+    let offset: usize = query
+        .get("offset")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
+
+    let all = mock_profile_cards();
+    let total = all.len();
+    let items: Vec<ProfileCard> = all.into_iter().skip(offset).take(limit).collect();
+    let has_more = (offset + limit) < total;
+
+    HttpResponse::Ok().json(ApiFollowersResponse { items, has_more })
+}
+
+pub async fn api_following(
+    _username: web::Path<String>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+) -> HttpResponse {
+    let limit: usize = query
+        .get("limit")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(20)
+        .min(50);
+    let offset: usize = query
+        .get("offset")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
+
+    let all = mock_profile_cards();
+    let total = all.len();
+    let items: Vec<ProfileCard> = all.into_iter().skip(offset).take(limit).collect();
+    let has_more = (offset + limit) < total;
+
+    HttpResponse::Ok().json(ApiFollowersResponse { items, has_more })
 }
