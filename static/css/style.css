@@ -110,7 +110,7 @@ input {
 }
 
 .logo-fe,
-.logo-vi {
+.logo-vid {
   color: var(--accent);
 }
 
@@ -427,8 +427,23 @@ input {
 }
 
 .video-meta {
+  display: flex;
+  justify-content: space-between;
   font-size: clamp(0.75rem, 1vw, 0.8rem);
   color: var(--text-tertiary);
+}
+
+.meta-left {
+  flex-shrink: 0;
+}
+
+.meta-center {
+  flex-shrink: 0;
+}
+
+.meta-right {
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .meta-icon {

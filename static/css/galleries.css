@@ -69,6 +69,8 @@
 }
 
 .gallery-card-meta {
+    display: flex;
+    justify-content: space-between;
     font-size: clamp(0.75rem, 1vw, 0.8rem);
     color: var(--text-tertiary);
 }
