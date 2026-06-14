@@ -431,6 +431,14 @@ input {
   color: var(--text-tertiary);
 }
 
+.meta-icon {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-top: -2px;
+}
+
 .duration {
   position: absolute;
   bottom: clamp(6px, 1vw, 8px);

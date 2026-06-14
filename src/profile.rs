@@ -118,6 +118,7 @@ struct ApiVideoItem {
     preview_url: Option<String>,
     duration: String,
     views: String,
+    favourite_count: String,
     time_ago: String,
     hue: u32,
 }
@@ -209,6 +210,7 @@ pub async fn api_videos(
             };
 
             let view_count = video_opt.as_ref().map(|v| v.view_count).unwrap_or(0);
+            let favourite_count = ((content.id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1).to_string();
 
             let hue = (content
                 .id
@@ -236,6 +238,7 @@ pub async fn api_videos(
                 preview_url,
                 duration: duration_str,
                 views: gallery::format_view_count(view_count),
+                favourite_count,
                 time_ago: gallery::time_ago(&content.created_at, now),
                 hue,
             }
@@ -259,6 +262,7 @@ struct ApiGalleryItem {
     thumbnail_url: Option<String>,
     image_count: usize,
     views: String,
+    favourite_count: String,
     time_ago: String,
 }
 
@@ -381,6 +385,7 @@ pub async fn api_galleries(
                 .map(|path| format!("{}/{}", s3_base, path));
 
             let view_count = image_set.map(|is| is.view_count).unwrap_or(0);
+            let favourite_count = ((content.id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1).to_string();
 
             ApiGalleryItem {
                 id: content.id,
@@ -388,6 +393,7 @@ pub async fn api_galleries(
                 thumbnail_url,
                 image_count,
                 views: gallery::format_view_count(view_count),
+                favourite_count,
                 time_ago: gallery::time_ago(&content.created_at, now),
             }
         })

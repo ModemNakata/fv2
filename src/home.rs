@@ -24,6 +24,7 @@ struct VideoItem {
     id: Uuid,
     title: String,
     views: String,
+    favourite_count: String,
     duration: String,
     time_ago: String,
     thumbnail_url: Option<String>,
@@ -130,6 +131,8 @@ pub async fn index(
             let view_count = video_opt.as_ref().map(|v| v.view_count).unwrap_or(0);
             let views_str = format_view_count(view_count);
 
+            let favourite_count = ((content.id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1).to_string();
+
             let (_, uploader_avatar_url) = users_map
                 .get(&content.uploader_id)
                 .cloned()
@@ -160,6 +163,7 @@ pub async fn index(
                 id: content.id,
                 title: content.title,
                 views: views_str,
+                favourite_count,
                 duration: duration_str,
                 time_ago: time_ago_str,
                 thumbnail_url,

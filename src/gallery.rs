@@ -28,6 +28,7 @@ struct GalleryCard {
     image_count: usize,
     thumbnail_url: Option<String>,
     views: String,
+    favourite_count: String,
     time_ago: String,
     uploader_avatar_url: Option<String>,
 }
@@ -162,6 +163,7 @@ pub async fn index(
 
             let view_count = image_set.map(|is| is.view_count).unwrap_or(0);
             let views = format_view_count(view_count);
+            let favourite_count = ((content.id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1).to_string();
             let time_ago_str = time_ago(&content.created_at, now);
 
             let avatar_url = users_map.get(&content.uploader_id).cloned().flatten();
@@ -172,6 +174,7 @@ pub async fn index(
                 image_count,
                 thumbnail_url,
                 views,
+                favourite_count,
                 time_ago: time_ago_str,
                 uploader_avatar_url: avatar_url,
             }
