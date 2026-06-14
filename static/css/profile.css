@@ -108,15 +108,53 @@
 }
 
 .follow-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 125px;
   padding: clamp(5px, 0.6vw, 7px) clamp(16px, 1.8vw, 20px);
   background: var(--accent);
   color: var(--bg-primary);
   font-size: clamp(0.82rem, 1vw, 0.88rem);
   font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.follow-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: follow-spin 0.6s linear infinite;
+}
+
+@keyframes follow-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .follow-btn:hover {
   background: var(--accent-dim);
+}
+
+.follow-btn.following {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.follow-btn.following:hover {
+  background: var(--bg-hover);
+}
+
+.follow-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .profile-stats {
