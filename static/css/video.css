@@ -1,6 +1,7 @@
 .main-content {
   padding-left: 0;
   padding-right: 0;
+  padding-top: 0;
 }
 
 .video-player-wrapper {
@@ -91,7 +92,9 @@
 }
 
 @keyframes like-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .video-info-section {
