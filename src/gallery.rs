@@ -221,6 +221,8 @@ struct GalleryPage {
     uploader_avatar_url: Option<String>,
     created_at: String,
     images: Vec<GalleryImage>,
+    view_count: String,
+    favourite_count: String,
 }
 
 struct GalleryImage {
@@ -281,6 +283,11 @@ pub async fn gallery(
 
     let created_at = content.created_at.format("%b %e, %Y").to_string();
 
+    let hash_id = |id: Uuid| -> String {
+        let n = (id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1;
+        n.to_string()
+    };
+
     let html = GalleryPage {
         username: session_user.clone(),
         logged_in,
@@ -291,6 +298,8 @@ pub async fn gallery(
         uploader_avatar_url: uploader.avatar_url,
         created_at,
         images,
+        view_count: format!("{}K", (content_id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 3 + 5) % 90 + 1),
+        favourite_count: hash_id(content_id),
     }
     .render()
     .expect("gallery.html should be valid");

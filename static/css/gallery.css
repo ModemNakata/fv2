@@ -55,6 +55,35 @@
   color: var(--text-tertiary);
 }
 
+.gallery-detail-stats {
+  display: flex;
+  gap: 24px;
+  margin-top: 4px;
+}
+
+.gallery-detail-stats .stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.gallery-detail-stats .stat-item .stat-label {
+  font-size: clamp(0.75rem, 1vw, 0.82rem);
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.gallery-detail-stats .stat-item .stat-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-block;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
 .gallery-detail-title {
   font-size: 1.25rem;
   font-weight: 700;

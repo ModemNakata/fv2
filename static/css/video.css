@@ -9,6 +9,35 @@
   padding: clamp(16px, 2vh, 32px) 0;
 }
 
+.video-info-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+.video-info-stats .stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.video-info-stats .stat-item .stat-label {
+  font-size: clamp(0.75rem, 1vw, 0.82rem);
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.video-info-stats .stat-item .stat-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-block;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
 .video-info-section {
   max-width: 960px;
   margin: 0 auto;

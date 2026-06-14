@@ -20,6 +20,9 @@ struct VideoPage {
     uploader_username: String,
     uploader_display_name: String,
     uploader_avatar_url: Option<String>,
+    created_at: String,
+    view_count: String,
+    favourite_count: String,
 }
 
 pub async fn redirect_to_home() -> Result<impl Responder> {
@@ -69,6 +72,13 @@ pub async fn video(
         String::new()
     };
 
+    let hash_id = |id: Uuid| -> String {
+        let n = (id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1;
+        n.to_string()
+    };
+
+    let created_at = content.created_at.format("%b %e, %Y").to_string();
+
     let html = VideoPage {
         username: session_user.clone(),
         logged_in,
@@ -78,6 +88,9 @@ pub async fn video(
         uploader_username: uploader.username,
         uploader_display_name: uploader.display_name,
         uploader_avatar_url: uploader.avatar_url,
+        created_at,
+        view_count: format!("{}K", (content_id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 3 + 5) % 90 + 1),
+        favourite_count: hash_id(content_id),
     }
     .render()
     .expect("video.html should be valid");
