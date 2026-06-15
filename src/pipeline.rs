@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::{ContentStatus, ContentType};
-use crate::entity::{content_items, image_sets, images, video_formats, videos};
+use crate::entity::{content_items, image_sets, images, users, video_formats, videos};
 use crate::AppState;
 
 #[derive(Serialize)]
@@ -13,6 +13,7 @@ struct PendingItem {
     content_id: Uuid,
     content_type: String,
     title: String,
+    uploader_name: String,
     files: Vec<PendingFile>,
 }
 
@@ -25,6 +26,7 @@ fn item_to_pending(
     item: &content_items::Model,
     video_formats: &[video_formats::Model],
     all_images: &[images::Model],
+    uploader_name: &str,
 ) -> PendingItem {
     let content_type = match item.r#type {
         ContentType::Video => "video",
@@ -53,6 +55,7 @@ fn item_to_pending(
         content_id: item.id,
         content_type,
         title: item.title.clone(),
+        uploader_name: uploader_name.to_string(),
         files,
     }
 }
@@ -107,9 +110,26 @@ pub async fn pending_processing(state: web::Data<AppState>) -> HttpResponse {
         Vec::new()
     };
 
+    let uploader_ids: Vec<Uuid> = items.iter().map(|i| i.uploader_id).collect();
+    let users_map: std::collections::HashMap<Uuid, String> = if !uploader_ids.is_empty() {
+        Users::find()
+            .filter(users::Column::Id.is_in(uploader_ids))
+            .all(&state.conn)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .map(|u| (u.id, u.username))
+            .collect()
+    } else {
+        std::collections::HashMap::new()
+    };
+
     let result: Vec<PendingItem> = items
         .iter()
-        .map(|item| item_to_pending(item, &video_formats, &all_images))
+        .map(|item| {
+            let username = users_map.get(&item.uploader_id).cloned().unwrap_or_default();
+            item_to_pending(item, &video_formats, &all_images, &username)
+        })
         .collect();
 
     HttpResponse::Ok().json(result)
@@ -156,7 +176,12 @@ pub async fn get_content(
         ContentType::Video => Vec::new(),
     };
 
-    let result = item_to_pending(&item, &video_formats, &all_images);
+    let username = match Users::find_by_id(item.uploader_id).one(&state.conn).await {
+        Ok(Some(u)) => u.username,
+        _ => String::new(),
+    };
+
+    let result = item_to_pending(&item, &video_formats, &all_images, &username);
     HttpResponse::Ok().json(result)
 }
 

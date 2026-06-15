@@ -45,6 +45,7 @@ Returns all content items with `status = processing` (upload complete, awaiting 
     "content_id": "550e8400-e29b-41d4-a716-446655440000",
     "content_type": "video",
     "title": "My Great Video",
+    "uploader_name": "alice",
     "files": [
       {
         "path": "videos/a1b2c3d4-e5f6-7890-abcd-ef1234567890.mp4"
@@ -55,6 +56,7 @@ Returns all content items with `status = processing` (upload complete, awaiting 
     "content_id": "660e8400-e29b-41d4-a716-446655440001",
     "content_type": "image_set",
     "title": "Photo Album",
+    "uploader_name": "bob",
     "files": [
       {
         "path": "galleries/x1y2z3d4-e5f6-7890-abcd-ef1234567890.jpg"
@@ -80,6 +82,7 @@ Returns all content items with `status = processing` (upload complete, awaiting 
 | `content_id` | UUID (string) | Unique content identifier |
 | `content_type` | string | Either `"video"` or `"image_set"` |
 | `title` | string | User-provided title |
+| `uploader_name` | string | Username of the uploader |
 | `files` | array | One file for video, potentially multiple for image_set |
 | `files[].path` | string | Key of the **original** file in **S3_ORIG_BUCKET** (before processing), suitable for `GetObject`. Stored in `orig_storage_path`. |
 
@@ -103,6 +106,7 @@ Returns a single content item by ID (any status). Useful for the pipeline's `--u
   "content_id": "13e535ad-3020-4b0c-be99-eadf99a65620",
   "content_type": "video",
   "title": "123",
+  "uploader_name": "alice",
   "files": [
     {
       "path": "videos/e31cca56-3c62-4f80-bff9-edf62cfae12d.mp4"
