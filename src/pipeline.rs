@@ -1,7 +1,10 @@
+use actix_session::Session;
 use actix_web::{HttpRequest, HttpResponse, web};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, ModelTrait, QueryFilter, QueryOrder, Set};
 use serde::Serialize;
 use uuid::Uuid;
+
+use crate::auth;
 
 use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::{ContentStatus, ContentType};
@@ -350,4 +353,51 @@ pub async fn update_status(
             }))
         }
     }
+}
+
+pub async fn cancel_content(
+    session: Session,
+    state: web::Data<AppState>,
+    content_id: web::Path<Uuid>,
+) -> HttpResponse {
+    let content_id = content_id.into_inner();
+
+    let content = match ContentItems::find_by_id(content_id).one(&state.conn).await {
+        Ok(Some(c)) => c,
+        Ok(None) => {
+            return HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Content not found"
+            }));
+        }
+        Err(e) => {
+            log::error!("DB error fetching content {content_id}: {e}");
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database error"
+            }));
+        }
+    };
+
+    let session_user_id = auth::get_session_user_id(&session, &state.conn).await;
+    if session_user_id != Some(content.uploader_id) {
+        return HttpResponse::Forbidden().json(serde_json::json!({
+            "error": "Not authorized"
+        }));
+    }
+
+    if content.status == ContentStatus::Ready {
+        return HttpResponse::BadRequest().json(serde_json::json!({
+            "error": "Cannot cancel content that is already published"
+        }));
+    }
+
+    if let Err(e) = content.delete(&state.conn).await {
+        log::error!("DB error deleting content {content_id}: {e}");
+        return HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": "Failed to delete content"
+        }));
+    }
+
+    log::info!("Content {content_id} cancelled by uploader");
+
+    HttpResponse::Ok().json(serde_json::json!({"ok": true}))
 }

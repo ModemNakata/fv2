@@ -116,3 +116,30 @@
   font-size: 0.8rem;
   margin-top: 8px;
 }
+
+.cancel-btn {
+  display: block;
+  margin: 32px auto 0;
+  padding: 10px 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background: var(--bg-hover);
+  color: #ff4444;
+  border-color: #ff4444;
+}
+
+.cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: var(--text-tertiary);
+  border-color: var(--border-color);
+}

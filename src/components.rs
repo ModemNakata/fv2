@@ -1,4 +1,5 @@
 use askama::Template;
+use uuid::Uuid;
 
 #[derive(Template)]
 #[template(path = "content-processing.html")]
@@ -8,6 +9,7 @@ pub struct ProcessingPage {
     pub title: String,
     pub content_type_label: String,
     pub content_status: String,
+    pub content_id: Uuid,
 }
 
 pub struct SortOption {

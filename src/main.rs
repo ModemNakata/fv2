@@ -99,7 +99,8 @@ async fn main() -> std::io::Result<()> {
                     .route("/profile/{username}/videos", web::get().to(profile::api_videos))
                     .route("/profile/{username}/galleries", web::get().to(profile::api_galleries))
                     .route("/profile/{username}/followers", web::get().to(profile::api_followers))
-                    .route("/profile/{username}/following", web::get().to(profile::api_following)),
+                    .route("/profile/{username}/following", web::get().to(profile::api_following))
+                    .route("/content/{id}/cancel", web::post().to(pipeline::cancel_content)),
             )
     })
     .bind(("0.0.0.0", 8080))?

@@ -398,6 +398,7 @@ pub async fn gallery(
             title: content.title,
             content_type_label: "gallery".to_string(),
             content_status: status_str.to_string(),
+            content_id,
         }
         .render()
         .expect("content-processing.html should be valid");

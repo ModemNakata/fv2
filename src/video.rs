@@ -114,6 +114,7 @@ pub async fn video(
             title: content.title,
             content_type_label: "video".to_string(),
             content_status: status_str.to_string(),
+            content_id,
         }
         .render()
         .expect("content-processing.html should be valid");

@@ -63,12 +63,36 @@
     <p>You can safely close this page and come back later — it will be here once ready.</p>
     <p class="processing-refresh">This page will refresh automatically to check progress...</p>
   </div>
+  <button class="cancel-btn" id="cancelBtn" data-content-id="{{ content_id }}">Cancel processing</button>
   {% endif %}
 </div>
 
 <script>
   {% if content_status != "failed" && content_status != "ready" %}
   setTimeout(function() { location.reload(); }, 15000);
+
+  document.getElementById('cancelBtn')?.addEventListener('click', function() {
+    if (!confirm('Cancel processing? This will delete your upload.')) return;
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Cancelling...';
+    fetch('/api/content/' + this.getAttribute('data-content-id') + '/cancel', { method: 'POST' })
+      .then(function(r) { return r.json(); })
+      .then(function(resp) {
+        if (resp.ok) {
+          window.location.href = '/';
+        } else {
+          alert(resp.error || 'Failed to cancel');
+          btn.disabled = false;
+          btn.textContent = 'Cancel processing';
+        }
+      })
+      .catch(function() {
+        alert('Network error');
+        btn.disabled = false;
+        btn.textContent = 'Cancel processing';
+      });
+  });
   {% endif %}
 </script>
 {% endblock %}
