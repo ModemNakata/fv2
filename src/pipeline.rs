@@ -60,11 +60,18 @@ fn item_to_pending(
     }
 }
 
-pub async fn pending_processing(state: web::Data<AppState>) -> HttpResponse {
-    let items = match ContentItems::find()
-        .filter(content_items::Column::Status.eq(ContentStatus::Processing))
-        .all(&state.conn)
-        .await
+pub async fn pending_processing(
+    state: web::Data<AppState>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+) -> HttpResponse {
+    let show_all = query.get("all").map_or(false, |v| v == "true");
+
+    let mut filter = ContentItems::find();
+    if !show_all {
+        filter = filter.filter(content_items::Column::Status.eq(ContentStatus::Processing));
+    }
+
+    let items = match filter.all(&state.conn).await
     {
         Ok(items) => items,
         Err(e) => {

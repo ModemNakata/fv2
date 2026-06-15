@@ -37,6 +37,12 @@ Pipeline calls PATCH /api/content/{id}/status
 
 Returns all content items with `status = processing` (upload complete, awaiting encoding).
 
+### Query Parameters
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `all` | `bool` | `false` | If `true`, returns all items regardless of status (dev/testing feature). |
+
 ### Response `200 OK`
 
 ```json
