@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - FeVid{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/css/processing.css">
+{% endblock %}
+{% block content %}
+<div class="processing-container">
+  <h1 class="processing-title">{{ title }}</h1>
+
+  <div class="processing-steps">
+    <div class="processing-step completed">
+      <div class="step-icon">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+          <rect width="256" height="256" fill="none"/>
+          <polyline points="88 136 112 160 168 104" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          <circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+        </svg>
+      </div>
+      <div class="step-label">Uploaded</div>
+    </div>
+    <div class="step-connector completed"></div>
+
+    <div class="processing-step {% if content_status == "failed" %}failed{% else %}active{% endif %}">
+      <div class="step-icon">
+        {% if content_status == "failed" %}
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+          <rect width="256" height="256" fill="none"/>
+          <line x1="160" y1="96" x2="96" y2="160" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          <line x1="96" y1="96" x2="160" y2="160" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          <circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+        </svg>
+        {% else %}
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+          <rect width="256" height="256" fill="none"/>
+          <polyline points="184 104 232 104 232 56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          <path d="M188.4,192a88,88,0,1,1,1.83-126.23L232,104" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+        </svg>
+        {% endif %}
+      </div>
+      <div class="step-label">{% if content_status == "failed" %}Failed{% else %}Processing{% endif %}</div>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="processing-step pending">
+      <div class="step-icon">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+          <rect width="256" height="256" fill="none"/>
+          <circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="16"/>
+          <polygon points="172 128 108 88 108 168 172 128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+        </svg>
+      </div>
+      <div class="step-label">Published</div>
+    </div>
+  </div>
+
+  {% if content_status == "failed" %}
+  <div class="processing-message processing-error">
+    <p>Something went wrong while processing your {{ content_type_label }}. Our team has been notified. You can try uploading again.</p>
+  </div>
+  {% else %}
+  <div class="processing-message">
+    <p>Your {{ content_type_label }} is being processed. This can take some time, especially for longer videos.</p>
+    <p>You can safely close this page and come back later — it will be here once ready.</p>
+    <p class="processing-refresh">This page will refresh automatically to check progress...</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  {% if content_status != "failed" && content_status != "ready" %}
+  setTimeout(function() { location.reload(); }, 15000);
+  {% endif %}
+</script>
+{% endblock %}

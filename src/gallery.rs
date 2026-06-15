@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::AppState;
 use crate::auth;
 use crate::components::build_sort_options;
+use crate::components::ProcessingPage;
 use crate::components::SortOption;
 use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
@@ -320,66 +321,91 @@ pub async fn gallery(
         .map_err(actix_web::error::ErrorInternalServerError)?
         .ok_or_else(|| actix_web::error::ErrorNotFound("Gallery not found"))?;
 
-    if content.r#type != ContentType::ImageSet
-        || content.status != ContentStatus::Ready
-        || content.visibility != ContentVisibility::Public
-    {
+    if content.r#type != ContentType::ImageSet {
         return Err(actix_web::error::ErrorNotFound("Gallery not found"));
     }
 
-    let uploader = Users::find_by_id(content.uploader_id)
-        .one(&state.conn)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?
-        .ok_or_else(|| actix_web::error::ErrorNotFound("Uploader not found"))?;
+    let session_user_id = auth::get_session_user_id(&session, &state.conn).await;
+    let is_uploader = session_user_id == Some(content.uploader_id);
 
-    let image_rows = Images::find()
-        .filter(images::Column::ImageSetId.eq(content_id))
-        .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
-        .all(&state.conn)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
+    if content.status == ContentStatus::Ready
+        && (is_uploader || content.visibility == ContentVisibility::Public)
+    {
+        let uploader = Users::find_by_id(content.uploader_id)
+            .one(&state.conn)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?
+            .ok_or_else(|| actix_web::error::ErrorNotFound("Uploader not found"))?;
 
-    let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
-    let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
-    let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
-        String::new()
+        let image_rows = Images::find()
+            .filter(images::Column::ImageSetId.eq(content_id))
+            .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
+            .all(&state.conn)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+
+        let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
+        let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
+        let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
+            String::new()
+        } else {
+            format!("{}/{}", s3_endpoint.trim_end_matches('/'), s3_bucket)
+        };
+
+        let images: Vec<GalleryImage> = image_rows
+            .into_iter()
+            .map(|img| GalleryImage {
+                url: format!("{}/{}", s3_base, img.storage_path.as_ref().unwrap_or(&img.orig_storage_path)),
+                alt: img.alt_text.unwrap_or(img.original_name),
+            })
+            .collect();
+
+        let created_at = content.created_at.format("%b %e, %Y").to_string();
+
+        let hash_id = |id: Uuid| -> String {
+            let n = (id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1;
+            n.to_string()
+        };
+
+        let html = GalleryPage {
+            username: session_user.clone(),
+            logged_in,
+            title: content.title,
+            description: content.description,
+            uploader_username: uploader.username,
+            uploader_display_name: uploader.display_name.clone(),
+            uploader_avatar_url: uploader.avatar_url,
+            created_at,
+            images,
+            view_count: format!("{}K", (content_id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 3 + 5) % 90 + 1),
+            favourite_count: hash_id(content_id),
+        }
+        .render()
+        .expect("gallery.html should be valid");
+
+        Ok(web::Html::new(html))
+    } else if is_uploader {
+        let status_str = match content.status {
+            ContentStatus::Uploading => "uploading",
+            ContentStatus::Processing => "processing",
+            ContentStatus::Failed => "failed",
+            _ => "processing",
+        };
+
+        let html = ProcessingPage {
+            username: session_user,
+            logged_in,
+            title: content.title,
+            content_type_label: "gallery".to_string(),
+            content_status: status_str.to_string(),
+        }
+        .render()
+        .expect("content-processing.html should be valid");
+
+        Ok(web::Html::new(html))
     } else {
-        format!("{}/{}", s3_endpoint.trim_end_matches('/'), s3_bucket)
-    };
-
-    let images: Vec<GalleryImage> = image_rows
-        .into_iter()
-        .map(|img| GalleryImage {
-            url: format!("{}/{}", s3_base, img.storage_path.as_ref().unwrap_or(&img.orig_storage_path)),
-            alt: img.alt_text.unwrap_or(img.original_name),
-        })
-        .collect();
-
-    let created_at = content.created_at.format("%b %e, %Y").to_string();
-
-    let hash_id = |id: Uuid| -> String {
-        let n = (id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1;
-        n.to_string()
-    };
-
-    let html = GalleryPage {
-        username: session_user.clone(),
-        logged_in,
-        title: content.title,
-        description: content.description,
-        uploader_username: uploader.username,
-        uploader_display_name: uploader.display_name.clone(),
-        uploader_avatar_url: uploader.avatar_url,
-        created_at,
-        images,
-        view_count: format!("{}K", (content_id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 3 + 5) % 90 + 1),
-        favourite_count: hash_id(content_id),
+        Err(actix_web::error::ErrorNotFound("Gallery not found"))
     }
-    .render()
-    .expect("gallery.html should be valid");
-
-    Ok(web::Html::new(html))
 }
 
 pub(crate) fn format_view_count(count: i64) -> String {

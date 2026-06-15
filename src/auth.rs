@@ -107,6 +107,22 @@ pub async fn get_session_user(
     Some(user.username)
 }
 
+pub async fn get_session_user_id(
+    session: &Session,
+    db: &sea_orm::DatabaseConnection,
+) -> Option<Uuid> {
+    let session_pw_ts: Option<u64> = session.get("password_changed_at").ok().flatten();
+    let session_pw_ts = session_pw_ts?;
+    let user_id: Uuid = session.get("user_id").ok().flatten()?;
+    let user = Users::find_by_id(user_id).one(db).await.ok().flatten()?;
+    let db_pw_ts = user.password_changed_at.and_utc().timestamp() as u64;
+    if db_pw_ts != session_pw_ts {
+        session.purge();
+        return None;
+    }
+    Some(user.id)
+}
+
 pub async fn require_user(
     session: &Session,
     db: &DatabaseConnection,

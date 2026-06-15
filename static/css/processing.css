@@ -1,0 +1,118 @@
+.processing-container {
+  max-width: 640px;
+  margin: clamp(32px, 6vh, 64px) auto;
+  padding: 0 16px;
+}
+
+.processing-title {
+  font-size: clamp(1.1rem, 2vw, 1.3rem);
+  font-weight: 600;
+  margin-bottom: clamp(36px, 6vh, 56px);
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.processing-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: clamp(36px, 6vh, 56px);
+}
+
+.processing-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.step-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.processing-step.completed .step-icon {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.processing-step.active .step-icon {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  animation: processing-pulse 1.5s ease-in-out infinite;
+}
+
+.processing-step.failed .step-icon {
+  background: rgba(255, 68, 68, 0.15);
+  color: #ff4444;
+  border: 2px solid #ff4444;
+  animation: none;
+}
+
+.processing-step.pending .step-icon {
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+.step-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.processing-step.completed .step-label {
+  color: var(--accent);
+}
+
+.processing-step.active .step-label {
+  color: var(--text-primary);
+}
+
+.processing-step.failed .step-label {
+  color: #ff4444;
+}
+
+.processing-step.pending .step-label {
+  color: var(--text-tertiary);
+}
+
+.step-connector {
+  width: clamp(24px, 4vw, 48px);
+  height: 2px;
+  background: var(--border-color);
+  margin-bottom: 36px;
+}
+
+.step-connector.completed {
+  background: var(--accent);
+}
+
+@keyframes processing-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.7; }
+}
+
+.processing-message {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.processing-error {
+  color: #ff4444;
+}
+
+.processing-refresh {
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+  margin-top: 8px;
+}
