@@ -14,6 +14,21 @@
       <a href="/@{{ uploader_username }}" class="gallery-uploader-name">{{ uploader_display_name }}</a>
       <span class="gallery-uploader-handle">@{{ uploader_username }} · {{ created_at }}</span>
     </div>
+    {% if is_uploader %}
+    <div class="kebab-menu">
+      <button class="kebab-trigger icon-btn" aria-label="More actions">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+          <rect width="256" height="256" fill="none"/>
+          <circle cx="128" cy="128" r="24" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="16"/>
+          <circle cx="128" cy="48" r="24" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="16"/>
+          <circle cx="128" cy="208" r="24" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="16"/>
+        </svg>
+      </button>
+      <div class="kebab-dropdown">
+        <button class="kebab-dropdown-item delete-btn" data-content-id="{{ content_id }}">Delete</button>
+      </div>
+    </div>
+    {% endif %}
   </div>
   <h1 class="gallery-detail-title">{{ title }}</h1>
   <p class="gallery-detail-stats">
@@ -52,6 +67,35 @@
       span.textContent = this.classList.contains('liked') ? 'Liked' : 'I like it';
       this.disabled = false;
     }.bind(this), 600);
+  });
+</script>
+
+<script>
+  var username = '{{ username }}';
+  document.addEventListener('click', function(e) {
+    var trigger = e.target.closest('.kebab-trigger');
+    if (trigger) {
+      e.preventDefault();
+      var menu = trigger.parentElement;
+      menu.querySelector('.kebab-dropdown').classList.toggle('open');
+      return;
+    }
+    document.querySelectorAll('.kebab-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+  });
+
+  document.querySelectorAll('.delete-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (!confirm('Delete this content? This cannot be undone.')) return;
+      btn.disabled = true;
+      btn.textContent = 'Deleting...';
+      fetch('/api/content/' + this.getAttribute('data-content-id') + '/cancel', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+          if (resp.ok) window.location.href = '/@' + username;
+          else { alert(resp.error || 'Failed to delete'); btn.disabled = false; btn.textContent = 'Delete'; }
+        })
+        .catch(function() { alert('Network error'); btn.disabled = false; btn.textContent = 'Delete'; });
+    });
   });
 </script>
 {% endblock %}

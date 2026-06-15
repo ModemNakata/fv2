@@ -17,7 +17,7 @@ use crate::entity::users;
 #[derive(Template)]
 #[template(path = "settings.html")]
 struct SettingsPage {
-    username: Option<String>,
+    username: String,
     logged_in: bool,
     current_username: String,
     current_display_name: String,
@@ -35,7 +35,7 @@ pub async fn settings_page(session: Session, state: web::Data<AppState>) -> Http
     };
 
     let html = SettingsPage {
-        username: session_user,
+        username: session_user.unwrap_or_default(),
         logged_in,
         current_username: user.username.clone(),
         current_display_name: user.display_name,

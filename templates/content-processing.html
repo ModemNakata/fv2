@@ -69,6 +69,7 @@
 
 <script>
   {% if content_status != "failed" && content_status != "ready" %}
+  var username = '{{ username }}';
   setTimeout(function() { location.reload(); }, 15000);
 
   document.getElementById('cancelBtn')?.addEventListener('click', function() {
@@ -80,7 +81,7 @@
       .then(function(r) { return r.json(); })
       .then(function(resp) {
         if (resp.ok) {
-          window.location.href = '/';
+          window.location.href = '/@' + username;
         } else {
           alert(resp.error || 'Failed to cancel');
           btn.disabled = false;

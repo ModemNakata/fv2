@@ -4,7 +4,7 @@ use uuid::Uuid;
 #[derive(Template)]
 #[template(path = "content-processing.html")]
 pub struct ProcessingPage {
-    pub username: Option<String>,
+    pub username: String,
     pub logged_in: bool,
     pub title: String,
     pub content_type_label: String,

@@ -13,7 +13,7 @@ use crate::AppState;
 #[derive(Template)]
 #[template(path = "video.html")]
 struct VideoPage {
-    username: Option<String>,
+    username: String,
     logged_in: bool,
     video_title: String,
     video_description: Option<String>,
@@ -24,6 +24,8 @@ struct VideoPage {
     created_at: String,
     view_count: String,
     favourite_count: String,
+    is_uploader: bool,
+    content_id: Uuid,
 }
 
 pub async fn redirect_to_home() -> Result<impl Responder> {
@@ -84,7 +86,7 @@ pub async fn video(
         let created_at = content.created_at.format("%b %e, %Y").to_string();
 
         let html = VideoPage {
-            username: session_user,
+            username: session_user.unwrap_or_default(),
             logged_in,
             video_title: content.title,
             video_description: content.description,
@@ -95,6 +97,8 @@ pub async fn video(
             created_at,
             view_count: format!("{}K", (content_id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 3 + 5) % 90 + 1),
             favourite_count: hash_id(content_id),
+            is_uploader,
+            content_id,
         }
         .render()
         .expect("video.html should be valid");
@@ -109,7 +113,7 @@ pub async fn video(
         };
 
         let html = ProcessingPage {
-            username: session_user,
+            username: session_user.unwrap_or_default(),
             logged_in,
             title: content.title,
             content_type_label: "video".to_string(),

@@ -19,7 +19,7 @@ use crate::entity::{content_items, image_sets, images, users};
 #[derive(Template)]
 #[template(path = "galleries.html")]
 struct GalleriesPage {
-    username: Option<String>,
+    username: String,
     logged_in: bool,
     galleries: Vec<GalleryCard>,
     pagination: GalleryPagination,
@@ -268,7 +268,7 @@ pub async fn index(
     let content_type_label = "galleries".to_string();
 
     let html = GalleriesPage {
-        username: session_user.clone(),
+        username: session_user.clone().unwrap_or_default(),
         logged_in,
         galleries,
         pagination,
@@ -288,7 +288,7 @@ pub async fn index(
 #[derive(Template)]
 #[template(path = "gallery.html")]
 struct GalleryPage {
-    username: Option<String>,
+    username: String,
     logged_in: bool,
     title: String,
     description: Option<String>,
@@ -299,6 +299,8 @@ struct GalleryPage {
     images: Vec<GalleryImage>,
     view_count: String,
     favourite_count: String,
+    is_uploader: bool,
+    content_id: Uuid,
 }
 
 struct GalleryImage {
@@ -368,7 +370,7 @@ pub async fn gallery(
         };
 
         let html = GalleryPage {
-            username: session_user.clone(),
+            username: session_user.clone().unwrap_or_default(),
             logged_in,
             title: content.title,
             description: content.description,
@@ -379,6 +381,8 @@ pub async fn gallery(
             images,
             view_count: format!("{}K", (content_id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 3 + 5) % 90 + 1),
             favourite_count: hash_id(content_id),
+            is_uploader,
+            content_id,
         }
         .render()
         .expect("gallery.html should be valid");
@@ -393,7 +397,7 @@ pub async fn gallery(
         };
 
         let html = ProcessingPage {
-            username: session_user,
+            username: session_user.unwrap_or_default(),
             logged_in,
             title: content.title,
             content_type_label: "gallery".to_string(),

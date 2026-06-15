@@ -73,6 +73,74 @@ input {
   font-family: inherit;
 }
 
+/* ── Kebab menu (three-dots) ── */
+
+.kebab-menu {
+  position: relative;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.kebab-trigger {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: background 0.15s;
+}
+
+.kebab-trigger:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.kebab-dropdown {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  min-width: 160px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
+  display: none;
+  z-index: 300;
+}
+
+.kebab-dropdown.open {
+  display: block;
+}
+
+.kebab-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.kebab-dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+.kebab-dropdown-item.delete-btn:hover {
+  color: #ff4444;
+}
+
 .top-bar {
   height: 56px;
   background: var(--bg-primary);

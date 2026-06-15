@@ -384,12 +384,6 @@ pub async fn cancel_content(
         }));
     }
 
-    if content.status == ContentStatus::Ready {
-        return HttpResponse::BadRequest().json(serde_json::json!({
-            "error": "Cannot cancel content that is already published"
-        }));
-    }
-
     if let Err(e) = content.delete(&state.conn).await {
         log::error!("DB error deleting content {content_id}: {e}");
         return HttpResponse::InternalServerError().json(serde_json::json!({

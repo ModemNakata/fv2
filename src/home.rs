@@ -16,7 +16,7 @@ use crate::entity::{content_items, users, videos};
 #[derive(Template)]
 #[template(path = "index.html")]
 struct HomePage {
-    username: Option<String>,
+    username: String,
     logged_in: bool,
     videos: Vec<VideoItem>,
     pagination: Pagination,
@@ -266,7 +266,7 @@ pub async fn index(
     let content_type_label = "videos".to_string();
 
     let html = HomePage {
-        username: session_user.clone(),
+        username: session_user.clone().unwrap_or_default(),
         logged_in,
         videos: video_items,
         pagination,
@@ -341,14 +341,14 @@ fn time_ago(created_at: &sea_orm::prelude::DateTime, now: ChronoDateTime<Utc>) -
 #[derive(Template)]
 #[template(path = "upload-video.html")]
 struct UploadVideoPage {
-    username: Option<String>,
+    username: String,
     logged_in: bool,
 }
 
 #[derive(Template)]
 #[template(path = "upload-gallery.html")]
 struct UploadGalleryPage {
-    username: Option<String>,
+    username: String,
     logged_in: bool,
 }
 
@@ -356,7 +356,7 @@ pub async fn upload_video(session: Session, state: web::Data<AppState>) -> Resul
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
     let html = UploadVideoPage {
-        username: session_user,
+        username: session_user.unwrap_or_default(),
         logged_in,
     }
     .render()
@@ -371,7 +371,7 @@ pub async fn upload_gallery(
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
     let html = UploadGalleryPage {
-        username: session_user,
+        username: session_user.unwrap_or_default(),
         logged_in,
     }
     .render()

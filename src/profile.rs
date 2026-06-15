@@ -17,7 +17,7 @@ use crate::gallery;
 #[derive(Template)]
 #[template(path = "profile.html")]
 struct ProfilePage {
-    username: Option<String>,
+    username: String,
     logged_in: bool,
     is_owner: bool,
     display_name: String,
@@ -88,7 +88,7 @@ pub async fn user_profile(
         .to_string();
 
     let html = ProfilePage {
-        username: session_user,
+        username: session_user.unwrap_or_default(),
         logged_in,
         is_owner,
         display_name: user.display_name,
