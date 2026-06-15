@@ -10,73 +10,85 @@
 
 {% block content %}
 {% if galleries.is_empty() %}
-    <div class="empty-state">
-      <p>No galleries yet.</p>
+<div class="empty-state">
+  <p>No galleries yet.</p>
+</div>
+{% else %}
+<div class="gallery-grid">
+  {% for g in galleries %}
+  <a href="/gallery/{{ g.id }}" class="gallery-card">
+    <div class="gallery-card-thumb">
+      {% if g.thumbnail_url.is_some() %}
+      <img src="{{ g.thumbnail_url.as_ref().unwrap() }}" alt="{{ g.title }}" class="gallery-card-img" loading="lazy">
+      {% else %}
+      <div class="gallery-card-placeholder">
+        <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+          <rect width="256" height="256" fill="none" />
+          <rect x="72" y="40" width="144" height="144" rx="8" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+          <circle cx="120" cy="88" r="16" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+          <path d="M184,184v24a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H72" fill="none" stroke="currentColor"
+            stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
+          <path d="M96.69,184l77.65-77.66a8,8,0,0,1,11.32,0L216,136.69" fill="none" stroke="currentColor"
+            stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
+        </svg>
+      </div>
+      {% endif %}
+      <span class="gallery-card-pictures">{{ g.image_count }} pictures</span>
     </div>
-    {% else %}
-    <div class="gallery-grid">
-    {% for g in galleries %}
-      <a href="/gallery/{{ g.id }}" class="gallery-card">
-        <div class="gallery-card-thumb">
-          {% if g.thumbnail_url.is_some() %}
-          <img src="{{ g.thumbnail_url.as_ref().unwrap() }}" alt="{{ g.title }}" class="gallery-card-img" loading="lazy">
-          {% else %}
-          <div class="gallery-card-placeholder">
-            <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-              <rect width="256" height="256" fill="none"/>
-              <rect x="72" y="40" width="144" height="144" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-              <circle cx="120" cy="88" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-              <path d="M184,184v24a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-              <path d="M96.69,184l77.65-77.66a8,8,0,0,1,11.32,0L216,136.69" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-            </svg>
-          </div>
-          {% endif %}
-          <span class="gallery-card-pictures">{{ g.image_count }} pictures</span>
-        </div>
-        <div class="gallery-card-info">
-          {% if g.uploader_avatar_url.is_some() %}
-          <div class="channel-avatar">
-            <img src="{{ g.uploader_avatar_url.as_ref().unwrap() }}" alt="" class="avatar-img">
-          </div>
-          {% endif %}
-          <div class="gallery-card-details">
-            <h3 class="gallery-card-title">{{ g.title }}</h3>
-            <p class="gallery-card-meta"><span class="meta-left">{{ g.views }}</span><span class="meta-center"><svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,189.09l54.72,33.65a8.4,8.4,0,0,0,12.52-9.17l-14.88-62.79,48.7-42A8.46,8.46,0,0,0,224.27,94L160.36,88.8,135.74,29.2a8.36,8.36,0,0,0-15.48,0L95.64,88.8,31.73,94a8.46,8.46,0,0,0-4.79,14.83l48.7,42L60.76,213.57a8.4,8.4,0,0,0,12.52,9.17Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> {{ g.favourite_count }}</span><span class="meta-right">{{ g.time_ago }}</span></p>
-          </div>
-        </div>
-      </a>
-    {% endfor %}
+    <div class="gallery-card-info">
+      {% if g.uploader_avatar_url.is_some() %}
+      <div class="channel-avatar">
+        <img src="{{ g.uploader_avatar_url.as_ref().unwrap() }}" alt="" class="avatar-img">
+      </div>
+      {% endif %}
+      <div class="gallery-card-details">
+        <h3 class="gallery-card-title" title="{{ g.title }}">{{ g.title }}</h3>
+        <p class="gallery-card-meta"><span class="meta-left">{{ g.views }}</span><span class="meta-center"><svg
+              class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+              <rect width="256" height="256" fill="none" />
+              <path
+                d="M128,189.09l54.72,33.65a8.4,8.4,0,0,0,12.52-9.17l-14.88-62.79,48.7-42A8.46,8.46,0,0,0,224.27,94L160.36,88.8,135.74,29.2a8.36,8.36,0,0,0-15.48,0L95.64,88.8,31.73,94a8.46,8.46,0,0,0-4.79,14.83l48.7,42L60.76,213.57a8.4,8.4,0,0,0,12.52,9.17Z"
+                fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
+            </svg> {{ g.favourite_count }}</span><span class="meta-right">{{ g.time_ago }}</span></p>
+      </div>
     </div>
-    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
 
-    {% if pagination.total_pages > 1 %}
-    <div class="pagination">
-      {% if pagination.current_page > 1 %}
-      <a href="/gallery?page={{ pagination.current_page - 1 }}&limit={{ pagination.limit }}" class="page-btn" data-page="prev">Prev</a>
-      {% endif %}
-      {% for p in pagination.pages %}
-        {% if p.is_active %}
-        <span class="page-btn active">{{ p.num }}</span>
-        {% else %}
-        <a href="/gallery?page={{ p.num }}&limit={{ pagination.limit }}" class="page-btn">{{ p.num }}</a>
-        {% endif %}
-      {% endfor %}
-      {% if pagination.current_page < pagination.total_pages %}
-      <a href="/gallery?page={{ pagination.current_page + 1 }}&limit={{ pagination.limit }}" class="page-btn" data-page="next">Next</a>
-      {% endif %}
-    </div>
+{% if pagination.total_pages > 1 %}
+<div class="pagination">
+  {% if pagination.current_page > 1 %}
+  <a href="/gallery?page={{ pagination.current_page - 1 }}&limit={{ pagination.limit }}" class="page-btn"
+    data-page="prev">Prev</a>
+  {% endif %}
+  {% for p in pagination.pages %}
+  {% if p.is_active %}
+  <span class="page-btn active">{{ p.num }}</span>
+  {% else %}
+  <a href="/gallery?page={{ p.num }}&limit={{ pagination.limit }}" class="page-btn">{{ p.num }}</a>
+  {% endif %}
+  {% endfor %}
+  {% if pagination.current_page < pagination.total_pages %} <a
+    href="/gallery?page={{ pagination.current_page + 1 }}&limit={{ pagination.limit }}" class="page-btn"
+    data-page="next">Next</a>
     {% endif %}
+</div>
+{% endif %}
 
 <script>
-document.addEventListener('keydown', function(e) {
-  if (e.target.closest('input, textarea, select, [contenteditable]')) return;
-  if (e.key === 'ArrowLeft') {
-    var prev = document.querySelector('[data-page="prev"]');
-    if (prev) prev.click();
-  } else if (e.key === 'ArrowRight') {
-    var next = document.querySelector('[data-page="next"]');
-    if (next) next.click();
-  }
-});
+  document.addEventListener('keydown', function (e) {
+    if (e.target.closest('input, textarea, select, [contenteditable]')) return;
+    if (e.key === 'ArrowLeft') {
+      var prev = document.querySelector('[data-page="prev"]');
+      if (prev) prev.click();
+    } else if (e.key === 'ArrowRight') {
+      var next = document.querySelector('[data-page="next"]');
+      if (next) next.click();
+    }
+  });
 </script>
 {% endblock %}
