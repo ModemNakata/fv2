@@ -7,9 +7,11 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::auth;
+use crate::components::build_sort_options;
+use crate::components::SortOption;
 use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
-use crate::entity::{content_items, users};
+use crate::entity::{content_items, users, videos};
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -18,6 +20,10 @@ struct HomePage {
     logged_in: bool,
     videos: Vec<VideoItem>,
     pagination: Pagination,
+    total_count: u64,
+    search_query: String,
+    sort_options: Vec<SortOption>,
+    content_type_label: String,
 }
 
 struct VideoItem {
@@ -43,6 +49,19 @@ struct Pagination {
     total_pages: u32,
     limit: u32,
     pages: Vec<PageButton>,
+    query_params: String,
+}
+
+fn url_encode(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    for b in s.bytes() {
+        match b {
+            b' ' => result.push('+'),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => result.push(b as char),
+            _ => result.push_str(&format!("%{:02X}", b)),
+        }
+    }
+    result
 }
 
 pub async fn index(
@@ -66,41 +85,76 @@ pub async fn index(
 
     let offset = (page - 1) * limit;
 
+    let q = query.get("q").filter(|s| !s.is_empty()).cloned();
+    let search_query = q.clone().unwrap_or_default();
+    let sort = query
+        .get("sort")
+        .map(String::as_str)
+        .unwrap_or("date")
+        .to_string();
+    let order = query
+        .get("order")
+        .map(String::as_str)
+        .unwrap_or("desc")
+        .to_string();
+
+    let mut base_filter = Condition::all()
+        .add(content_items::Column::Status.eq(ContentStatus::Ready))
+        .add(content_items::Column::Type.eq(ContentType::Video))
+        .add(content_items::Column::Visibility.eq(ContentVisibility::Public));
+
+    if let Some(ref query_str) = q {
+        base_filter = base_filter.add(content_items::Column::Title.contains(query_str));
+    }
+
     let total = ContentItems::find()
-        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
-        .filter(content_items::Column::Type.eq(ContentType::Video))
-        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
+        .filter(base_filter.clone())
         .count(&state.conn)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
     let total_pages = ((total as u32) + limit - 1) / limit;
 
-    let items = ContentItems::find()
-        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
-        .filter(content_items::Column::Type.eq(ContentType::Video))
-        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
-        .order_by_desc(content_items::Column::CreatedAt)
+    let mut select = ContentItems::find()
+        .filter(base_filter)
         .limit(limit as u64)
-        .offset(offset as u64)
+        .offset(offset as u64);
+
+    match (sort.as_str(), order.as_str()) {
+        ("views", "asc") => {
+            select = select.order_by_asc(videos::Column::ViewCount);
+        }
+        ("views", "desc") => {
+            select = select.order_by_desc(videos::Column::ViewCount);
+        }
+        ("date", "asc") => {
+            select = select.order_by_asc(content_items::Column::CreatedAt);
+        }
+        _ => {
+            select = select.order_by_desc(content_items::Column::CreatedAt);
+        }
+    }
+
+    let items = select
         .find_also_related(Videos)
         .all(&state.conn)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
     let uploader_ids: Vec<Uuid> = items.iter().map(|(c, _)| c.uploader_id).collect();
-    let users_map: std::collections::HashMap<Uuid, (String, Option<String>)> = if uploader_ids.is_empty() {
-        std::collections::HashMap::new()
-    } else {
-        Users::find()
-            .filter(users::Column::Id.is_in(uploader_ids))
-            .all(&state.conn)
-            .await
-            .map_err(actix_web::error::ErrorInternalServerError)?
-            .into_iter()
-            .map(|u| (u.id, (u.display_name, u.avatar_url)))
-            .collect()
-    };
+    let users_map: std::collections::HashMap<Uuid, (String, Option<String>)> =
+        if uploader_ids.is_empty() {
+            std::collections::HashMap::new()
+        } else {
+            Users::find()
+                .filter(users::Column::Id.is_in(uploader_ids))
+                .all(&state.conn)
+                .await
+                .map_err(actix_web::error::ErrorInternalServerError)?
+                .into_iter()
+                .map(|u| (u.id, (u.display_name, u.avatar_url)))
+                .collect()
+        };
 
     let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
     let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
@@ -131,7 +185,16 @@ pub async fn index(
             let view_count = video_opt.as_ref().map(|v| v.view_count).unwrap_or(0);
             let views_str = format_view_count(view_count);
 
-            let favourite_count = ((content.id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1).to_string();
+            let favourite_count = ((content
+                .id
+                .to_string()
+                .bytes()
+                .fold(0u64, |acc, b| acc.wrapping_add(b as u64))
+                * 7
+                + 13)
+                % 999
+                + 1)
+                .to_string();
 
             let (_, uploader_avatar_url) = users_map
                 .get(&content.uploader_id)
@@ -174,6 +237,16 @@ pub async fn index(
         })
         .collect();
 
+    let mut query_params = String::new();
+    if !search_query.is_empty() {
+        query_params.push_str("&q=");
+        query_params.push_str(&url_encode(&search_query));
+    }
+    query_params.push_str("&sort=");
+    query_params.push_str(&sort);
+    query_params.push_str("&order=");
+    query_params.push_str(&order);
+
     let pages: Vec<PageButton> = (1..=total_pages)
         .map(|num| PageButton {
             num,
@@ -186,13 +259,21 @@ pub async fn index(
         total_pages,
         limit,
         pages,
+        query_params,
     };
+
+    let sort_options = build_sort_options(&sort, &order);
+    let content_type_label = "videos".to_string();
 
     let html = HomePage {
         username: session_user.clone(),
         logged_in,
         videos: video_items,
         pagination,
+        total_count: total,
+        search_query,
+        sort_options,
+        content_type_label,
     }
     .render()
     .expect("index.html should be valid");
@@ -274,9 +355,12 @@ struct UploadGalleryPage {
 pub async fn upload_video(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
-    let html = UploadVideoPage { username: session_user, logged_in }
-        .render()
-        .expect("upload-video.html should be valid");
+    let html = UploadVideoPage {
+        username: session_user,
+        logged_in,
+    }
+    .render()
+    .expect("upload-video.html should be valid");
     Ok(web::Html::new(html))
 }
 
@@ -286,8 +370,11 @@ pub async fn upload_gallery(
 ) -> Result<impl Responder> {
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
-    let html = UploadGalleryPage { username: session_user, logged_in }
-        .render()
-        .expect("upload-gallery.html should be valid");
+    let html = UploadGalleryPage {
+        username: session_user,
+        logged_in,
+    }
+    .render()
+    .expect("upload-gallery.html should be valid");
     Ok(web::Html::new(html))
 }

@@ -3,6 +3,7 @@
   var toggle = document.getElementById('searchToggle');
   var back = document.getElementById('searchBack');
   var input = document.getElementById('searchInput');
+  var searchForm = document.getElementById('searchForm');
 
   if (topBar && toggle && back && input) {
     toggle.addEventListener('click', function() {
@@ -21,6 +22,21 @@
         input.blur();
       }
     });
+  }
+
+  if (searchForm) {
+    searchForm.addEventListener('submit', function(e) {
+      var q = input.value.trim();
+      if (!q) { e.preventDefault(); return; }
+      var path = window.location.pathname;
+      this.action = path.startsWith('/gallery') ? '/gallery' : '/';
+    });
+  }
+
+  if (input) {
+    var params = new URLSearchParams(window.location.search);
+    var qVal = params.get('q');
+    if (qVal) input.value = qVal;
   }
 
   function toggleSidebar(open) {

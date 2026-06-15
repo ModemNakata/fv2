@@ -7,6 +7,8 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::auth;
+use crate::components::build_sort_options;
+use crate::components::SortOption;
 use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
 use crate::entity::{content_items, image_sets, images, users};
@@ -20,6 +22,10 @@ struct GalleriesPage {
     logged_in: bool,
     galleries: Vec<GalleryCard>,
     pagination: GalleryPagination,
+    total_count: u64,
+    search_query: String,
+    sort_options: Vec<SortOption>,
+    content_type_label: String,
 }
 
 struct GalleryCard {
@@ -43,6 +49,19 @@ struct GalleryPagination {
     total_pages: u32,
     limit: u32,
     pages: Vec<GalleryPageButton>,
+    query_params: String,
+}
+
+fn url_encode(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    for b in s.bytes() {
+        match b {
+            b' ' => result.push('+'),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => result.push(b as char),
+            _ => result.push_str(&format!("%{:02X}", b)),
+        }
+    }
+    result
 }
 
 pub async fn index(
@@ -66,23 +85,61 @@ pub async fn index(
 
     let offset = (page - 1) * limit;
 
+    let q = query.get("q").filter(|s| !s.is_empty()).cloned();
+    let search_query = q.clone().unwrap_or_default();
+    let sort = query
+        .get("sort")
+        .map(String::as_str)
+        .unwrap_or("date")
+        .to_string();
+    let order = query
+        .get("order")
+        .map(String::as_str)
+        .unwrap_or("desc")
+        .to_string();
+
+    let mut base_filter = Condition::all()
+        .add(content_items::Column::Status.eq(ContentStatus::Ready))
+        .add(content_items::Column::Type.eq(ContentType::ImageSet))
+        .add(content_items::Column::Visibility.eq(ContentVisibility::Public));
+
+    if let Some(ref query_str) = q {
+        base_filter = base_filter.add(content_items::Column::Title.contains(query_str));
+    }
+
     let total = ContentItems::find()
-        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
-        .filter(content_items::Column::Type.eq(ContentType::ImageSet))
-        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
+        .filter(base_filter.clone())
         .count(&state.conn)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
     let total_pages = ((total as u32) + limit - 1) / limit;
 
-    let items = ContentItems::find()
-        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
-        .filter(content_items::Column::Type.eq(ContentType::ImageSet))
-        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
-        .order_by_desc(content_items::Column::CreatedAt)
+    let mut select = ContentItems::find()
+        .filter(base_filter)
         .limit(limit as u64)
-        .offset(offset as u64)
+        .offset(offset as u64);
+
+    match (sort.as_str(), order.as_str()) {
+        ("views", "asc") => {
+            select = select
+                .join(JoinType::LeftJoin, content_items::Relation::ImageSets.def())
+                .order_by_asc(image_sets::Column::ViewCount);
+        }
+        ("views", "desc") => {
+            select = select
+                .join(JoinType::LeftJoin, content_items::Relation::ImageSets.def())
+                .order_by_desc(image_sets::Column::ViewCount);
+        }
+        ("date", "asc") => {
+            select = select.order_by_asc(content_items::Column::CreatedAt);
+        }
+        _ => {
+            select = select.order_by_desc(content_items::Column::CreatedAt);
+        }
+    }
+
+    let items = select
         .all(&state.conn)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
@@ -181,6 +238,16 @@ pub async fn index(
         })
         .collect();
 
+    let mut query_params = String::new();
+    if !search_query.is_empty() {
+        query_params.push_str("&q=");
+        query_params.push_str(&url_encode(&search_query));
+    }
+    query_params.push_str("&sort=");
+    query_params.push_str(&sort);
+    query_params.push_str("&order=");
+    query_params.push_str(&order);
+
     let pages: Vec<GalleryPageButton> = (1..=total_pages)
         .map(|num| GalleryPageButton {
             num,
@@ -193,13 +260,21 @@ pub async fn index(
         total_pages,
         limit,
         pages,
+        query_params,
     };
+
+    let sort_options = build_sort_options(&sort, &order);
+    let content_type_label = "galleries".to_string();
 
     let html = GalleriesPage {
         username: session_user.clone(),
         logged_in,
         galleries,
         pagination,
+        total_count: total,
+        search_query,
+        sort_options,
+        content_type_label,
     }
     .render()
     .expect("galleries.html should be valid");

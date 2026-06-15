@@ -9,6 +9,7 @@ use std::env;
 use tracing_subscriber::fmt;
 
 mod auth;
+mod components;
 mod entity;
 mod gallery;
 mod home;

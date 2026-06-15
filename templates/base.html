@@ -47,7 +47,7 @@
             stroke-linejoin="round" stroke-width="16" />
         </svg>
       </button>
-      <div class="search-form" id="searchForm">
+      <form class="search-form" id="searchForm" method="GET">
         <button class="search-back-btn" id="searchBack" aria-label="Back">
           <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
             <rect width="256" height="256" fill="none" />
@@ -57,8 +57,8 @@
               stroke-linejoin="round" stroke-width="16" />
           </svg>
         </button>
-        <input type="text" class="search-input" id="searchInput" placeholder="Search">
-        <button class="search-btn" aria-label="Search">
+        <input type="text" name="q" class="search-input" id="searchInput" placeholder="Search">
+        <button type="submit" class="search-btn" aria-label="Search">
           <svg class="icon icon--sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
             <rect width="256" height="256" fill="none" />
             <circle cx="112" cy="112" r="80" fill="none" stroke="currentColor" stroke-linecap="round"
@@ -67,7 +67,7 @@
               stroke-linejoin="round" stroke-width="16" />
           </svg>
         </button>
-      </div>
+      </form>
     </div>
     <div class="top-bar-right">
       {% if logged_in %}

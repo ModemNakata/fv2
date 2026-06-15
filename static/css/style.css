@@ -690,3 +690,50 @@ body.sidebar-open {
   font-size: 0.8rem;
   min-height: 1.2em;
 }
+
+.content-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: clamp(12px, 2vh, 16px);
+  gap: 8px;
+}
+
+.content-header-count {
+  font-size: clamp(0.85rem, 1.2vw, 0.95rem);
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sort-form {
+  display: flex;
+}
+
+.sort-select {
+  height: 36px;
+  /* padding: 0 10px; */
+  /* margin: 0 10px; */
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.sort-select:hover {
+  background: var(--bg-hover);
+}
+
+.sort-select:focus {
+  border-color: var(--accent);
+}
+
+.sort-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
