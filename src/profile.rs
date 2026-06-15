@@ -28,6 +28,7 @@ struct ProfilePage {
     following_count: String,
     profile_views: String,
     active_tab: String,
+    version: String,
     video_count: i64,
     gallery_count: i64,
 }
@@ -101,6 +102,7 @@ pub async fn user_profile(
         active_tab,
         video_count: video_count as i64,
         gallery_count: gallery_count as i64,
+        version: state.static_version.clone(),
     }
     .render()
     .expect("profile.html should be valid");

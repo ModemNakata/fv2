@@ -26,6 +26,7 @@ struct VideoPage {
     favourite_count: String,
     is_uploader: bool,
     content_id: Uuid,
+    version: String,
 }
 
 pub async fn redirect_to_home() -> Result<impl Responder> {
@@ -99,6 +100,7 @@ pub async fn video(
             favourite_count: hash_id(content_id),
             is_uploader,
             content_id,
+            version: state.static_version.clone(),
         }
         .render()
         .expect("video.html should be valid");
@@ -119,6 +121,7 @@ pub async fn video(
             content_type_label: "video".to_string(),
             content_status: status_str.to_string(),
             content_id,
+            version: state.static_version.clone(),
         }
         .render()
         .expect("content-processing.html should be valid");

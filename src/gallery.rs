@@ -27,6 +27,7 @@ struct GalleriesPage {
     search_query: String,
     sort_options: Vec<SortOption>,
     content_type_label: String,
+    version: String,
 }
 
 struct GalleryCard {
@@ -276,6 +277,7 @@ pub async fn index(
         search_query,
         sort_options,
         content_type_label,
+        version: state.static_version.clone(),
     }
     .render()
     .expect("galleries.html should be valid");
@@ -301,6 +303,7 @@ struct GalleryPage {
     favourite_count: String,
     is_uploader: bool,
     content_id: Uuid,
+    version: String,
 }
 
 struct GalleryImage {
@@ -383,6 +386,7 @@ pub async fn gallery(
             favourite_count: hash_id(content_id),
             is_uploader,
             content_id,
+            version: state.static_version.clone(),
         }
         .render()
         .expect("gallery.html should be valid");
@@ -403,6 +407,7 @@ pub async fn gallery(
             content_type_label: "gallery".to_string(),
             content_status: status_str.to_string(),
             content_id,
+            version: state.static_version.clone(),
         }
         .render()
         .expect("content-processing.html should be valid");

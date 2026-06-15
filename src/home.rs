@@ -24,6 +24,7 @@ struct HomePage {
     search_query: String,
     sort_options: Vec<SortOption>,
     content_type_label: String,
+    version: String,
 }
 
 struct VideoItem {
@@ -274,6 +275,7 @@ pub async fn index(
         search_query,
         sort_options,
         content_type_label,
+        version: state.static_version.clone(),
     }
     .render()
     .expect("index.html should be valid");
@@ -343,6 +345,7 @@ fn time_ago(created_at: &sea_orm::prelude::DateTime, now: ChronoDateTime<Utc>) -
 struct UploadVideoPage {
     username: String,
     logged_in: bool,
+    version: String,
 }
 
 #[derive(Template)]
@@ -350,6 +353,7 @@ struct UploadVideoPage {
 struct UploadGalleryPage {
     username: String,
     logged_in: bool,
+    version: String,
 }
 
 pub async fn upload_video(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
@@ -358,6 +362,7 @@ pub async fn upload_video(session: Session, state: web::Data<AppState>) -> Resul
     let html = UploadVideoPage {
         username: session_user.unwrap_or_default(),
         logged_in,
+        version: state.static_version.clone(),
     }
     .render()
     .expect("upload-video.html should be valid");
@@ -373,6 +378,7 @@ pub async fn upload_gallery(
     let html = UploadGalleryPage {
         username: session_user.unwrap_or_default(),
         logged_in,
+        version: state.static_version.clone(),
     }
     .render()
     .expect("upload-gallery.html should be valid");

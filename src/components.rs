@@ -10,6 +10,7 @@ pub struct ProcessingPage {
     pub content_type_label: String,
     pub content_status: String,
     pub content_id: Uuid,
+    pub version: String,
 }
 
 pub struct SortOption {

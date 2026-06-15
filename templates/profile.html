@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ display_name }} - FeVid{% endblock %}
 {% block head %}
-<link rel="stylesheet" href="/static/css/profile.css">
-<link rel="stylesheet" href="/static/css/index.css">
-<link rel="stylesheet" href="/static/css/galleries.css">
+<link rel="stylesheet" href="/static/{{ version }}/css/profile.css">
+<link rel="stylesheet" href="/static/{{ version }}/css/index.css">
+<link rel="stylesheet" href="/static/{{ version }}/css/galleries.css">
 {% endblock %}
 {% block content %}
 <div class="profile-header">
@@ -102,5 +102,5 @@
   </div>
 </dialog>
 
-<script src="/static/js/profile.js" data-handle="{{ handle }}" data-active-tab="{{ active_tab }}"></script>
+<script src="/static/{{ version }}/js/profile.js" data-handle="{{ handle }}" data-active-tab="{{ active_tab }}"></script>
 {% endblock %}

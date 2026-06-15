@@ -25,6 +25,7 @@ pub struct AppState {
     pub conn: DatabaseConnection,
     pub s3_processed: Bucket,
     pub s3_orig: Bucket,
+    pub static_version: String,
 }
 
 #[actix_web::main]
@@ -50,7 +51,8 @@ async fn main() -> std::io::Result<()> {
     let conn = Database::connect(&db_url).await.unwrap();
     let (s3_processed, s3_orig) = s3::init_buckets();
 
-    let state = AppState { conn, s3_processed, s3_orig };
+    let static_version = env!("CARGO_PKG_VERSION").to_string();
+    let state = AppState { conn, s3_processed, s3_orig, static_version };
 
     HttpServer::new(move || {
         App::new()

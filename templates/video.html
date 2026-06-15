@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ video_title }} - FeVid{% endblock %}
 {% block head %}
-<link rel="stylesheet" href="/static/css/vidstack-theme.css">
-<link rel="stylesheet" href="/static/css/vidstack-layout.css">
-<link rel="stylesheet" href="/static/css/video.css">
+<link rel="stylesheet" href="/static/{{ version }}/css/vidstack-theme.css">
+<link rel="stylesheet" href="/static/{{ version }}/css/vidstack-layout.css">
+<link rel="stylesheet" href="/static/{{ version }}/css/video.css">
 {% endblock %}
 {% block content %}
 <div class="video-player-wrapper">
@@ -56,7 +56,7 @@
   </div>
   {% endif %}
 </div>
-<script src="/static/js/vidstack.min.js"></script>
+<script src="/static/{{ version }}/js/vidstack.min.js"></script>
 <script type="module">
   const player = await VidstackPlayer.create({
     target: '#video-target',
@@ -68,7 +68,7 @@
   player.addEventListener('media-provider-change', (event) => {
     const provider = event.detail;
     if (provider.type === 'hls') {
-      provider.library = '/static/js/hls.min.js';
+      provider.library = '/static/{{ version }}/js/hls.min.js';
     }
   });
 </script>
