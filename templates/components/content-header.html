@@ -7,16 +7,10 @@
     {% endif %}
   </div>
   <div class="content-header-sort">
-    <form method="GET" class="sort-form" id="sortForm">
-      {% if !search_query.is_empty() %}
-      <input type="hidden" name="q" value="{{ search_query }}">
-      {% endif %}
-      <input type="hidden" name="limit" value="{{ pagination.limit }}">
-      <select name="sort_order" class="sort-select" id="sortSelect" onchange="this.form.submit()">
-        {% for opt in sort_options %}
-        <option value="{{ opt.value }}"{% if opt.active %} selected{% endif %}>{{ opt.label }}</option>
-        {% endfor %}
-      </select>
-    </form>
+    <select class="sort-select" id="sortSelect">
+      {% for opt in sort_options %}
+      <option value="{{ opt.value }}"{% if opt.active %} selected{% endif %}>{{ opt.label }}</option>
+      {% endfor %}
+    </select>
   </div>
 </div>

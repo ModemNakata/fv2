@@ -39,6 +39,18 @@
     if (qVal) input.value = qVal;
   }
 
+  var sortSelect = document.getElementById('sortSelect');
+  if (sortSelect) {
+    sortSelect.addEventListener('change', function() {
+      var url = new URL(window.location.href);
+      var parts = this.value.split('-');
+      url.searchParams.set('sort', parts[0]);
+      url.searchParams.set('order', parts[1]);
+      url.searchParams.delete('page');
+      window.location.href = url.toString();
+    });
+  }
+
   function toggleSidebar(open) {
     if (!sidebar) return;
     var isOpen = open !== undefined ? open : !sidebar.classList.contains('open');
