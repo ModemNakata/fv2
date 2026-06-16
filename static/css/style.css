@@ -434,6 +434,7 @@ input {
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: var(--bg-tertiary);
+  display: block;
 }
 
 .thumb-placeholder {
@@ -501,13 +502,27 @@ input {
   margin-bottom: 4px;
 }
 
+.video-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.video-title a:hover {
+  color: var(--text-primary);
+}
+
 .channel-name {
   font-size: clamp(0.75rem, 1vw, 0.8rem);
   color: var(--text-secondary);
   margin-bottom: 2px;
 }
 
-.channel-name:hover {
+.channel-name a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.channel-name a:hover {
   color: var(--text-primary);
 }
 

@@ -18,8 +18,8 @@
 {% else %}
 <div class="video-grid">
   {% for v in videos %}
-  <a href="/video/{{ v.id }}" class="video-card" data-preview="{{ v.preview_url.is_some() }}">
-    <div class="thumbnail">
+  <div class="video-card" data-preview="{{ v.preview_url.is_some() }}">
+    <a href="/video/{{ v.id }}" class="thumbnail">
       {% if v.thumbnail_url.is_some() %}
       <img src="{{ v.thumbnail_url.as_ref().unwrap() }}" alt="{{ v.title }}" class="thumb-img">
       {% else %}
@@ -39,7 +39,7 @@
       <div class="thumb-spinner"></div>
       {% endif %}
       <span class="duration">{{ v.duration }}</span>
-    </div>
+    </a>
     <div class="video-info">
       {% if v.uploader_avatar_url.is_some() %}
       <div class="channel-avatar" style="--hue: {{ v.hue }}">
@@ -47,8 +47,8 @@
       </div>
       {% endif %}
       <div class="video-details">
-        <h3 class="video-title" title="{{ v.title }}">{{ v.title }}</h3>
-        <p class="channel-name">{{ v.uploader_display_name }}</p>
+        <h3 class="video-title"><a href="/video/{{ v.id }}" title="{{ v.title }}">{{ v.title }}</a></h3>
+        <p class="channel-name"><a href="/@{{ v.uploader_username }}">{{ v.uploader_display_name }}</a></p>
         <p class="video-meta"><span class="meta-left">{{ v.views }}</span><span class="meta-center"><svg
               class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
               <rect width="256" height="256" fill="none" />
@@ -58,7 +58,7 @@
             </svg> {{ v.favourite_count }}</span><span class="meta-right">{{ v.time_ago }}</span></p>
       </div>
     </div>
-  </a>
+  </div>
   {% endfor %}
 
   <script>

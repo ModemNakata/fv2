@@ -40,6 +40,7 @@ struct GalleryCard {
     time_ago: String,
     uploader_avatar_url: Option<String>,
     uploader_display_name: String,
+    uploader_username: String,
 }
 
 struct GalleryPageButton {
@@ -182,7 +183,7 @@ pub async fn index(
     };
 
     let uploader_ids: Vec<Uuid> = items.iter().map(|c| c.uploader_id).collect();
-    let users_map: std::collections::HashMap<Uuid, (String, Option<String>)> = if uploader_ids.is_empty() {
+    let users_map: std::collections::HashMap<Uuid, (String, String, Option<String>)> = if uploader_ids.is_empty() {
         std::collections::HashMap::new()
     } else {
         Users::find()
@@ -191,7 +192,7 @@ pub async fn index(
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?
             .into_iter()
-            .map(|u| (u.id, (u.display_name, u.avatar_url)))
+            .map(|u| (u.id, (u.username, u.display_name, u.avatar_url)))
             .collect()
     };
 
@@ -226,10 +227,10 @@ pub async fn index(
             let favourite_count = ((content.id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1).to_string();
             let time_ago_str = time_ago(&content.created_at, now);
 
-            let (display_name, avatar_url) = users_map
+            let (username, display_name, avatar_url) = users_map
                 .get(&content.uploader_id)
                 .cloned()
-                .unwrap_or_else(|| ("?".to_string(), None));
+                .unwrap_or_else(|| ("?".to_string(), "?".to_string(), None));
 
             GalleryCard {
                 id: content.id,
@@ -241,6 +242,7 @@ pub async fn index(
                 time_ago: time_ago_str,
                 uploader_avatar_url: avatar_url,
                 uploader_display_name: display_name,
+                uploader_username: username,
             }
         })
         .collect();

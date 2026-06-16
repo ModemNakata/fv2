@@ -6,7 +6,6 @@
 
 .gallery-card {
   display: block;
-  cursor: pointer;
 }
 
 .gallery-card-thumb {
@@ -15,6 +14,7 @@
   aspect-ratio: 1 / 1;
   overflow: hidden;
   background: var(--bg-tertiary);
+  display: block;
 }
 
 .gallery-card-pictures {
@@ -68,6 +68,15 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin-bottom: 4px;
+}
+
+.gallery-card-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.gallery-card-title a:hover {
+  color: var(--text-primary);
 }
 
 .gallery-card-meta {
