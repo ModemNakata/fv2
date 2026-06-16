@@ -20,13 +20,13 @@ pub struct SortOption {
 }
 
 pub fn build_sort_options(current_sort: &str, current_order: &str) -> Vec<SortOption> {
-    let pairs: [(&str, &str); 6] = [
+    let pairs: [(&str, &str); 4] = [
         ("date-desc", "Newest first"),
         ("date-asc", "Oldest first"),
         ("views-desc", "Most viewed"),
         ("views-asc", "Least viewed"),
-        ("likes-desc", "Most liked"),
-        ("likes-asc", "Least liked"),
+        // ("likes-desc", "Most liked"),
+        // ("likes-asc", "Least liked"),
     ];
 
     let combined = format!("{}-{}", current_sort, current_order);
