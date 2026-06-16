@@ -105,6 +105,11 @@
     display: none;
 }
 
+.video-card {
+    display: block;
+    cursor: pointer;
+}
+
 .thumb-spinner {
     position: absolute;
     top: 50%;

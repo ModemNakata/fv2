@@ -111,6 +111,14 @@ Default styles target mobile. Use `min-width` breakpoints to scale up:
 - `--border-color`
 - `--shadow-sm`, `--shadow`, `--shadow-lg`
 
+### Sharp corners (no border-radius)
+All UI elements have **sharp corners** by convention. No `border-radius`, no `transition`, no `ease` timing functions. Keep it flat and minimal.
+
+## Code Editing Rules
+
+### Never delete code comments
+Code comments may appear useless or outdated, but they may contain context the author left for a reason. Never delete them unless you fully understand their meaning and are sure they're wrong. When in doubt, keep them.
+
 ## Phosphor Icons
 
 ### Location

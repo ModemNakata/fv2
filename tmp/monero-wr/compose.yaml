@@ -1,0 +1,41 @@
+services:
+  monero-wr:
+    image: gcr.io/distroless/cc-debian13:nonroot
+    #user: "1000:1000" # check host user id with `id`
+    volumes:
+      - ./monero:/monero
+    #ports:
+    #  - "127.0.0.1:1808:1808"  # local host only
+    # again ... use container 2/to container service name resolution, no need to open port to local network, docker network is enough
+    # expose:
+      # - "1808"
+    ports:
+      - "10.0.0.2:1808:1808"
+    command: [ # test123
+      "/monero/monero-wallet-rpc",
+      "--rpc-bind-port=1808",
+      "--rpc-bind-ip=0.0.0.0", # fine for docker container with forwarded to localhsot
+      "--confirm-external-bind", # explicity allow previous argument
+      "--wallet-file=/monero/wd/cryptowrap_prod_mainnet", 
+      # "--wallet-dir=/monero/", # chown -R 65532:65532 crypto/monero/wd/
+      # (optionally if permission error, though user 1000 (same id as on host) should fix it)
+      "--disable-rpc-login",
+      #"--daemon-address=10.0.0.2:18089",
+      "--daemon-address=host.docker.internal:18089",
+      #"--testnet",
+      #
+      "--password=${XMR_PASSWD}",
+      # --password-file <arg>
+      # 
+      # --tx-notify <arg>
+      # --config-file <arg>
+      "--shared-ringdb-dir=/monero/wd/.shared-ringdb",
+      "--log-level=1", # 1 is also fine, but without execution time (ms)
+      # ^ 2 shows each block pull (each ~20s ?)
+    ]
+    # restart: unless-stopped
+    restart: no
+    security_opt:
+      - no-new-privileges:true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

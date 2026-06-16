@@ -37,6 +37,7 @@ struct VideoItem {
     thumbnail_url: Option<String>,
     preview_url: Option<String>,
     uploader_avatar_url: Option<String>,
+    uploader_display_name: String,
     hue: u32,
 }
 
@@ -197,7 +198,7 @@ pub async fn index(
                 + 1)
                 .to_string();
 
-            let (_, uploader_avatar_url) = users_map
+            let (display_name, uploader_avatar_url) = users_map
                 .get(&content.uploader_id)
                 .cloned()
                 .unwrap_or_else(|| ("?".to_string(), None));
@@ -233,6 +234,7 @@ pub async fn index(
                 thumbnail_url,
                 preview_url,
                 uploader_avatar_url,
+                uploader_display_name: display_name,
                 hue,
             }
         })
