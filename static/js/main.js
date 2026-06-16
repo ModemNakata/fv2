@@ -89,7 +89,11 @@
   dropdownTriggers.forEach(function(trigger) {
     trigger.addEventListener('click', function(e) {
       e.stopPropagation();
+      var allPanels = document.querySelectorAll('.dropdown-panel');
       var panel = trigger.parentElement.querySelector('.dropdown-panel');
+      allPanels.forEach(function(p) {
+        if (p !== panel) p.classList.remove('open');
+      });
       if (panel) panel.classList.toggle('open');
     });
   });
