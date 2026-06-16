@@ -42,9 +42,9 @@
     </a>
     <div class="video-info">
       {% if v.uploader_avatar_url.is_some() %}
-      <div class="channel-avatar">
+      <a href="/@{{ v.uploader_username }}" class="channel-avatar">
         <img src="{{ v.uploader_avatar_url.as_ref().unwrap() }}" alt="" class="avatar-img">
-      </div>
+      </a>
       {% endif %}
       <div class="video-details">
         <h3 class="video-title"><a href="/video/{{ v.id }}" title="{{ v.title }}">{{ v.title }}</a></h3>

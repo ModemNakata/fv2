@@ -41,9 +41,9 @@
     </a>
     <div class="gallery-card-info">
       {% if g.uploader_avatar_url.is_some() %}
-      <div class="channel-avatar">
+      <a href="/@{{ g.uploader_username }}" class="channel-avatar">
         <img src="{{ g.uploader_avatar_url.as_ref().unwrap() }}" alt="" class="avatar-img">
-      </div>
+      </a>
       {% endif %}
       <div class="gallery-card-details">
         <h3 class="gallery-card-title"><a href="/gallery/{{ g.id }}" title="{{ g.title }}">{{ g.title }}</a></h3>
