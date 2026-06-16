@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Balance - FeVid{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/{{ version }}/css/balance.css">
+{% endblock %}
+{% block content %}
+<div class="balance-container">
+  <h1 class="balance-title">Balance</h1>
+
+  <div class="balance-card">
+    <div class="balance-amount">
+      <span class="balance-label">Available balance</span>
+      <span class="balance-value">{{ balance }}</span>
+    </div>
+    <div class="balance-stats">
+      <div class="balance-stat">
+        <span class="stat-label">Lifetime earnings</span>
+        <span class="stat-value">{{ lifetime_earnings }}</span>
+      </div>
+      <div class="balance-stat">
+        <span class="stat-label">Pending payout</span>
+        <span class="stat-value">{{ pending_payout }}</span>
+      </div>
+    </div>
+    <button class="balance-btn" disabled>Withdraw — coming soon</button>
+  </div>
+
+  <div class="balance-placeholder">
+    <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+      <rect width="256" height="256" fill="none" />
+      <path d="M192,80h32a16,16,0,0,1,16,16v96a16,16,0,0,1-16,16H64a16,16,0,0,1-16-16V96a16,16,0,0,1,16-16H96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
+      <rect x="80" y="48" width="96" height="64" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
+    </svg>
+    <p>Revenue reporting and payouts are coming soon.</p>
+  </div>
+</div>
+{% endblock %}

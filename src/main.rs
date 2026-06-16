@@ -9,6 +9,7 @@ use std::env;
 use tracing_subscriber::fmt;
 
 mod auth;
+mod balance;
 mod components;
 mod entity;
 mod gallery;
@@ -95,6 +96,9 @@ async fn main() -> std::io::Result<()> {
                 web::resource("/settings")
                     .route(web::get().to(settings::settings_page))
                     .route(web::post().to(settings::update_settings)),
+            )
+            .service(
+                web::resource("/balance").route(web::get().to(balance::balance_page)),
             )
             .service(
                 web::scope("/auth")

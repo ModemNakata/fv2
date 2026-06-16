@@ -1,0 +1,84 @@
+.balance-container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 48px) 16px;
+}
+
+.balance-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.balance-card {
+  background: var(--bg-secondary);
+  padding: clamp(20px, 3vw, 32px);
+  margin-bottom: 24px;
+}
+
+.balance-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 24px;
+}
+
+.balance-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.balance-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.balance-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.balance-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.balance-stat .stat-label {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.balance-stat .stat-value {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.balance-btn {
+  width: 100%;
+  padding: 12px 24px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.balance-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.balance-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 16px;
+  color: var(--text-tertiary);
+  text-align: center;
+  font-size: 0.9rem;
+}
