@@ -467,7 +467,7 @@ input {
 .channel-avatar {
   width: clamp(56px, 3vw, 62px);
   height: clamp(56px, 3vw, 62px);
-  background: hsl(var(--hue, 120), 50%, 25%);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
   display: flex;
   align-items: center;

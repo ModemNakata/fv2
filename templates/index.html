@@ -42,7 +42,7 @@
     </a>
     <div class="video-info">
       {% if v.uploader_avatar_url.is_some() %}
-      <div class="channel-avatar" style="--hue: {{ v.hue }}">
+      <div class="channel-avatar">
         <img src="{{ v.uploader_avatar_url.as_ref().unwrap() }}" alt="" class="avatar-img">
       </div>
       {% endif %}
