@@ -28,7 +28,23 @@
     <div class="upload-fields">
       <input type="text" name="title" class="upload-input" placeholder="Gallery title" required>
       <textarea name="description" class="upload-textarea" placeholder="Description (optional)"></textarea>
-      <!-- optionally -->
+      <div class="upload-field-row">
+        <label class="upload-label" for="galleryPrice">Price (USD)</label>
+        <span class="price-prefix">$</span>
+        <input type="number" id="galleryPrice" name="price" class="upload-input price-input" value="0" min="0" step="1">
+      </div>
+      <div class="conditional-fields" id="galleryConditionalFields" hidden>
+        <div class="upload-field-row">
+          <label class="upload-label" for="unblurredCount">Not blurred images</label>
+          <div class="count-wrapper" id="unblurredSelector">
+            <button type="button" class="count-btn count-btn--active" data-count="1">1</button>
+            <button type="button" class="count-btn" data-count="2">2</button>
+            <button type="button" class="count-btn" data-count="3">3</button>
+            <input type="hidden" id="unblurredCount" name="unblurred_count" value="1">
+          </div>
+        </div>
+        <p class="validation-error" id="galleryValidationError" hidden></p>
+      </div>
     </div>
     <button type="submit" class="upload-submit" id="uploadBtn" style="display:none">Upload</button>
     <div class="progress-container" id="progressContainer" hidden>
@@ -167,6 +183,16 @@
         uploadBtn.disabled = false;
         uploadBtn.textContent = 'Upload ' + files.length + ' file' + (files.length === 1 ? '' : 's') + ' (' + formatSize(totalSize) + ')';
       }
+      var pricingError = getPricingError();
+      var errorEl = document.getElementById('galleryValidationError');
+      if (pricingError) {
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = pricingError;
+        errorEl.textContent = pricingError;
+        errorEl.hidden = false;
+      } else {
+        errorEl.hidden = true;
+      }
     }
 
     function getInsertIndex(container, y) {
@@ -263,6 +289,41 @@
       render();
     }
 
+    function getPricingError() {
+      var price = parseFloat(document.getElementById('galleryPrice').value) || 0;
+      if (price <= 0) return null;
+      var unblurred = parseInt(document.getElementById('unblurredCount').value) || 0;
+      if (files.length < unblurred * 2) {
+        return 'Need at least ' + (unblurred * 2) + ' images for ' + unblurred + ' unblurred';
+      }
+      return null;
+    }
+
+    function toggleGalleryConditional() {
+      var price = parseFloat(document.getElementById('galleryPrice').value) || 0;
+      document.getElementById('galleryConditionalFields').hidden = price <= 0;
+      var errEl = document.getElementById('galleryValidationError');
+      if (price <= 0) errEl.hidden = true;
+    }
+
+    document.getElementById('galleryPrice').addEventListener('input', function () {
+      toggleGalleryConditional();
+      render();
+    });
+
+    document.getElementById('unblurredSelector').addEventListener('click', function (e) {
+      var btn = e.target.closest('.count-btn');
+      if (!btn) return;
+      var count = parseInt(btn.dataset.count);
+      this.querySelectorAll('.count-btn').forEach(function (b) {
+        b.classList.toggle('count-btn--active', parseInt(b.dataset.count) <= count);
+      });
+      document.getElementById('unblurredCount').value = count;
+      render();
+    });
+
+    toggleGalleryConditional();
+
     dropzone.addEventListener('click', function () {
       fileInput.click();
     });
@@ -290,6 +351,7 @@
     // Upload with progress
     document.getElementById('uploadForm').addEventListener('submit', function (e) {
       e.preventDefault();
+      if (getPricingError()) { return; }
       var btn = document.getElementById('uploadBtn');
       var dropzone = document.getElementById('galleryDropzone');
       var progressContainer = document.getElementById('progressContainer');
@@ -308,6 +370,9 @@
       fd.append('title', this.querySelector('[name="title"]').value);
       var desc = this.querySelector('[name="description"]').value;
       if (desc) fd.append('description', desc);
+      fd.append('price', document.getElementById('galleryPrice').value);
+      var unblurred = document.getElementById('unblurredCount').value;
+      if (unblurred) fd.append('unblurred_count', unblurred);
       files.forEach(function (f) {fd.append('files', f, f.name);});
 
       var xhr = new XMLHttpRequest();

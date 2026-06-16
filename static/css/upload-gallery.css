@@ -251,3 +251,148 @@
     max-width: none;
   }
 }
+
+.upload-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.upload-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.range-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.upload-range {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.upload-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-color);
+}
+
+.upload-range::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-color);
+}
+
+.upload-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  margin-top: -7px;
+}
+
+.upload-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: none;
+}
+
+.upload-range-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 40px;
+  text-align: right;
+}
+
+.conditional-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.conditional-fields[hidden] {
+  display: none;
+}
+
+.price-prefix {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.price-input {
+  padding-left: 28px;
+}
+
+.upload-field-row {
+  position: relative;
+}
+
+.validation-error {
+  font-size: 0.8rem;
+  color: #ff4444;
+  margin: 0;
+}
+
+.validation-error[hidden] {
+  display: none;
+}
+
+.count-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count-btn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.count-btn:hover {
+  border-color: var(--accent-dim);
+  color: var(--text-primary);
+}
+
+.count-btn--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-primary);
+}
+
+.count-btn--active:hover {
+  opacity: 0.9;
+}

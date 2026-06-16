@@ -42,6 +42,21 @@
     <div class="upload-fields">
       <input type="text" name="title" class="upload-input" placeholder="Video title" required>
       <textarea name="description" class="upload-textarea" placeholder="Description (optional)"></textarea>
+      <div class="upload-field-row">
+        <label class="upload-label" for="videoPrice">Price (USD)</label>
+        <span class="price-prefix">$</span>
+        <input type="number" id="videoPrice" name="price" class="upload-input price-input" value="0" min="0" step="1">
+      </div>
+      <div class="conditional-fields" id="videoConditionalFields" hidden>
+        <div class="upload-field-row">
+          <label class="upload-label" for="previewLength">Free preview length</label>
+          <div class="range-wrapper">
+            <input type="range" id="previewLength" name="preview_length" class="upload-range" min="5" max="60" value="5">
+            <span class="upload-range-value" id="previewLengthValue">5s</span>
+          </div>
+        </div>
+        <p class="validation-error" id="videoValidationError" hidden></p>
+      </div>
     </div>
     <button type="submit" class="upload-submit">Upload</button>
     <div class="progress-container" id="progressContainer" hidden>
@@ -109,8 +124,83 @@
       // Start disabled until a file is selected
       btn.disabled = true;
 
+      // --- price & preview length ---
+      var videoDuration = null;
+      var priceInput = document.getElementById('videoPrice');
+      var conditionalFields = document.getElementById('videoConditionalFields');
+      var previewLength = document.getElementById('previewLength');
+      var previewLengthValue = document.getElementById('previewLengthValue');
+      var validationError = document.getElementById('videoValidationError');
+
+      function getVideoDuration(file) {
+        return new Promise(function (resolve) {
+          var video = document.createElement('video');
+          video.preload = 'metadata';
+          video.onloadedmetadata = function () {
+            window.URL.revokeObjectURL(video.src);
+            resolve(video.duration);
+          };
+          video.onerror = function () { resolve(null); };
+          video.src = URL.createObjectURL(file);
+        });
+      }
+
+      function validateVideo() {
+        var price = parseFloat(priceInput.value) || 0;
+        if (price <= 0 || videoDuration === null) {
+          validationError.hidden = true;
+          if (fileInput.files.length) btn.disabled = false;
+          return true;
+        }
+        var preview = parseInt(previewLength.value) || 0;
+        if (preview > videoDuration / 2) {
+          validationError.textContent = 'Video must be at least ' + (preview * 2) + 's long for a ' + preview + 's preview';
+          validationError.hidden = false;
+          btn.disabled = true;
+          return false;
+        }
+        validationError.hidden = true;
+        btn.disabled = false;
+        return true;
+      }
+
+      function toggleVideoConditional() {
+        var price = parseFloat(priceInput.value) || 0;
+        conditionalFields.hidden = price <= 0;
+        validateVideo();
+      }
+
+      priceInput.addEventListener('input', toggleVideoConditional);
+
+      previewLength.addEventListener('input', function () {
+        previewLengthValue.textContent = previewLength.value + 's';
+        validateVideo();
+      });
+
+      // Patch showFile to detect duration
+      var origShowFile = showFile;
+      showFile = function (file) {
+        origShowFile(file);
+        videoDuration = null;
+        btn.disabled = true;
+        btn.textContent = 'Detecting duration...';
+        getVideoDuration(file).then(function (dur) {
+          videoDuration = dur;
+          if (dur === null) {
+            btn.disabled = false;
+            btn.textContent = 'Upload ' + file.name;
+            return;
+          }
+          btn.textContent = 'Upload ' + file.name;
+          validateVideo();
+        });
+      };
+
+      toggleVideoConditional();
+
       form.addEventListener('submit', function (e) {
         e.preventDefault();
+        if (!validateVideo()) { btn.disabled = false; return; }
         var dropzone = document.getElementById('videoDropzone');
         var progressContainer = document.getElementById('progressContainer');
         var progressFill = document.getElementById('progressFill');
@@ -124,6 +214,8 @@
         btn.textContent = 'Uploading...';
         form.querySelector('[name="title"]').disabled = true;
         form.querySelector('[name="description"]').disabled = true;
+        priceInput.disabled = true;
+        previewLength.disabled = true;
         var xhr = new XMLHttpRequest();
 
         xhr.upload.addEventListener('progress', function (e) {
@@ -170,6 +262,8 @@
           btn.textContent = 'Upload';
           form.querySelector('[name="title"]').disabled = false;
           form.querySelector('[name="description"]').disabled = false;
+          priceInput.disabled = false;
+          previewLength.disabled = false;
         }
       });
     })();
