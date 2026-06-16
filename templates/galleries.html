@@ -48,13 +48,13 @@
       <div class="gallery-card-details">
         <h3 class="gallery-card-title"><a href="/gallery/{{ g.id }}" title="{{ g.title }}">{{ g.title }}</a></h3>
         <p class="channel-name"><a href="/@{{ g.uploader_username }}">{{ g.uploader_display_name }}</a></p>
-        <p class="gallery-card-meta"><span class="meta-left">{{ g.views }}</span><span class="meta-center"><svg
-              class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+        <p class="gallery-card-meta"><span class="meta-left">{{ g.time_ago }}</span><span class="meta-right">
+            <!-- meta-center --> <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
               <rect width="256" height="256" fill="none" />
               <path
                 d="M128,189.09l54.72,33.65a8.4,8.4,0,0,0,12.52-9.17l-14.88-62.79,48.7-42A8.46,8.46,0,0,0,224.27,94L160.36,88.8,135.74,29.2a8.36,8.36,0,0,0-15.48,0L95.64,88.8,31.73,94a8.46,8.46,0,0,0-4.79,14.83l48.7,42L60.76,213.57a8.4,8.4,0,0,0,12.52,9.17Z"
                 fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
-            </svg> {{ g.favourite_count }}</span><span class="meta-right">{{ g.time_ago }}</span></p>
+            </svg> {{ g.favourite_count }} • {{ g.views }}</span></p>
       </div>
     </div>
   </div>
@@ -65,19 +65,20 @@
 {% if pagination.total_pages > 1 %}
 <div class="pagination">
   {% if pagination.current_page > 1 %}
-  <a href="/gallery?page={{ pagination.current_page - 1 }}&limit={{ pagination.limit }}{{ pagination.query_params }}" class="page-btn"
-    data-page="prev">Prev</a>
+  <a href="/gallery?page={{ pagination.current_page - 1 }}&limit={{ pagination.limit }}{{ pagination.query_params }}"
+    class="page-btn" data-page="prev">Prev</a>
   {% endif %}
   {% for p in pagination.pages %}
   {% if p.is_active %}
   <span class="page-btn active">{{ p.num }}</span>
   {% else %}
-  <a href="/gallery?page={{ p.num }}&limit={{ pagination.limit }}{{ pagination.query_params }}" class="page-btn">{{ p.num }}</a>
+  <a href="/gallery?page={{ p.num }}&limit={{ pagination.limit }}{{ pagination.query_params }}" class="page-btn">{{
+    p.num }}</a>
   {% endif %}
   {% endfor %}
   {% if pagination.current_page < pagination.total_pages %} <a
-    href="/gallery?page={{ pagination.current_page + 1 }}&limit={{ pagination.limit }}{{ pagination.query_params }}" class="page-btn"
-    data-page="next">Next</a>
+    href="/gallery?page={{ pagination.current_page + 1 }}&limit={{ pagination.limit }}{{ pagination.query_params }}"
+    class="page-btn" data-page="next">Next</a>
     {% endif %}
 </div>
 {% endif %}
