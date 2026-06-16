@@ -5,7 +5,13 @@
 {% endblock %}
 {% block content %}
 <div class="balance-container">
-  <h1 class="balance-title">Balance</h1>
+  <h1 class="balance-title">Balance
+    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+      <rect width="256" height="256" fill="none"/>
+      <path d="M40,56V184a16,16,0,0,0,16,16H216a8,8,0,0,0,8-8V80a8,8,0,0,0-8-8H56A16,16,0,0,1,40,56h0A16,16,0,0,1,56,40H192" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+      <circle cx="180" cy="132" r="12"/>
+    </svg>
+  </h1>
 
   <div class="balance-card">
     <div class="balance-amount">
@@ -27,9 +33,11 @@
 
   <div class="balance-placeholder">
     <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-      <rect width="256" height="256" fill="none" />
-      <path d="M192,80h32a16,16,0,0,1,16,16v96a16,16,0,0,1-16,16H64a16,16,0,0,1-16-16V96a16,16,0,0,1,16-16H96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
-      <rect x="80" y="48" width="96" height="64" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
+      <rect width="256" height="256" fill="none"/>
+      <path d="M240,186.79c-91.64,44.77-132.36-42.35-224,2.42v-120c91.64-44.77,132.36,42.35,224-2.42Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+      <circle cx="128" cy="128" r="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+      <line x1="48" y1="96" x2="48" y2="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+      <line x1="208" y1="112" x2="208" y2="160" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
     </svg>
     <p>Revenue reporting and payouts are coming soon.</p>
   </div>
