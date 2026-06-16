@@ -182,6 +182,17 @@ input {
   color: var(--accent);
 }
 
+.beta-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-glow);
+  padding: 1px 5px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
 .top-bar-center {
   flex: 1;
   max-width: 640px;
@@ -322,7 +333,9 @@ input {
   display: none;
 }
 
-@media (min-width: 680px) {
+@media (min-width: 800px) {
+
+  /* desktop only (680) */
   .logo svg {
     display: inline;
   }
