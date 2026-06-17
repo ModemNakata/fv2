@@ -171,3 +171,30 @@
 @keyframes like-spin {
   to { transform: rotate(360deg); }
 }
+
+.free-preview-banner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.free-preview-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.free-preview-price {
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+}

@@ -310,6 +310,9 @@ struct GalleryPage {
     favourite_count: String,
     is_uploader: bool,
     content_id: Uuid,
+    is_paywalled: bool,
+    is_free_preview: bool,
+    price_dollars: String,
     version: String,
 }
 
@@ -356,6 +359,12 @@ pub async fn gallery(
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?;
 
+        let image_set = ImageSets::find_by_id(content_id)
+            .one(&state.conn)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?
+            .ok_or_else(|| actix_web::error::ErrorNotFound("Gallery not found"))?;
+
         let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
         let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
         let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
@@ -364,11 +373,27 @@ pub async fn gallery(
             format!("{}/{}", s3_endpoint.trim_end_matches('/'), s3_bucket)
         };
 
+        let is_paywalled = content.is_paywalled;
+        let is_free_preview = is_paywalled && !is_uploader;
+        let unblurred_count = image_set.unblurred_count.unwrap_or(0) as usize;
+
         let images: Vec<GalleryImage> = image_rows
             .into_iter()
-            .map(|img| GalleryImage {
-                url: format!("{}/{}", s3_base, img.storage_path.as_ref().unwrap_or(&img.orig_storage_path)),
-                alt: img.alt_text.unwrap_or(img.original_name),
+            .enumerate()
+            .map(|(i, img)| {
+                let url = if is_free_preview && i >= unblurred_count {
+                    img.blurred_storage_path.as_ref()
+                        .map(|p| format!("{}/{}", s3_base, p))
+                        .unwrap_or_else(|| {
+                            format!("{}/{}", s3_base, img.storage_path.as_ref().unwrap_or(&img.orig_storage_path))
+                        })
+                } else {
+                    format!("{}/{}", s3_base, img.storage_path.as_ref().unwrap_or(&img.orig_storage_path))
+                };
+                GalleryImage {
+                    url,
+                    alt: img.alt_text.unwrap_or(img.original_name),
+                }
             })
             .collect();
 
@@ -393,6 +418,9 @@ pub async fn gallery(
             favourite_count: hash_id(content_id),
             is_uploader,
             content_id,
+            is_paywalled,
+            is_free_preview,
+            price_dollars: format!("{:.2}", content.price_cents as f64 / 100.0),
             version: state.static_version.clone(),
         }
         .render()

@@ -4,6 +4,12 @@
 <link rel="stylesheet" href="/static/{{ version }}/css/gallery.css">
 {% endblock %}
 {% block content %}
+{% if is_paywalled && is_free_preview %}
+<div class="free-preview-banner">
+  <span class="free-preview-label">Free Preview</span>
+  <span class="free-preview-price">Full gallery · ${{ price_dollars }}</span>
+</div>
+{% endif %}
 <div class="gallery-detail">
   <div class="gallery-uploader">
     {% if uploader_avatar_url.is_some() %}

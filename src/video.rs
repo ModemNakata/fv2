@@ -26,6 +26,9 @@ struct VideoPage {
     favourite_count: String,
     is_uploader: bool,
     content_id: Uuid,
+    is_paywalled: bool,
+    is_free_preview: bool,
+    price_dollars: String,
     version: String,
 }
 
@@ -66,17 +69,29 @@ pub async fn video(
             .map_err(actix_web::error::ErrorInternalServerError)?
             .ok_or_else(|| actix_web::error::ErrorNotFound("Uploader not found"))?;
 
+        let video = Videos::find_by_id(content_id)
+            .one(&state.conn)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?
+            .ok_or_else(|| actix_web::error::ErrorNotFound("Video not found"))?;
+
         let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
         let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
-        let source_url = if !s3_endpoint.is_empty() && !s3_bucket.is_empty() {
-            format!(
-                "{}/{}/videos/{}/master.m3u8",
-                s3_endpoint.trim_end_matches('/'),
-                s3_bucket,
-                content_id,
-            )
-        } else {
+        let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
             String::new()
+        } else {
+            format!("{}/{}", s3_endpoint.trim_end_matches('/'), s3_bucket)
+        };
+
+        let is_paywalled = content.is_paywalled;
+        let is_free_preview = is_paywalled && !is_uploader;
+
+        let source_url = if is_free_preview {
+            video.preview_path
+                .map(|p| format!("{}/{}", s3_base, p))
+                .unwrap_or_default()
+        } else {
+            format!("{}/videos/{}/master.m3u8", s3_base, content_id)
         };
 
         let hash_id = |id: Uuid| -> String {
@@ -100,6 +115,9 @@ pub async fn video(
             favourite_count: hash_id(content_id),
             is_uploader,
             content_id,
+            is_paywalled,
+            is_free_preview,
+            price_dollars: format!("{:.2}", content.price_cents as f64 / 100.0),
             version: state.static_version.clone(),
         }
         .render()
