@@ -81,6 +81,8 @@ impl MigrationTrait for Migration {
                     )
                     .col(timestamp("created_at").default(Expr::current_timestamp()))
                     .col(timestamp("updated_at").default(Expr::current_timestamp()))
+                    .col(integer("price_cents").default(0).not_null())
+                    .col(boolean("is_paywalled").default(false).not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_content_uploader")
@@ -99,6 +101,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid("content_id").primary_key())
                     .col(integer_null("duration_seconds"))
+                    .col(integer_null("free_preview_duration_s"))
                     .col(string_len("preview_path", 1024).null())
                     .col(big_integer("view_count").default(0))
                     .foreign_key(
@@ -158,6 +161,7 @@ impl MigrationTrait for Migration {
                     .col(string_len_null("layout_preference", 50).default("gallery"))
                     .col(string_len("preview_path", 1024).null())
                     .col(big_integer("view_count").default(0))
+                    .col(integer_null("unblurred_count"))
                     // .col(integer("image_count"))
                     .foreign_key(
                         ForeignKey::create()
@@ -186,6 +190,7 @@ impl MigrationTrait for Migration {
                     .col(string_len("original_name", 1024))
                     .col(integer("sort_order").default(0))
                     .col(string_len_null("alt_text", 255))
+                    .col(string_len_null("blurred_storage_path", 1024))
                     .col(timestamp("created_at").default(Expr::current_timestamp()))
                     .foreign_key(
                         ForeignKey::create()
@@ -228,6 +233,18 @@ impl MigrationTrait for Migration {
                     .table("images")
                     .col("image_set_id")
                     .col("sort_order")
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_content_paywalled_feed")
+                    .table("content_items")
+                    .col("is_paywalled")
+                    .col("status")
+                    .col(("created_at", IndexOrder::Desc))
                     .to_owned(),
             )
             .await?;

@@ -13,6 +13,7 @@ pub struct Model {
     pub original_name: String,
     pub sort_order: i32,
     pub alt_text: Option<String>,
+    pub blurred_storage_path: Option<String>,
     pub created_at: DateTime,
 }
 

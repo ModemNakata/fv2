@@ -10,6 +10,7 @@ pub struct Model {
     pub layout_preference: Option<String>,
     pub preview_path: Option<String>,
     pub view_count: i64,
+    pub unblurred_count: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

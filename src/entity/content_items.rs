@@ -20,6 +20,8 @@ pub struct Model {
     pub visibility: ContentVisibility,
     pub created_at: DateTime,
     pub updated_at: DateTime,
+    pub price_cents: i32,
+    pub is_paywalled: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
