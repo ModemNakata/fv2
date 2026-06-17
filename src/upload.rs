@@ -233,6 +233,8 @@ pub async fn upload_video(
         visibility: Set(ContentVisibility::Public),
         created_at: Set(now),
         updated_at: Set(now),
+        price_cents: Set(0),
+        is_paywalled: Set(false),
     };
 
     if let Err(e) = content.insert(&state.conn).await {
@@ -253,6 +255,7 @@ pub async fn upload_video(
         duration_seconds: Set(None),
         preview_path: Set(None),
         view_count: Set(0),
+        free_preview_duration_s: Set(None),
     };
 
     if let Err(e) = video.insert(&state.conn).await {
@@ -413,6 +416,8 @@ pub async fn upload_gallery(
         visibility: Set(ContentVisibility::Public),
         created_at: Set(now),
         updated_at: Set(now),
+        price_cents: Set(0),
+        is_paywalled: Set(false),
     };
 
     if let Err(e) = content.insert(&state.conn).await {
@@ -430,6 +435,7 @@ pub async fn upload_gallery(
         layout_preference: Set(None),
         preview_path: Set(None),
         view_count: Set(0),
+        unblurred_count: Set(None),
     };
 
     if let Err(e) = image_set.insert(&state.conn).await {
@@ -451,6 +457,7 @@ pub async fn upload_gallery(
             original_name: Set(f.original_name.clone()),
             sort_order: Set(i as i32),
             alt_text: Set(None),
+            blurred_storage_path: Set(None),
             created_at: Set(now),
         };
 

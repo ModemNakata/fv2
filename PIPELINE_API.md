@@ -24,8 +24,15 @@ Content status = processing ◄── pipeline picks up here
          ▼
 Pipeline encodes H264 + WebP, uploads to S3_BUCKET
          │
-         ▼
-Pipeline calls PATCH /api/content/{id}/status
+         ├── Free content ──► calls PATCH /api/content/{id}/status (ready)
+         │
+         └── Paywalled content
+                 │
+                 ├── Video: trim free_preview_duration_s clip
+                 │         ► calls PATCH with free_preview_path
+                 │
+                 └── Gallery: blur images at index ≥ unblurred_count
+                           ► calls PATCH with blurred_files
          │
          ├── status="ready"   → content available to users
          └── status="failed"  → content marked as failed
@@ -52,6 +59,9 @@ Returns all content items with `status = processing` (upload complete, awaiting 
     "content_type": "video",
     "title": "My Great Video",
     "uploader_name": "alice",
+    "is_paywalled": true,
+    "price_cents": 499,
+    "free_preview_duration_s": 30,
     "files": [
       {
         "path": "videos/a1b2c3d4-e5f6-7890-abcd-ef1234567890.mp4"
@@ -63,6 +73,8 @@ Returns all content items with `status = processing` (upload complete, awaiting 
     "content_type": "image_set",
     "title": "Photo Album",
     "uploader_name": "bob",
+    "is_paywalled": false,
+    "price_cents": 0,
     "files": [
       {
         "path": "galleries/x1y2z3d4-e5f6-7890-abcd-ef1234567890.jpg"
@@ -89,6 +101,10 @@ Returns all content items with `status = processing` (upload complete, awaiting 
 | `content_type` | string | Either `"video"` or `"image_set"` |
 | `title` | string | User-provided title |
 | `uploader_name` | string | Username of the uploader |
+| `is_paywalled` | bool | Whether this item requires purchase. When `true`, the pipeline must generate free preview assets. |
+| `price_cents` | int | Price in USD cents. `0` means free. |
+| `free_preview_duration_s` | int \| null | (Video only) Seconds of free preview the pipeline should trim from the source. Only present when `is_paywalled` is `true`. |
+| `unblurred_count` | int \| null | (Gallery only) How many leading images to leave unblurred. Images at index ≥ this value must be blurred by the pipeline. Only present when `is_paywalled` is `true`. |
 | `files` | array | One file for video, potentially multiple for image_set |
 | `files[].path` | string | Key of the **original** file in **S3_ORIG_BUCKET** (before processing), suitable for `GetObject`. Stored in `orig_storage_path`. |
 
@@ -98,6 +114,9 @@ Returns all content items with `status = processing` (upload complete, awaiting 
 - Videos always return exactly one file (the original upload)
 - Image sets return all images ordered by `sort_order`
 - After processing, the pipeline must send back the processed file paths via `processed_files` in the status PATCH
+- For paywalled items (`is_paywalled=true`), the pipeline **must also**:
+  - **Video**: Trim the first `free_preview_duration_s` seconds from the source, encode as a lightweight WebM/MP4, and send the key back via `free_preview_path` in the PATCH call
+  - **Gallery**: For images at index ≥ `unblurred_count`, generate a **blurred WebP** version, and send all blurred keys back via `blurred_files` (same order as `files[]`)
 
 ---
 
@@ -152,8 +171,15 @@ Updates the processing status of a content item after the pipeline finishes.
   "thumbnail_url": "videos/550e8400-e29b-41d4-a716-446655440000/thumbnail.jpg",
   "preview_path": "videos/550e8400-e29b-41d4-a716-446655440000/preview.webm",
   "duration": 13.2,
+  "free_preview_path": "videos/550e8400-e29b-41d4-a716-446655440000/free_preview.mp4",
   "processed_files": [
     "videos/550e8400-e29b-41d4-a716-446655440000/master.m3u8"
+  ],
+  "blurred_files": [
+    "",
+    "",
+    "galleries/660e8400-e29b-41d4-a716-446655440001/blurred_2.webp",
+    "galleries/660e8400-e29b-41d4-a716-446655440001/blurred_3.webp"
   ]
 }
 ```
@@ -167,6 +193,8 @@ Updates the processing status of a content item after the pipeline finishes.
 | `preview_path` | string | no | S3 key of the hover preview asset (stored in `S3_BUCKET`). For videos: 3–5 second clip. For image sets: typically the first image converted to a lightweight WebP. |
 | `duration` | float | no | Video duration in seconds (e.g. `13.2`). Rounded to integer and stored in `videos.duration_seconds`. Only applies to videos. |
 | `processed_files` | array of strings | no | Processed file paths in **S3_BUCKET**, stored in `storage_path`. For videos: exactly one path (e.g. HLS manifest). For image sets: one path per original image, in the same order as `files[]`. |
+| `free_preview_path` | string | no | **Paywalled videos only.** S3 key of the free preview clip (trimmed to `free_preview_duration_s` seconds), stored in `S3_BUCKET`. The pipeline stores this in `videos.preview_path`. |
+| `blurred_files` | array of strings | no | **Paywalled galleries only.** S3 keys of blurred WebP versions, one per image in the same order as `files[]`. Images at index < `unblurred_count` may be empty strings (left unblurred). Stored in `images.blurred_storage_path`. |
 
 ### Valid Status Values
 
