@@ -1,13 +1,14 @@
 .main-content {
   padding-left: 0;
   padding-right: 0;
-  padding-top: 0;
+  /* padding-top: 0; */
 }
 
 .video-player-wrapper {
   max-width: 960px;
   margin: 0 auto;
-  padding: clamp(16px, 2vh, 32px) 0;
+  /* padding: clamp(16px, 2vh, 32px) 0; */
+  padding-bottom: clamp(16px, 2vh, 32px);
 }
 
 .video-player-wrapper [data-media-player] {
