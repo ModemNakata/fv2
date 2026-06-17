@@ -123,6 +123,8 @@ pub async fn upload_video(
 
     let mut title = String::new();
     let mut description: Option<String> = None;
+    let mut price_cents: i32 = 0;
+    let mut preview_length: Option<i32> = None;
     let mut uploaded: Option<UploadedFile> = None;
 
     while let Some(Ok(mut field)) = payload.next().await {
@@ -150,6 +152,23 @@ pub async fn upload_video(
                 if !val.is_empty() {
                     description = Some(val);
                 }
+            }
+            "price" => {
+                let mut data = Vec::new();
+                while let Some(Ok(chunk)) = field.next().await {
+                    data.extend_from_slice(&chunk);
+                }
+                let val = String::from_utf8(data).unwrap_or_default();
+                let dollars: f64 = val.parse().unwrap_or(0.0);
+                price_cents = (dollars * 100.0).round() as i32;
+            }
+            "preview_length" => {
+                let mut data = Vec::new();
+                while let Some(Ok(chunk)) = field.next().await {
+                    data.extend_from_slice(&chunk);
+                }
+                let val = String::from_utf8(data).unwrap_or_default();
+                preview_length = val.parse::<i32>().ok();
             }
             "file" => {
                 let ext = match field_filename
@@ -233,8 +252,8 @@ pub async fn upload_video(
         visibility: Set(ContentVisibility::Public),
         created_at: Set(now),
         updated_at: Set(now),
-        price_cents: Set(0),
-        is_paywalled: Set(false),
+        price_cents: Set(price_cents),
+        is_paywalled: Set(price_cents > 0),
     };
 
     if let Err(e) = content.insert(&state.conn).await {
@@ -253,9 +272,9 @@ pub async fn upload_video(
     let video = videos::ActiveModel {
         content_id: Set(content_id),
         duration_seconds: Set(None),
+        free_preview_duration_s: Set(preview_length),
         preview_path: Set(None),
         view_count: Set(0),
-        free_preview_duration_s: Set(None),
     };
 
     if let Err(e) = video.insert(&state.conn).await {
@@ -312,6 +331,8 @@ pub async fn upload_gallery(
 
     let mut title = String::new();
     let mut description: Option<String> = None;
+    let mut price_cents: i32 = 0;
+    let mut unblurred_count: Option<i32> = None;
     let mut uploaded: Vec<UploadedFile> = Vec::new();
     let content_id = Uuid::new_v4();
 
@@ -340,6 +361,23 @@ pub async fn upload_gallery(
                 if !val.is_empty() {
                     description = Some(val);
                 }
+            }
+            "price" => {
+                let mut data = Vec::new();
+                while let Some(Ok(chunk)) = field.next().await {
+                    data.extend_from_slice(&chunk);
+                }
+                let val = String::from_utf8(data).unwrap_or_default();
+                let dollars: f64 = val.parse().unwrap_or(0.0);
+                price_cents = (dollars * 100.0).round() as i32;
+            }
+            "unblurred_count" => {
+                let mut data = Vec::new();
+                while let Some(Ok(chunk)) = field.next().await {
+                    data.extend_from_slice(&chunk);
+                }
+                let val = String::from_utf8(data).unwrap_or_default();
+                unblurred_count = val.parse::<i32>().ok();
             }
             "files" => {
                 let ext = match field_filename
@@ -416,8 +454,8 @@ pub async fn upload_gallery(
         visibility: Set(ContentVisibility::Public),
         created_at: Set(now),
         updated_at: Set(now),
-        price_cents: Set(0),
-        is_paywalled: Set(false),
+        price_cents: Set(price_cents),
+        is_paywalled: Set(price_cents > 0),
     };
 
     if let Err(e) = content.insert(&state.conn).await {
@@ -435,7 +473,7 @@ pub async fn upload_gallery(
         layout_preference: Set(None),
         preview_path: Set(None),
         view_count: Set(0),
-        unblurred_count: Set(None),
+        unblurred_count: Set(unblurred_count),
     };
 
     if let Err(e) = image_set.insert(&state.conn).await {
