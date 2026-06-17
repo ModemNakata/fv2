@@ -101,6 +101,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid("content_id").primary_key())
                     .col(integer_null("duration_seconds"))
+                    .col(string_len("source_quality", 10).null())
                     .col(integer_null("free_preview_duration_s"))
                     .col(string_len("preview_path", 1024).null())
                     .col(big_integer("view_count").default(0))
@@ -126,7 +127,7 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(uuid("video_id"))
-                    .col(string_len("resolution", 50))
+                    .col(string_len("resolution", 50)) // source
                     .col(string_len("format", 50))
                     .col(string_len("orig_storage_path", 1024)) // original
                     .col(string_len("storage_path", 1024).null())
