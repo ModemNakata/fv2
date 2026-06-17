@@ -272,6 +272,7 @@ pub async fn upload_video(
     let video = videos::ActiveModel {
         content_id: Set(content_id),
         duration_seconds: Set(None),
+        source_quality: Set(None),
         free_preview_duration_s: Set(preview_length),
         preview_path: Set(None),
         view_count: Set(0),

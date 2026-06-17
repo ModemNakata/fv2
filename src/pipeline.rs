@@ -281,6 +281,8 @@ pub(crate) struct StatusUpdate {
     processed_files: Option<Vec<String>>,
     #[serde(default)]
     blurred_files: Option<Vec<String>>,
+    #[serde(default)]
+    source_quality: Option<String>,
 }
 
 pub async fn update_status(
@@ -386,6 +388,18 @@ pub async fn update_status(
                     }
                 } else {
                     log::warn!("video record not found for content_id {content_id}, skipping free_preview_path");
+                }
+            }
+
+            if let Some(ref sq) = body.source_quality {
+                if let Ok(Some(video)) = Videos::find_by_id(content_id).one(&state.conn).await {
+                    let mut video: videos::ActiveModel = video.into();
+                    video.source_quality = Set(Some(sq.clone()));
+                    if let Err(e) = video.update(&state.conn).await {
+                        log::error!("DB error updating source_quality: {e}");
+                    }
+                } else {
+                    log::warn!("video record not found for content_id {content_id}, skipping source_quality");
                 }
             }
 

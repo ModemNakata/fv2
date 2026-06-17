@@ -101,7 +101,8 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid("content_id").primary_key())
                     .col(integer_null("duration_seconds"))
-                    .col(string_len("source_quality", 10).null())
+                    .col(string_len("source_quality", 10).null()) // e.g. "1080p", "1080p60", "4K"
+                    // ^ can also include resolution_dimensions (?)
                     .col(integer_null("free_preview_duration_s"))
                     .col(string_len("preview_path", 1024).null())
                     .col(big_integer("view_count").default(0))

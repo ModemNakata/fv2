@@ -168,6 +168,7 @@ Updates the processing status of a content item after the pipeline finishes.
 ```json
 {
   "status": "ready",
+  "source_quality": "1080p60",
   "thumbnail_url": "videos/550e8400-e29b-41d4-a716-446655440000/thumbnail.jpg",
   "preview_path": "videos/550e8400-e29b-41d4-a716-446655440000/preview.webm",
   "duration": 13.2,
@@ -189,6 +190,7 @@ Updates the processing status of a content item after the pipeline finishes.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `status` | string | yes | `"ready"` or `"failed"` |
+| `source_quality` | string | no | Detected quality of the original source video (e.g. `"1080p60"`, `"720p"`, `"4K"`). Determined via ffprobe before encoding. Stored in `videos.source_quality`. Only applies to videos. |
 | `thumbnail_url` | string | no | S3 key of the generated 1280×720 thumbnail image (stored in `S3_BUCKET`). Only applies to videos. |
 | `preview_path` | string | no | S3 key of the hover preview asset (stored in `S3_BUCKET`). For videos: 3–5 second clip. For image sets: typically the first image converted to a lightweight WebP. |
 | `duration` | float | no | Video duration in seconds (e.g. `13.2`). Rounded to integer and stored in `videos.duration_seconds`. Only applies to videos. |
