@@ -30,6 +30,7 @@ struct VideoPage {
     is_free_preview: bool,
     price_dollars: String,
     version: String,
+    is_favourited: bool,
 }
 
 pub async fn redirect_to_home() -> Result<impl Responder> {
@@ -94,9 +95,14 @@ pub async fn video(
             format!("{}/videos/{}/master.m3u8", s3_base, content_id)
         };
 
-        let hash_id = |id: Uuid| -> String {
-            let n = (id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1;
-            n.to_string()
+        let is_favourited = if let Some(uid) = session_user_id {
+            UserFavorites::find_by_id((uid, content_id))
+                .one(&state.conn)
+                .await
+                .map_err(actix_web::error::ErrorInternalServerError)?
+                .is_some()
+        } else {
+            false
         };
 
         let created_at = content.created_at.format("%b %e, %Y").to_string();
@@ -112,13 +118,14 @@ pub async fn video(
             uploader_avatar_url: uploader.avatar_url,
             created_at,
             view_count: format!("{}K", (content_id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 3 + 5) % 90 + 1),
-            favourite_count: hash_id(content_id),
+            favourite_count: content.favorite_count.to_string(),
             is_uploader,
             content_id,
             is_paywalled,
             is_free_preview,
             price_dollars: format!("{:.2}", content.price_cents as f64 / 100.0),
             version: state.static_version.clone(),
+            is_favourited,
         }
         .render()
         .expect("video.html should be valid");

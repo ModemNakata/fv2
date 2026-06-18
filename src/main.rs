@@ -12,6 +12,7 @@ mod auth;
 mod balance;
 mod components;
 mod entity;
+mod favourite;
 mod gallery;
 mod home;
 mod pipeline;
@@ -137,6 +138,10 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/content/{id}/cancel",
                         web::post().to(pipeline::cancel_content),
+                    )
+                    .route(
+                        "/content/{id}/favourite",
+                        web::post().to(favourite::toggle_favourite),
                     ),
             )
     })

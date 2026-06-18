@@ -224,7 +224,7 @@ pub async fn index(
 
             let view_count = image_set.map(|is| is.view_count).unwrap_or(0);
             let views = format_view_count(view_count);
-            let favourite_count = ((content.id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1).to_string();
+            let favourite_count = content.favorite_count.to_string();
             let time_ago_str = time_ago(&content.created_at, now);
 
             let (username, display_name, avatar_url) = users_map
@@ -314,6 +314,7 @@ struct GalleryPage {
     is_free_preview: bool,
     price_dollars: String,
     version: String,
+    is_favourited: bool,
 }
 
 struct GalleryImage {
@@ -397,12 +398,17 @@ pub async fn gallery(
             })
             .collect();
 
-        let created_at = content.created_at.format("%b %e, %Y").to_string();
-
-        let hash_id = |id: Uuid| -> String {
-            let n = (id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 7 + 13) % 999 + 1;
-            n.to_string()
+        let is_favourited = if let Some(uid) = session_user_id {
+            UserFavorites::find_by_id((uid, content_id))
+                .one(&state.conn)
+                .await
+                .map_err(actix_web::error::ErrorInternalServerError)?
+                .is_some()
+        } else {
+            false
         };
+
+        let created_at = content.created_at.format("%b %e, %Y").to_string();
 
         let html = GalleryPage {
             username: session_user.clone().unwrap_or_default(),
@@ -415,13 +421,14 @@ pub async fn gallery(
             created_at,
             images,
             view_count: format!("{}K", (content_id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 3 + 5) % 90 + 1),
-            favourite_count: hash_id(content_id),
+            favourite_count: content.favorite_count.to_string(),
             is_uploader,
             content_id,
             is_paywalled,
             is_free_preview,
             price_dollars: format!("{:.2}", content.price_cents as f64 / 100.0),
             version: state.static_version.clone(),
+            is_favourited,
         }
         .render()
         .expect("gallery.html should be valid");

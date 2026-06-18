@@ -188,16 +188,7 @@ pub async fn index(
             let view_count = video_opt.as_ref().map(|v| v.view_count).unwrap_or(0);
             let views_str = format_view_count(view_count);
 
-            let favourite_count = ((content
-                .id
-                .to_string()
-                .bytes()
-                .fold(0u64, |acc, b| acc.wrapping_add(b as u64))
-                * 7
-                + 13)
-                % 999
-                + 1)
-                .to_string();
+            let favourite_count = content.favorite_count.to_string();
 
             let (username, display_name, uploader_avatar_url) = users_map
                 .get(&content.uploader_id)

@@ -47,7 +47,7 @@
             fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
         </svg> {{ favourite_count }} <span class="stat-label"></span></span> <!-- favourites -->
     </span>
-    <button class="like-btn" id="likeBtn"><span>I like it</span></button>
+    <button class="like-btn{% if is_favourited %} liked{% endif %}" id="likeBtn"><span>{% if is_favourited %}Liked{% else %}I like it{% endif %}</span></button>
   </p>
   {% if description.is_some() %}
   <p class="gallery-detail-desc">{{ description.as_ref().unwrap() }}</p>
@@ -64,20 +64,35 @@
 <script>
   document.getElementById('likeBtn')?.addEventListener('click', function () {
     if (this.disabled) return;
-    var span = this.querySelector('span');
-    var liked = this.classList.contains('liked');
+    var btn = this;
+    var span = btn.querySelector('span');
+    var countEl = btn.parentElement.querySelector('.stat-item:last-child');
     var spinner = document.createElement('span');
     spinner.className = 'follow-spinner';
     span.style.display = 'none';
-    this.insertBefore(spinner, span);
-    this.disabled = true;
-    setTimeout(function () {
-      this.removeChild(spinner);
-      span.style.display = '';
-      this.classList.toggle('liked');
-      span.textContent = this.classList.contains('liked') ? 'Liked' : 'I like it';
-      this.disabled = false;
-    }.bind(this), 600);
+    btn.insertBefore(spinner, span);
+    btn.disabled = true;
+    fetch('/api/content/' + '{{ content_id }}' + '/favourite', { method: 'POST' })
+      .then(function (r) { return r.json(); })
+      .then(function (resp) {
+        if (resp.ok) {
+          btn.classList.toggle('liked', resp.liked);
+          span.textContent = resp.liked ? 'Liked' : 'I like it';
+          var starSvg = countEl.querySelector('svg');
+          countEl.innerHTML = '';
+          countEl.appendChild(starSvg.cloneNode(true));
+          countEl.appendChild(document.createTextNode(' ' + resp.favourite_count + ' '));
+          countEl.innerHTML += '<span class="stat-label"></span>';
+        } else {
+          alert(resp.error || 'Failed');
+        }
+      })
+      .catch(function () { alert('Network error'); })
+      .finally(function () {
+        btn.removeChild(spinner);
+        span.style.display = '';
+        btn.disabled = false;
+      });
   });
 </script>
 
