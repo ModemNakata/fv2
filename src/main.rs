@@ -13,6 +13,7 @@ mod balance;
 mod components;
 mod entity;
 mod favourite;
+mod favorites;
 mod gallery;
 mod home;
 mod pipeline;
@@ -102,6 +103,9 @@ async fn main() -> std::io::Result<()> {
                 web::resource("/balance").route(web::get().to(balance::balance_page)),
             )
             .service(
+                web::resource("/favorites").route(web::get().to(favorites::favorites)),
+            )
+            .service(
                 web::scope("/auth")
                     .service(auth::auth_check)
                     .service(auth::sign_up)
@@ -142,6 +146,10 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/content/{id}/favourite",
                         web::post().to(favourite::toggle_favourite),
+                    )
+                    .route(
+                        "/favorites",
+                        web::get().to(favorites::api_favorites),
                     ),
             )
     })

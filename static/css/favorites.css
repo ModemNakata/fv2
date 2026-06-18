@@ -1,0 +1,43 @@
+.fav-toggle {
+  display: flex;
+  border: 1px solid var(--border-color);
+  margin-bottom: clamp(20px, 3vw, 28px);
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.fav-toggle-btn {
+  flex: 1;
+  padding: clamp(8px, 1vw, 10px) clamp(20px, 3vw, 32px);
+  font-size: clamp(0.85rem, 1.1vw, 0.95rem);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.fav-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.fav-toggle-btn.active {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.fav-panel.hidden {
+  display: none;
+}
+
+.fav-loader {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-tertiary);
+  font-size: 0.88rem;
+}
+
+.fav-sentinel {
+  height: 1px;
+}
