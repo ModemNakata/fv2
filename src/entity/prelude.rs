@@ -3,6 +3,7 @@
 pub use super::content_items::Entity as ContentItems;
 pub use super::image_sets::Entity as ImageSets;
 pub use super::images::Entity as Images;
+pub use super::user_favorites::Entity as UserFavorites;
 pub use super::users::Entity as Users;
 pub use super::video_formats::Entity as VideoFormats;
 pub use super::videos::Entity as Videos;

@@ -22,12 +22,15 @@ pub struct Model {
     pub updated_at: DateTime,
     pub price_cents: i32,
     pub is_paywalled: bool,
+    pub favorite_count: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(has_one = "super::image_sets::Entity")]
     ImageSets,
+    #[sea_orm(has_many = "super::user_favorites::Entity")]
+    UserFavorites,
     #[sea_orm(
         belongs_to = "super::users::Entity",
         from = "Column::UploaderId",
@@ -46,15 +49,24 @@ impl Related<super::image_sets::Entity> for Entity {
     }
 }
 
-impl Related<super::users::Entity> for Entity {
+impl Related<super::user_favorites::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Users.def()
+        Relation::UserFavorites.def()
     }
 }
 
 impl Related<super::videos::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Videos.def()
+    }
+}
+
+impl Related<super::users::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::user_favorites::Relation::Users.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::user_favorites::Relation::ContentItems.def().rev())
     }
 }
 
