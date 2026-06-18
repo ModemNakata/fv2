@@ -21,15 +21,17 @@
   <p class="video-info-stats">
     <span class="stats-group">
       <span class="stat-item">{{ view_count }} <span class="stat-label">views</span></span>
-      <span class="stat-item"><svg class="stat-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-          <rect width="256" height="256" fill="none" />
-          <path
-            d="M128,189.09l54.72,33.65a8.4,8.4,0,0,0,12.52-9.17l-14.88-62.79,48.7-42A8.46,8.46,0,0,0,224.27,94L160.36,88.8,135.74,29.2a8.36,8.36,0,0,0-15.48,0L95.64,88.8,31.73,94a8.46,8.46,0,0,0-4.79,14.83l48.7,42L60.76,213.57a8.4,8.4,0,0,0,12.52,9.17Z"
-            fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
-        </svg> {{ favourite_count }} <span class="stat-label"></span></span> <!-- favorite -->
+      <!-- <span class="stat-item"><svg class="stat-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"> -->
+      <!-- <rect width="256" height="256" fill="none" /> -->
+      <!-- <path -->
+      <!-- d="M128,189.09l54.72,33.65a8.4,8.4,0,0,0,12.52-9.17l-14.88-62.79,48.7-42A8.46,8.46,0,0,0,224.27,94L160.36,88.8,135.74,29.2a8.36,8.36,0,0,0-15.48,0L95.64,88.8,31.73,94a8.46,8.46,0,0,0-4.79,14.83l48.7,42L60.76,213.57a8.4,8.4,0,0,0,12.52,9.17Z" -->
+      <!-- fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" /> -->
+      <!-- </svg> {{ favourite_count }} <span class="stat-label"></span></span> -->
+      <!-- favorite -->
 
     </span>
-    <button class="like-btn{% if is_favourited %} liked{% endif %}" id="likeBtn"><span>{% if is_favourited %}Liked{% else %}I like it{% endif %}</span></button>
+    <button class="like-btn{% if is_favourited %} liked{% endif %}" id="likeBtn"><span>{% if is_favourited %}Liked{%
+        else %}I like it{% endif %}</span></button>
   </p>
   <div class="video-uploader-row">
     {% if uploader_avatar_url.is_some() %}
@@ -94,8 +96,8 @@
     span.style.display = 'none';
     btn.insertBefore(spinner, span);
     btn.disabled = true;
-    fetch('/api/content/' + '{{ content_id }}' + '/favourite', { method: 'POST' })
-      .then(function (r) { return r.json(); })
+    fetch('/api/content/' + '{{ content_id }}' + '/favourite', {method: 'POST'})
+      .then(function (r) {return r.json();})
       .then(function (resp) {
         if (resp.ok) {
           btn.classList.toggle('liked', resp.liked);
@@ -109,7 +111,7 @@
           alert(resp.error || 'Failed');
         }
       })
-      .catch(function () { alert('Network error'); })
+      .catch(function () {alert('Network error');})
       .finally(function () {
         btn.removeChild(spinner);
         span.style.display = '';
