@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ video_title }} - FeVid{% endblock %}
 {% block head %}
-<link rel="stylesheet" href="/static/{{ version }}/css/vidstack-theme.css">
+<link rel="preload" href="/static/{{ version }}/js/vidstack.min.js" as="script">
 <link rel="stylesheet" href="/static/{{ version }}/css/vidstack-layout.css">
+<link rel="stylesheet" href="/static/{{ version }}/css/vidstack-theme.css">
 <link rel="stylesheet" href="/static/{{ version }}/css/video.css">
 {% endblock %}
 {% block content %}
@@ -44,10 +45,10 @@
     <div class="kebab-menu">
       <button class="kebab-trigger icon-btn" aria-label="More actions">
         <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-          <rect width="256" height="256" fill="none"/>
-          <circle cx="128" cy="128" r="24" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="16"/>
-          <circle cx="128" cy="48" r="24" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="16"/>
-          <circle cx="128" cy="208" r="24" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="16"/>
+          <rect width="256" height="256" fill="none" />
+          <circle cx="128" cy="128" r="24" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="16" />
+          <circle cx="128" cy="48" r="24" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="16" />
+          <circle cx="128" cy="208" r="24" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="16" />
         </svg>
       </button>
       <div class="kebab-dropdown">
@@ -64,19 +65,21 @@
 </div>
 <script src="/static/{{ version }}/js/vidstack.min.js"></script>
 <script type="module">
-  const player = await VidstackPlayer.create({
-    target: '#video-target',
-    title: 'FeVid.Cloud',
-    src: '{{ source_url }}',
-    storage: 'fevid-player',
-    layout: new VidstackPlayerLayout(),
-  });
+  window.addEventListener('load', async () => {
+    const player = await VidstackPlayer.create({
+      target: '#video-target',
+      title: 'FeVid.Cloud',
+      src: '{{ source_url }}',
+      storage: 'fevid-player',
+      layout: new VidstackPlayerLayout(),
+    });
 
-  player.addEventListener('media-provider-change', (event) => {
-    const provider = event.detail;
-    if (provider.type === 'hls') {
-      provider.library = '/static/{{ version }}/js/hls.min.js';
-    }
+    player.addEventListener('media-provider-change', (event) => {
+      const provider = event.detail;
+      if (provider.type === 'hls') {
+        provider.library = '/static/{{ version }}/js/hls.min.js';
+      }
+    });
   });
 </script>
 
@@ -102,7 +105,7 @@
 
 <script>
   var username = '{{ username }}';
-  document.addEventListener('click', function(e) {
+  document.addEventListener('click', function (e) {
     var trigger = e.target.closest('.kebab-trigger');
     if (trigger) {
       e.preventDefault();
@@ -110,21 +113,21 @@
       menu.querySelector('.kebab-dropdown').classList.toggle('open');
       return;
     }
-    document.querySelectorAll('.kebab-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    document.querySelectorAll('.kebab-dropdown.open').forEach(function (d) {d.classList.remove('open');});
   });
 
-  document.querySelectorAll('.delete-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
+  document.querySelectorAll('.delete-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
       if (!confirm('Delete this content? This cannot be undone.')) return;
       btn.disabled = true;
       btn.textContent = 'Deleting...';
-      fetch('/api/content/' + this.getAttribute('data-content-id') + '/cancel', { method: 'POST' })
-        .then(function(r) { return r.json(); })
-        .then(function(resp) {
+      fetch('/api/content/' + this.getAttribute('data-content-id') + '/cancel', {method: 'POST'})
+        .then(function (r) {return r.json();})
+        .then(function (resp) {
           if (resp.ok) window.location.href = '/@' + username;
-          else { alert(resp.error || 'Failed to delete'); btn.disabled = false; btn.textContent = 'Delete'; }
+          else {alert(resp.error || 'Failed to delete'); btn.disabled = false; btn.textContent = 'Delete';}
         })
-        .catch(function() { alert('Network error'); btn.disabled = false; btn.textContent = 'Delete'; });
+        .catch(function () {alert('Network error'); btn.disabled = false; btn.textContent = 'Delete';});
     });
   });
 </script>
