@@ -23,6 +23,8 @@ impl MigrationTrait for Migration {
                     .col(string_len("password_hash", 255))
                     .col(string_len("avatar_url", 1024).null()) // profile pic path /// or string("") ||| user uuid + unix timestamp + .avif
                     //// save original avatar url name and source picture?
+                    // .col(string_len("original_avatar_path", 1024).null()) // source profile picture
+                    // .col(string_len("original_avatar_name", 512).null()) // source profile name
                     // add profile background image (e.g. `profile-banner`)
                     // .col(string_len("about_me", 280).null()) // 160
                     .col(string_len("about_me", 500).null())
