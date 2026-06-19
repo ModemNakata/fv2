@@ -27,5 +27,22 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql
 
+  redis:
+    image: redis:latest
+    container_name: actix_redis_buffer
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    # Run server with AOF persistence enabled and a secure password
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASS}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.10' # Strictly allocate only 10% of a single CPU  core (0.50)
+          memory: 128M # Limit entire container to 128 Megabytes (512M)
+
+
 volumes:
   pg_data:
+  redis_data:
