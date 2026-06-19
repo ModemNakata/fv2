@@ -37,7 +37,12 @@ services:
     volumes:
       - redis_data:/data
     # Run server with AOF persistence enabled and a secure password
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASS}
+    # command: redis-server --appendonly yes --requirepass ${REDIS_PASS}
+    # don't use --appendonly key, because losing redis state on restart is fine, effect is negligible, let's not waste I/O
+    # command: redis-server --requirepass ${REDIS_PASS}
+    # let's also remove password, because it's unnecessary noise, even though CPU cost is negligible, but there is no security benefit
+    # ^ redis is strictly localhost
+    command: redis-server
     deploy:
       resources:
         limits:

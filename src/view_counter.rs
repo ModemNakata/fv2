@@ -24,12 +24,14 @@ use crate::entity::users;
 pub fn redis_url() -> String {
     let host = std::env::var("REDIS_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()); // "redis"
     let port = std::env::var("REDIS_PORT").unwrap_or_else(|_| "6379".to_string());
-    let pass = std::env::var("REDIS_PASS").unwrap_or_default();
-    if pass.is_empty() {
-        format!("redis://{host}:{port}/")
-    } else {
-        format!("redis://:{pass}@{host}:{port}/")
-    }
+    // let pass = std::env::var("REDIS_PASS").unwrap_or_default();
+    // if pass.is_empty() {
+    //     format!("redis://{host}:{port}/")
+    // } else {
+    //     format!("redis://:{pass}@{host}:{port}/")
+    // }
+
+    format!("redis://{host}:{port}/")
 }
 
 // ── View tracking endpoint ──────────────────────────────────────────────────
