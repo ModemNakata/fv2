@@ -79,7 +79,7 @@ pub async fn track_view(
         .arg("1")
         .arg("NX")
         .arg("EX")
-        .arg(900u64)
+        .arg(900u64) // 900s = 15m (TTL) ///  After 15 minutes the lock expires automatically, so the same visitor can be counted again
         .query_async(&mut conn)
         .await;
 
