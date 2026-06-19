@@ -37,7 +37,10 @@ pub async fn settings_page(session: Session, state: web::Data<AppState>) -> Http
     };
 
     let html = SettingsPage {
-        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
+        username: session_user
+            .as_ref()
+            .map(|u| u.username.clone())
+            .unwrap_or_default(),
         logged_in,
         session_avatar_url: session_user.and_then(|u| u.avatar_url),
         current_username: user.username.clone(),
@@ -182,7 +185,11 @@ pub async fn update_settings(
 
     if let Some(about) = about_me {
         let trimmed = about.trim().to_string();
-        user.about_me = Set(if trimmed.is_empty() { None } else { Some(trimmed) });
+        user.about_me = Set(if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed)
+        });
     }
 
     if remove_avatar {
@@ -225,7 +232,7 @@ pub async fn update_settings(
 
 fn process_avatar(data: &[u8], user_id: Uuid) -> Result<String, String> {
     let img = image::load_from_memory(data).map_err(|e| format!("Invalid image: {e}"))?;
-    let resized = img.resize_to_fill(256, 256, image::imageops::FilterType::Lanczos3);
+    let resized = img.resize_to_fill(256, 256, image::imageops::FilterType::Lanczos3); // 128 // 512
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
