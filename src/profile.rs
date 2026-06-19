@@ -32,6 +32,7 @@ struct ProfilePage {
     version: String,
     video_count: i64,
     gallery_count: i64,
+    profile_user_id: Uuid,
 }
 
 pub async fn user_profile(
@@ -89,6 +90,7 @@ pub async fn user_profile(
         .unwrap_or(default_tab)
         .to_string();
 
+    let profile_user_id = user.id;
     let html = ProfilePage {
         username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
         logged_in,
@@ -104,6 +106,7 @@ pub async fn user_profile(
         active_tab,
         video_count: video_count as i64,
         gallery_count: gallery_count as i64,
+        profile_user_id,
         version: state.static_version.clone(),
     }
     .render()

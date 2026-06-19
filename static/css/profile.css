@@ -164,7 +164,8 @@
   flex-wrap: wrap;
 }
 
-.profile-stat, .profile-stat-btn {
+.profile-stat,
+.profile-stat-btn {
   font-size: clamp(0.82rem, 1vw, 0.88rem);
   color: var(--text-secondary);
   background: var(--bg-tertiary);
@@ -172,7 +173,8 @@
   border-radius: 6px;
 }
 
-.profile-stat strong, .profile-stat-btn strong {
+.profile-stat strong,
+.profile-stat-btn strong {
   font-weight: 600;
   color: var(--text-primary);
 }

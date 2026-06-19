@@ -16,6 +16,8 @@ use uuid::Uuid;
 use crate::AppState;
 use crate::entity::content_items;
 use crate::entity::prelude::ContentItems;
+use crate::entity::prelude::Users;
+use crate::entity::users;
 
 // ── Redis connection URL from env ───────────────────────────────────────────
 
@@ -102,19 +104,81 @@ pub async fn track_view(
     HttpResponse::Ok().json(serde_json::json!({}))
 }
 
+// ── Profile view tracking ────────────────────────────────────────────────────
+
+pub async fn track_profile_view(
+    req: HttpRequest,
+    state: web::Data<AppState>,
+    user_id: web::Path<Uuid>,
+) -> HttpResponse {
+    let user_id = user_id.into_inner();
+
+    let ip = req
+        .headers()
+        .get("X-Real-IP")
+        .and_then(|v| v.to_str().ok())
+        .or_else(|| {
+            req.headers()
+                .get("X-Forwarded-For")
+                .and_then(|v| v.to_str().ok())
+                .and_then(|s| s.split(',').next().map(|s| s.trim()))
+        })
+        .map(|s| s.to_string())
+        .or_else(|| req.peer_addr().map(|a| a.ip().to_string()))
+        .unwrap_or_else(|| "unknown".to_string());
+
+    let hash = hex::encode({
+        let mut h = sha2::Sha256::new();
+        h.update(ip.as_bytes());
+        h.finalize()
+    });
+
+    let lock_key = format!("view_lock:profile:{}:{}", user_id, hash);
+    let counter_key = format!("profile:{}:views", user_id);
+
+    let mut conn = state.redis_conn.clone();
+
+    let locked: Result<Option<String>, redis::RedisError> = redis::cmd("SET")
+        .arg(&lock_key)
+        .arg("1")
+        .arg("NX")
+        .arg("EX")
+        .arg(900u64)
+        .query_async(&mut conn)
+        .await;
+
+    match locked {
+        Ok(Some(_)) => {
+            let _: Result<i64, _> = redis::cmd("INCR")
+                .arg(&counter_key)
+                .query_async(&mut conn)
+                .await;
+        }
+        Ok(None) => {}
+        Err(e) => {
+            log::error!("[view_counter] Redis error: {e}");
+        }
+    }
+
+    HttpResponse::Ok().json(serde_json::json!({}))
+}
+
 // ── Background sync worker ───────────────────────────────────────────────────
 
 pub async fn sync_views_to_db(state: AppState) {
     let mut interval = actix_web::rt::time::interval(Duration::from_secs(300));
     loop {
         interval.tick().await;
-        if let Err(e) = sync_once(&state).await {
-            log::error!("[view_counter] sync worker error: {e}");
+        if let Err(e) = sync_content_views(&state).await {
+            log::error!("[view_counter] content sync error: {e}");
+        }
+        if let Err(e) = sync_profile_views(&state).await {
+            log::error!("[view_counter] profile sync error: {e}");
         }
     }
 }
 
-async fn sync_once(state: &AppState) -> Result<(), Box<dyn std::error::Error>> {
+async fn sync_content_views(state: &AppState) -> Result<(), Box<dyn std::error::Error>> {
     let mut conn = state.redis_conn.clone();
     let mut cursor: u64 = 0;
     let pattern = "content:*:views";
@@ -130,7 +194,6 @@ async fn sync_once(state: &AppState) -> Result<(), Box<dyn std::error::Error>> {
             .await?;
 
         for key in &keys {
-            // Parse content_id from "content:{uuid}:views"
             let parts: Vec<&str> = key.split(':').collect();
             if parts.len() < 3 {
                 continue;
@@ -140,7 +203,6 @@ async fn sync_once(state: &AppState) -> Result<(), Box<dyn std::error::Error>> {
                 Err(_) => continue,
             };
 
-            // GET current value
             let count: i64 = match redis::cmd("GET")
                 .arg(key.as_str())
                 .query_async(&mut conn)
@@ -154,14 +216,12 @@ async fn sync_once(state: &AppState) -> Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
 
-            // DECRBY — atomic subtraction preserves concurrent increments
             let remaining: i64 = redis::cmd("DECRBY")
                 .arg(key.as_str())
                 .arg(count)
                 .query_async(&mut conn)
                 .await?;
 
-            // Update PostgreSQL
             let content = ContentItems::find_by_id(content_id)
                 .one(&state.conn)
                 .await?;
@@ -177,7 +237,80 @@ async fn sync_once(state: &AppState) -> Result<(), Box<dyn std::error::Error>> {
                 );
             }
 
-            // Clean up zero-value keys
+            if remaining == 0 {
+                let _: Result<(), _> = redis::cmd("DEL")
+                    .arg(key.as_str())
+                    .query_async(&mut conn)
+                    .await;
+            }
+        }
+
+        if next_cursor == 0 {
+            break;
+        }
+        cursor = next_cursor;
+    }
+
+    Ok(())
+}
+
+async fn sync_profile_views(state: &AppState) -> Result<(), Box<dyn std::error::Error>> {
+    let mut conn = state.redis_conn.clone();
+    let mut cursor: u64 = 0;
+    let pattern = "profile:*:views";
+
+    loop {
+        let (next_cursor, keys): (u64, Vec<String>) = redis::cmd("SCAN")
+            .arg(cursor)
+            .arg("MATCH")
+            .arg(pattern)
+            .arg("COUNT")
+            .arg(100u64)
+            .query_async(&mut conn)
+            .await?;
+
+        for key in &keys {
+            let parts: Vec<&str> = key.split(':').collect();
+            if parts.len() < 3 {
+                continue;
+            }
+            let user_id: Uuid = match parts[1].parse() {
+                Ok(id) => id,
+                Err(_) => continue,
+            };
+
+            let count: i64 = match redis::cmd("GET")
+                .arg(key.as_str())
+                .query_async(&mut conn)
+                .await
+            {
+                Ok(Some(v)) => v,
+                _ => continue,
+            };
+
+            if count <= 0 {
+                continue;
+            }
+
+            let remaining: i64 = redis::cmd("DECRBY")
+                .arg(key.as_str())
+                .arg(count)
+                .query_async(&mut conn)
+                .await?;
+
+            let user = Users::find_by_id(user_id).one(&state.conn).await?;
+
+            if let Some(user) = user {
+                let mut active: users::ActiveModel = user.into();
+                active.view_count = Set(active.view_count.unwrap() + count);
+                active.update(&state.conn).await?;
+                log::info!(
+                    "[view_counter] synced +{} views to profile {}",
+                    count,
+                    user_id
+                );
+            }
+
             if remaining == 0 {
                 let _: Result<(), _> = redis::cmd("DEL")
                     .arg(key.as_str())

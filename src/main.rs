@@ -171,6 +171,10 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/content/{uuid}/view",
                         web::post().to(view_counter::track_view),
+                    )
+                    .route(
+                        "/profile/{uuid}/view",
+                        web::post().to(view_counter::track_profile_view),
                     ),
             )
     })

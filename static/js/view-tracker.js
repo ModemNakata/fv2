@@ -1,14 +1,25 @@
 // View tracker — fire-and-forget view registration via sendBeacon.
-// Loaded with `defer` in video.html and gallery.html.
-// Reads window.__CONTENT_ID__ set by an inline script in the template.
+// Loaded with `defer` in video.html, gallery.html, and profile.html.
+// Reads window.__CONTENT_ID__ (content views) or window.__PROFILE_USER_ID__ (profile views).
 (function () {
   var id = window.__CONTENT_ID__;
-  if (!id) return;
-  var url = '/api/content/' + id + '/view';
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon(url, '');
-  } else {
-    // Fallback for older browsers
-    fetch(url, { method: 'POST', keepalive: true }).catch(function () {});
+  if (id) {
+    var url = '/api/content/' + id + '/view';
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url, '');
+    } else {
+      fetch(url, { method: 'POST', keepalive: true }).catch(function () {});
+    }
+    return;
+  }
+
+  var profileId = window.__PROFILE_USER_ID__;
+  if (profileId) {
+    var url = '/api/profile/' + profileId + '/view';
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url, '');
+    } else {
+      fetch(url, { method: 'POST', keepalive: true }).catch(function () {});
+    }
   }
 })();
