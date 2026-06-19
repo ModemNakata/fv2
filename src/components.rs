@@ -32,6 +32,7 @@ pub fn format_view_count(count: i64) -> String {
 pub struct ProcessingPage {
     pub username: String,
     pub logged_in: bool,
+    pub session_avatar_url: Option<String>,
     pub title: String,
     pub content_type_label: String,
     pub content_status: String,

@@ -20,6 +20,7 @@ struct ProfilePage {
     username: String,
     logged_in: bool,
     is_owner: bool,
+    session_avatar_url: Option<String>,
     display_name: String,
     handle: String,
     avatar_url: Option<String>,
@@ -43,7 +44,7 @@ pub async fn user_profile(
     let logged_in = session_user.is_some();
 
     let profile_username = username.into_inner();
-    let is_owner = session_user.as_deref() == Some(&profile_username);
+    let is_owner = session_user.as_ref().map(|u| u.username.as_str()) == Some(&profile_username);
 
     let user = match Users::find()
         .filter(users::Column::Username.eq(&profile_username))
@@ -89,9 +90,10 @@ pub async fn user_profile(
         .to_string();
 
     let html = ProfilePage {
-        username: session_user.unwrap_or_default(),
+        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
         logged_in,
         is_owner,
+        session_avatar_url: session_user.and_then(|u| u.avatar_url),
         display_name: user.display_name,
         handle: user.username,
         avatar_url: user.avatar_url,

@@ -21,6 +21,7 @@ use crate::entity::{content_items, image_sets, images, users};
 struct GalleriesPage {
     username: String,
     logged_in: bool,
+    session_avatar_url: Option<String>,
     galleries: Vec<GalleryCard>,
     pagination: GalleryPagination,
     total_count: u64,
@@ -271,8 +272,9 @@ pub async fn index(
     let content_type_label = "galleries".to_string();
 
     let html = GalleriesPage {
-        username: session_user.clone().unwrap_or_default(),
+        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
         logged_in,
+        session_avatar_url: session_user.and_then(|u| u.avatar_url),
         galleries,
         pagination,
         total_count: total,
@@ -294,6 +296,7 @@ pub async fn index(
 struct GalleryPage {
     username: String,
     logged_in: bool,
+    session_avatar_url: Option<String>,
     title: String,
     description: Option<String>,
     uploader_username: String,
@@ -406,8 +409,9 @@ pub async fn gallery(
         let created_at = content.created_at.format("%b %e, %Y").to_string();
 
         let html = GalleryPage {
-            username: session_user.clone().unwrap_or_default(),
+            username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
             logged_in,
+            session_avatar_url: session_user.and_then(|u| u.avatar_url),
             title: content.title,
             description: content.description,
             uploader_username: uploader.username,
@@ -438,8 +442,9 @@ pub async fn gallery(
         };
 
         let html = ProcessingPage {
-            username: session_user.unwrap_or_default(),
+            username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
             logged_in,
+            session_avatar_url: session_user.and_then(|u| u.avatar_url),
             title: content.title,
             content_type_label: "gallery".to_string(),
             content_status: status_str.to_string(),

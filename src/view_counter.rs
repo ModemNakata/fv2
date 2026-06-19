@@ -54,17 +54,17 @@ pub async fn track_view(
         .or_else(|| req.peer_addr().map(|a| a.ip().to_string()))
         .unwrap_or_else(|| "unknown".to_string());
 
-    let user_agent = req
-        .headers()
-        .get("User-Agent")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("")
-        .to_string();
+    // let user_agent = req
+    //     .headers()
+    //     .get("User-Agent")
+    //     .and_then(|v| v.to_str().ok())
+    //     .unwrap_or("")
+    //     .to_string();
 
     let hash = hex::encode({
         let mut h = sha2::Sha256::new();
         h.update(ip.as_bytes());
-        h.update(user_agent.as_bytes());
+        // h.update(user_agent.as_bytes()); // Exclude user agent, because it can be abused by spamming different user agent on the API endpoint.
         h.finalize()
     });
 

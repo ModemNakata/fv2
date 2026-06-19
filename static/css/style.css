@@ -381,8 +381,10 @@ input {
 }
 
 .avatar {
-  width: clamp(28px, 3vw, 32px);
-  height: clamp(28px, 3vw, 32px);
+  /* width: clamp(28px, 3vw, 32px); */
+  /* height: clamp(28px, 3vw, 32px); */
+  width: 100%;
+  height: 100%;
   background: var(--accent);
   color: var(--bg-primary);
   display: flex;
@@ -391,6 +393,7 @@ input {
   font-size: clamp(0.75rem, 1vw, 0.85rem);
   font-weight: 700;
   text-transform: uppercase;
+  object-fit: cover;
 }
 
 .avatar:hover {

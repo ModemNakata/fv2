@@ -15,10 +15,17 @@ use crate::entity::users;
 
 // const SESSION_MAX_AGE_DAYS: u64 = 3650;
 
+#[derive(Clone, Serialize)]
+pub struct SessionUser {
+    pub username: String,
+    pub avatar_url: Option<String>,
+}
+
 #[derive(Serialize)]
 pub struct AuthCheckResponse {
     pub authed: bool,
     pub username: Option<String>,
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -79,20 +86,10 @@ fn set_session_auth(session: &Session, user_id: Uuid, pw_changed_at: NaiveDateTi
 pub async fn get_session_user(
     session: &Session,
     db: &sea_orm::DatabaseConnection,
-) -> Option<String> {
+) -> Option<SessionUser> {
     let session_pw_ts: Option<u64> = session.get("password_changed_at").ok().flatten();
 
     let session_pw_ts = session_pw_ts?;
-
-    // let now = SystemTime::now()
-    //     .duration_since(UNIX_EPOCH)
-    //     .unwrap_or_default()
-    //     .as_secs();
-    // let max_age = Duration::from_secs(SESSION_MAX_AGE_DAYS * 86400);
-    // if Duration::from_secs(now.checked_sub(session_pw_ts).unwrap_or(0)) > max_age {
-    //     session.purge();
-    //     return None;
-    // }
 
     let user_id: Uuid = session.get("user_id").ok().flatten()?;
 
@@ -104,7 +101,10 @@ pub async fn get_session_user(
         return None;
     }
 
-    Some(user.username)
+    Some(SessionUser {
+        username: user.username,
+        avatar_url: user.avatar_url,
+    })
 }
 
 pub async fn get_session_user_id(
@@ -127,7 +127,7 @@ pub async fn require_user(
     session: &Session,
     db: &DatabaseConnection,
 ) -> Result<users::Model, HttpResponse> {
-    let username = get_session_user(session, db)
+    let session_user = get_session_user(session, db)
         .await
         .ok_or_else(|| {
             HttpResponse::Unauthorized().json(serde_json::json!({
@@ -137,7 +137,7 @@ pub async fn require_user(
         })?;
 
     Users::find()
-        .filter(users::Column::Username.eq(&username))
+        .filter(users::Column::Username.eq(&session_user.username))
         .one(db)
         .await
         .ok()
@@ -152,10 +152,11 @@ pub async fn require_user(
 
 #[get("/check")]
 pub async fn auth_check(session: Session, state: web::Data<AppState>) -> HttpResponse {
-    let username = get_session_user(&session, &state.conn).await;
+    let session_user = get_session_user(&session, &state.conn).await;
     HttpResponse::Ok().json(AuthCheckResponse {
-        authed: username.is_some(),
-        username,
+        authed: session_user.is_some(),
+        username: session_user.as_ref().map(|u| u.username.clone()),
+        avatar_url: session_user.and_then(|u| u.avatar_url),
     })
 }
 

@@ -18,6 +18,7 @@ use crate::entity::{content_items, users};
 struct HomePage {
     username: String,
     logged_in: bool,
+    session_avatar_url: Option<String>,
     videos: Vec<VideoItem>,
     pagination: Pagination,
     total_count: u64,
@@ -261,8 +262,9 @@ pub async fn index(
     let content_type_label = "videos".to_string();
 
     let html = HomePage {
-        username: session_user.clone().unwrap_or_default(),
+        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
         logged_in,
+        session_avatar_url: session_user.and_then(|u| u.avatar_url),
         videos: video_items,
         pagination,
         total_count: total,
@@ -319,6 +321,7 @@ fn time_ago(created_at: &sea_orm::prelude::DateTime, now: ChronoDateTime<Utc>) -
 struct UploadVideoPage {
     username: String,
     logged_in: bool,
+    session_avatar_url: Option<String>,
     version: String,
 }
 
@@ -327,6 +330,7 @@ struct UploadVideoPage {
 struct UploadGalleryPage {
     username: String,
     logged_in: bool,
+    session_avatar_url: Option<String>,
     version: String,
 }
 
@@ -334,8 +338,9 @@ pub async fn upload_video(session: Session, state: web::Data<AppState>) -> Resul
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
     let html = UploadVideoPage {
-        username: session_user.unwrap_or_default(),
+        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
         logged_in,
+        session_avatar_url: session_user.and_then(|u| u.avatar_url),
         version: state.static_version.clone(),
     }
     .render()
@@ -350,8 +355,9 @@ pub async fn upload_gallery(
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
     let html = UploadGalleryPage {
-        username: session_user.unwrap_or_default(),
+        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
         logged_in,
+        session_avatar_url: session_user.and_then(|u| u.avatar_url),
         version: state.static_version.clone(),
     }
     .render()

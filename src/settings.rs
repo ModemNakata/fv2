@@ -19,6 +19,7 @@ use crate::entity::users;
 struct SettingsPage {
     username: String,
     logged_in: bool,
+    session_avatar_url: Option<String>,
     current_username: String,
     current_display_name: String,
     current_avatar_url: Option<String>,
@@ -36,8 +37,9 @@ pub async fn settings_page(session: Session, state: web::Data<AppState>) -> Http
     };
 
     let html = SettingsPage {
-        username: session_user.unwrap_or_default(),
+        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
         logged_in,
+        session_avatar_url: session_user.and_then(|u| u.avatar_url),
         current_username: user.username.clone(),
         current_display_name: user.display_name,
         current_avatar_url: user.avatar_url,

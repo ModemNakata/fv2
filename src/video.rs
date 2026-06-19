@@ -15,6 +15,7 @@ use crate::AppState;
 struct VideoPage {
     username: String,
     logged_in: bool,
+    session_avatar_url: Option<String>,
     video_title: String,
     video_description: Option<String>,
     source_url: String,
@@ -108,8 +109,9 @@ pub async fn video(
         let created_at = content.created_at.format("%b %e, %Y").to_string();
 
         let html = VideoPage {
-            username: session_user.unwrap_or_default(),
+            username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
             logged_in,
+            session_avatar_url: session_user.and_then(|u| u.avatar_url),
             video_title: content.title,
             video_description: content.description,
             source_url,
@@ -140,8 +142,9 @@ pub async fn video(
         };
 
         let html = ProcessingPage {
-            username: session_user.unwrap_or_default(),
+            username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
             logged_in,
+            session_avatar_url: session_user.and_then(|u| u.avatar_url),
             title: content.title,
             content_type_label: "video".to_string(),
             content_status: status_str.to_string(),

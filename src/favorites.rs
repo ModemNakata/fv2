@@ -19,6 +19,7 @@ use crate::gallery;
 struct FavoritesPage {
     username: String,
     logged_in: bool,
+    session_avatar_url: Option<String>,
     video_count: u64,
     gallery_count: u64,
     active_tab: String,
@@ -132,8 +133,9 @@ pub async fn favorites(
     };
 
     let html = FavoritesPage {
-        username: session_user.unwrap_or_default(),
+        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
         logged_in,
+        session_avatar_url: session_user.and_then(|u| u.avatar_url),
         video_count,
         gallery_count,
         active_tab,

@@ -10,6 +10,7 @@ use crate::AppState;
 struct BalancePage {
     username: String,
     logged_in: bool,
+    session_avatar_url: Option<String>,
     balance: String,
     lifetime_earnings: String,
     pending_payout: String,
@@ -29,6 +30,7 @@ pub async fn balance_page(session: Session, state: web::Data<AppState>) -> HttpR
     let html = BalancePage {
         username: user.username,
         logged_in,
+        session_avatar_url: user.avatar_url,
         balance: "$0.00".to_string(),
         lifetime_earnings: "$0.00".to_string(),
         pending_payout: "$0.00".to_string(),
