@@ -125,8 +125,9 @@ pub async fn pending_processing(
     let video_formats = if !video_ids.is_empty() {
         VideoFormats::find()
             .filter(video_formats::Column::VideoId.is_in(video_ids.clone()))
-            // HLS mode: filtered to resolution = "original" only
-            // .filter(video_formats::Column::Resolution.eq("original"))
+            // Pipeline needs the original upload file (resolution = "original").
+            // Processed resolution rows are created later by update_status.
+            .filter(video_formats::Column::Resolution.eq("original"))
             .all(&state.conn)
             .await
             .unwrap_or_default()
@@ -220,8 +221,9 @@ pub async fn get_content(
     let video_formats = match item.r#type {
         ContentType::Video => VideoFormats::find()
             .filter(video_formats::Column::VideoId.eq(content_id))
-            // HLS mode: filtered to resolution = "original" only
-            // .filter(video_formats::Column::Resolution.eq("original"))
+            // Pipeline needs the original upload file (resolution = "original").
+            // Processed resolution rows are created later by update_status.
+            .filter(video_formats::Column::Resolution.eq("original"))
             .all(&state.conn)
             .await
             .unwrap_or_default(),

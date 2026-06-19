@@ -232,7 +232,7 @@ pub async fn update_settings(
 
 fn process_avatar(data: &[u8], user_id: Uuid) -> Result<String, String> {
     let img = image::load_from_memory(data).map_err(|e| format!("Invalid image: {e}"))?;
-    let resized = img.resize_to_fill(256, 256, image::imageops::FilterType::Lanczos3); // 128 // 512
+    let resized = img.resize_to_fill(256, 256, image::imageops::FilterType::Lanczos3); // 128 // 512 | Lanczos3 ???
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -249,3 +249,4 @@ fn process_avatar(data: &[u8], user_id: Uuid) -> Result<String, String> {
 
     Ok(format!("/static/avatars/{filename}"))
 }
+// ? (???) (?)
