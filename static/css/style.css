@@ -333,10 +333,18 @@ input {
   display: none;
 }
 
+.beta-badge {
+  display: none;
+}
+
 @media (min-width: 800px) {
 
   /* desktop only (680) */
   .logo svg {
+    display: inline;
+  }
+
+  .beta-badge {
     display: inline;
   }
 }
