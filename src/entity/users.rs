@@ -13,6 +13,7 @@ pub struct Model {
     pub password_hash: String,
     pub avatar_url: Option<String>,
     pub about_me: Option<String>,
+    pub view_count: i64,
     pub password_changed_at: DateTime,
     pub created_at: DateTime,
     pub updated_at: DateTime,

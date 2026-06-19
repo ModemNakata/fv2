@@ -25,6 +25,7 @@ impl MigrationTrait for Migration {
                     // add profile background image (e.g. `profile-banner`)
                     // .col(string_len("about_me", 280).null()) // 160
                     .col(string_len("about_me", 500).null())
+                    .col(big_integer("view_count").default(0))
                     .col(timestamp("password_changed_at").default(Expr::current_timestamp()))
                     .col(timestamp("created_at").default(Expr::current_timestamp()))
                     .col(timestamp("updated_at").default(Expr::current_timestamp()))

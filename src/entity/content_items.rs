@@ -11,6 +11,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub uploader_id: Uuid,
+    pub view_count: i64,
     pub r#type: ContentType,
     pub title: String,
     #[sea_orm(column_type = "Text", nullable)]

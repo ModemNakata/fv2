@@ -63,6 +63,7 @@ impl MigrationTrait for Migration {
                     //         .not_null(),
                     // )
                     .col(uuid("uploader_id"))
+                    .col(big_integer("view_count").default(0))
                     .col(ColumnDef::new("type").custom("content_type").not_null())
                     .col(string_len("title", 255))
                     .col(text_null("description"))
@@ -105,7 +106,7 @@ impl MigrationTrait for Migration {
                     // ^ can also include resolution_dimensions (?)
                     .col(integer_null("free_preview_duration_s"))
                     .col(string_len("preview_path", 1024).null())
-                    .col(big_integer("view_count").default(0))
+                    // .col(big_integer("view_count").default(0))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_video_content")
@@ -162,7 +163,7 @@ impl MigrationTrait for Migration {
                     .col(uuid("content_id").primary_key())
                     .col(string_len_null("layout_preference", 50).default("gallery"))
                     .col(string_len("preview_path", 1024).null())
-                    .col(big_integer("view_count").default(0))
+                    // .col(big_integer("view_count").default(0))
                     .col(integer_null("unblurred_count"))
                     // .col(integer("image_count"))
                     .foreign_key(

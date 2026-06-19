@@ -11,7 +11,6 @@ pub struct Model {
     pub source_quality: Option<String>,
     pub free_preview_duration_s: Option<i32>,
     pub preview_path: Option<String>,
-    pub view_count: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
