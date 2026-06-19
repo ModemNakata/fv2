@@ -4,7 +4,7 @@ use actix_session::config::PersistentSession;
 use actix_session::storage::CookieSessionStore;
 use actix_web::cookie::Key;
 use actix_web::{App, HttpServer, middleware, web};
-use sea_orm::{Database, DatabaseConnection};
+use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use std::env;
 use tracing_subscriber::fmt;
 
@@ -12,8 +12,8 @@ mod auth;
 mod balance;
 mod components;
 mod entity;
-mod favourite;
 mod favorites;
+mod favourite;
 mod gallery;
 mod home;
 mod pipeline;
@@ -35,6 +35,11 @@ pub struct AppState {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // Hardcode the environment variable right at the start (quick and dirty) ... (doesn't work)
+    // unsafe {
+    //     env::set_var("RUST_LOG", "info,sqlx=warn,sea_orm=warn");
+    // }
+
     fmt::fmt().init();
 
     log::info!("starting HTTP server");
@@ -55,12 +60,23 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    let conn = Database::connect(&db_url).await.unwrap();
+    let mut opt = ConnectOptions::new(db_url);
+    opt
+        // .max_connections(100)
+        // .min_connections(5)
+        // .connect_timeout(Duration::from_secs(8))
+        // .acquire_timeout(Duration::from_secs(8))
+        // .idle_timeout(Duration::from_secs(8))
+        // .max_lifetime(Duration::from_secs(8))
+        .sqlx_logging(false); // <-- This completely disables sqlx logging
+    // .sqlx_logging_level(log::LevelFilter::Debug); // Or change it to Debug/Trace so it's less verbose
+
+    // let conn = Database::connect(&db_url).await.unwrap();
+    let conn = Database::connect(opt).await.unwrap();
     let (s3_processed, s3_orig) = s3::init_buckets();
 
     // ── View counter: Redis connection ──────────────────────────────────────
-    let redis_client =
-        redis::Client::open(view_counter::redis_url()).expect("invalid REDIS_URL");
+    let redis_client = redis::Client::open(view_counter::redis_url()).expect("invalid REDIS_URL");
     let redis_conn = redis::aio::ConnectionManager::new(redis_client)
         .await
         .expect("failed to connect to Redis");
@@ -115,12 +131,8 @@ async fn main() -> std::io::Result<()> {
                     .route(web::get().to(settings::settings_page))
                     .route(web::post().to(settings::update_settings)),
             )
-            .service(
-                web::resource("/balance").route(web::get().to(balance::balance_page)),
-            )
-            .service(
-                web::resource("/favorites").route(web::get().to(favorites::favorites)),
-            )
+            .service(web::resource("/balance").route(web::get().to(balance::balance_page)))
+            .service(web::resource("/favorites").route(web::get().to(favorites::favorites)))
             .service(
                 web::scope("/auth")
                     .service(auth::auth_check)
@@ -163,10 +175,7 @@ async fn main() -> std::io::Result<()> {
                         "/content/{id}/favourite",
                         web::post().to(favourite::toggle_favourite),
                     )
-                    .route(
-                        "/favorites",
-                        web::get().to(favorites::api_favorites),
-                    )
+                    .route("/favorites", web::get().to(favorites::api_favorites))
                     // ── View counter ────────────────────────────────────────
                     .route(
                         "/content/{uuid}/view",
