@@ -11,6 +11,10 @@
   padding-bottom: clamp(16px, 2vh, 32px);
 
   width: 100%;
+  /* Reserves a 16:9 box space immediately on page load to avoid layout shift */
+  aspect-ratio: 16 / 9;
+  /* For vertical videos, set to aspect-ratio: auto and override
+     Vidstack's hardcoded 16/9 rules below */
   position: relative;
   overflow: hidden;
 
@@ -223,3 +227,8 @@
 .vds-video-layout[data-sm] .vds-start-duration .vds-time {
   display: none;
 }
+
+/* To restore natural aspect ratio for vertical videos, uncomment:
+   [data-media-player][data-view-type='video'] { aspect-ratio: auto; }
+   .video-player-wrapper video { aspect-ratio: auto; }
+*/
