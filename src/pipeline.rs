@@ -2,6 +2,7 @@ use actix_session::Session;
 use actix_web::{HttpRequest, HttpResponse, web};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, ModelTrait, QueryFilter, QueryOrder, Set};
 use serde::Serialize;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::auth;
@@ -124,7 +125,8 @@ pub async fn pending_processing(
     let video_formats = if !video_ids.is_empty() {
         VideoFormats::find()
             .filter(video_formats::Column::VideoId.is_in(video_ids.clone()))
-            .filter(video_formats::Column::Resolution.eq("original"))
+            // HLS mode: filtered to resolution = "original" only
+            // .filter(video_formats::Column::Resolution.eq("original"))
             .all(&state.conn)
             .await
             .unwrap_or_default()
@@ -218,7 +220,8 @@ pub async fn get_content(
     let video_formats = match item.r#type {
         ContentType::Video => VideoFormats::find()
             .filter(video_formats::Column::VideoId.eq(content_id))
-            .filter(video_formats::Column::Resolution.eq("original"))
+            // HLS mode: filtered to resolution = "original" only
+            // .filter(video_formats::Column::Resolution.eq("original"))
             .all(&state.conn)
             .await
             .unwrap_or_default(),
@@ -277,12 +280,24 @@ pub(crate) struct StatusUpdate {
     free_preview_path: Option<String>,
     #[serde(default)]
     duration: Option<f64>,
+    // HLS mode (can be revived): processed_files was Vec<String>,
+    // first entry stored as HLS master playlist path in video_formats.storage_path
+    // Now used for image_sets only (index-based path mapping).
     #[serde(default)]
     processed_files: Option<Vec<String>>,
+    // Multi-resolution mode: map of resolution → S3 path.
+    // Pipeline generates one entry per resolution (e.g. "1920x1080", "1280x720", "854x480").
+    // Each entry creates/updates a video_formats row for this video.
+    #[serde(default)]
+    video_formats: Option<HashMap<String, String>>,
     #[serde(default)]
     blurred_files: Option<Vec<String>>,
     #[serde(default)]
     source_quality: Option<String>,
+    // Original source resolution in "WxH" format (e.g. "1920x1080").
+    // Determined via ffprobe before encoding. Stored in videos.source_resolution.
+    #[serde(default)]
+    source_resolution: Option<String>,
 }
 
 pub async fn update_status(
@@ -403,6 +418,18 @@ pub async fn update_status(
                 }
             }
 
+            if let Some(ref sr) = body.source_resolution {
+                if let Ok(Some(video)) = Videos::find_by_id(content_id).one(&state.conn).await {
+                    let mut video: videos::ActiveModel = video.into();
+                    video.source_resolution = Set(Some(sr.clone()));
+                    if let Err(e) = video.update(&state.conn).await {
+                        log::error!("DB error updating source_resolution: {e}");
+                    }
+                } else {
+                    log::warn!("video record not found for content_id {content_id}, skipping source_resolution");
+                }
+            }
+
             if let Some(ref blurred) = body.blurred_files {
                 if let Ok(imgs) = Images::find()
                     .filter(images::Column::ImageSetId.eq(content_id))
@@ -422,38 +449,101 @@ pub async fn update_status(
                 }
             }
 
-            if let Some(ref files) = body.processed_files {
-                match content_type {
-                    ContentType::Video => {
-                        if let Some(path) = files.first() {
-                            if let Ok(Some(fmt)) = VideoFormats::find()
-                                .filter(video_formats::Column::VideoId.eq(content_id))
-                                .filter(video_formats::Column::Resolution.eq("original"))
-                                .one(&state.conn)
-                                .await
-                            {
-                                let mut fmt: video_formats::ActiveModel = fmt.into();
-                                fmt.storage_path = Set(Some(path.clone()));
-                                if let Err(e) = fmt.update(&state.conn).await {
-                                    log::error!("DB error updating video_format storage_path: {e}");
-                                }
+            // HLS mode (can be revived): processed_files was Vec<String>,
+            // first entry stored as HLS master playlist path in video_formats.storage_path.
+            // Now used for image_sets only.
+            // if let Some(ref files) = body.processed_files {
+            //     match content_type {
+            //         ContentType::Video => {
+            //             if let Some(path) = files.first() {
+            //                 if let Ok(Some(fmt)) = VideoFormats::find()
+            //                     .filter(video_formats::Column::VideoId.eq(content_id))
+            //                     .filter(video_formats::Column::Resolution.eq("original"))
+            //                     .one(&state.conn)
+            //                     .await
+            //                 {
+            //                     let mut fmt: video_formats::ActiveModel = fmt.into();
+            //                     fmt.storage_path = Set(Some(path.clone()));
+            //                     if let Err(e) = fmt.update(&state.conn).await {
+            //                         log::error!("DB error updating video_format storage_path: {e}");
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //         ContentType::ImageSet => {
+            //             if let Ok(imgs) = Images::find()
+            //                 .filter(images::Column::ImageSetId.eq(content_id))
+            //                 .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
+            //                 .all(&state.conn)
+            //                 .await
+            //             {
+            //                 for (i, img) in imgs.iter().enumerate() {
+            //                     if let Some(path) = files.get(i) {
+            //                         let mut img: images::ActiveModel = img.clone().into();
+            //                         img.storage_path = Set(Some(path.clone()));
+            //                         if let Err(e) = img.update(&state.conn).await {
+            //                             log::error!("DB error updating image storage_path: {e}");
+            //                         }
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
+
+            // Multi-resolution mode: video_formats is a map of resolution → S3 path.
+            if let Some(ref formats) = body.video_formats {
+                if content_type == ContentType::Video {
+                    for (resolution, path) in formats {
+                        // Derive format from path extension (e.g. "videos/u/1080p.webm" → "webm")
+                        let fmt_ext = path.rsplit_once('.').map(|(_, ext)| ext.to_lowercase()).unwrap_or_default();
+                        if let Ok(Some(fmt)) = VideoFormats::find()
+                            .filter(video_formats::Column::VideoId.eq(content_id))
+                            .filter(video_formats::Column::Resolution.eq(resolution.as_str()))
+                            .filter(video_formats::Column::Format.eq(&fmt_ext))
+                            .one(&state.conn)
+                            .await
+                        {
+                            let mut fmt: video_formats::ActiveModel = fmt.into();
+                            fmt.storage_path = Set(Some(path.clone()));
+                            if let Err(e) = fmt.update(&state.conn).await {
+                                log::error!("DB error updating video_format {resolution}: {e}");
+                            }
+                        } else {
+                            let fmt = video_formats::ActiveModel {
+                                id: Set(Uuid::new_v4()),
+                                video_id: Set(content_id),
+                                resolution: Set(resolution.clone()),
+                                format: Set(fmt_ext),
+                                orig_storage_path: Set(String::new()),
+                                storage_path: Set(Some(path.clone())),
+                                original_name: Set(String::new()),
+                                file_size_bytes: Set(None),
+                                created_at: Set(chrono::Utc::now().naive_utc()),
+                            };
+                            if let Err(e) = fmt.insert(&state.conn).await {
+                                log::error!("DB error inserting video_format {resolution}: {e}");
                             }
                         }
                     }
-                    ContentType::ImageSet => {
-                        if let Ok(imgs) = Images::find()
-                            .filter(images::Column::ImageSetId.eq(content_id))
-                            .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
-                            .all(&state.conn)
-                            .await
-                        {
-                            for (i, img) in imgs.iter().enumerate() {
-                                if let Some(path) = files.get(i) {
-                                    let mut img: images::ActiveModel = img.clone().into();
-                                    img.storage_path = Set(Some(path.clone()));
-                                    if let Err(e) = img.update(&state.conn).await {
-                                        log::error!("DB error updating image storage_path: {e}");
-                                    }
+                }
+            }
+
+            // Image set processed files (index-based Vec<String>)
+            if let Some(ref files) = body.processed_files {
+                if content_type == ContentType::ImageSet {
+                    if let Ok(imgs) = Images::find()
+                        .filter(images::Column::ImageSetId.eq(content_id))
+                        .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
+                        .all(&state.conn)
+                        .await
+                    {
+                        for (i, img) in imgs.iter().enumerate() {
+                            if let Some(path) = files.get(i) {
+                                let mut img: images::ActiveModel = img.clone().into();
+                                img.storage_path = Set(Some(path.clone()));
+                                if let Err(e) = img.update(&state.conn).await {
+                                    log::error!("DB error updating image storage_path: {e}");
                                 }
                             }
                         }

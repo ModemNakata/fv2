@@ -1,13 +1,14 @@
 use actix_session::Session;
 use actix_web::{HttpResponse, Responder, Result, web};
 use askama::Template;
-use sea_orm::EntityTrait;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 use crate::auth;
 use crate::components::ProcessingPage;
 use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
+use crate::entity::video_formats;
 use crate::AppState;
 
 #[derive(Template)]
@@ -93,7 +94,22 @@ pub async fn video(
                 .map(|p| format!("{}/{}", s3_base, p))
                 .unwrap_or_default()
         } else {
-            format!("{}/videos/{}/master.m3u8", s3_base, content_id)
+            // Multi-resolution: pick the best available format
+            // HLS mode (can be revived):
+            // format!("{}/videos/{}/master.m3u8", s3_base, content_id)
+            let formats = VideoFormats::find()
+                .filter(video_formats::Column::VideoId.eq(content_id))
+                .filter(video_formats::Column::StoragePath.is_not_null())
+                .all(&state.conn)
+                .await
+                .map_err(actix_web::error::ErrorInternalServerError)?;
+
+            let best = formats.iter()
+                .max_by_key(|f| resolution_priority(&f.resolution));
+
+            best.and_then(|f| f.storage_path.as_ref())
+                .map(|p| format!("{}/{}", s3_base, p))
+                .unwrap_or_default()
         };
 
         let is_favourited = if let Some(uid) = session_user_id {
@@ -157,5 +173,26 @@ pub async fn video(
         Ok(web::Html::new(html))
     } else {
         Err(actix_web::error::ErrorNotFound("Video not found"))
+    }
+}
+
+/// Rank resolution strings by pixel height for selecting the best quality.
+/// Supports "WxH" format (e.g. "1920x1080") and legacy labels (e.g. "1080p", "4K").
+fn resolution_priority(res: &str) -> u32 {
+    // Try "WxH" format first (e.g. "1920x1080" → 1080)
+    if let Some(h) = res.split_once('x').and_then(|(_, h)| h.parse::<u32>().ok()) {
+        return h;
+    }
+    // Fall back to label format (e.g. "1080p", "4K")
+    match res {
+        "4K" | "2160p" => 2160,
+        "1440p" | "2K" => 1440,
+        "1080p" | "1080p60" => 1080,
+        "720p" | "720p60" => 720,
+        "480p" => 480,
+        "360p" => 360,
+        "240p" => 240,
+        "144p" => 144,
+        _ => 0,
     }
 }

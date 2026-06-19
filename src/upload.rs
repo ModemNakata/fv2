@@ -275,6 +275,7 @@ pub async fn upload_video(
         content_id: Set(content_id),
         duration_seconds: Set(None),
         source_quality: Set(None),
+        source_resolution: Set(None),
         free_preview_duration_s: Set(preview_length),
         preview_path: Set(None),
     };

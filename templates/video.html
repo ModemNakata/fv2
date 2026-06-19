@@ -76,12 +76,13 @@
       layout: new VidstackPlayerLayout(),
     });
 
-    player.addEventListener('media-provider-change', (event) => {
-      const provider = event.detail;
-      if (provider.type === 'hls') {
-        provider.library = '/static/{{ version }}/js/hls.min.js';
-      }
-    });
+    // HLS mode (can be revived): point hls.js to local copy instead of CDN
+    // player.addEventListener('media-provider-change', (event) => {
+    //   const provider = event.detail;
+    //   if (provider.type === 'hls') {
+    //     provider.library = '/static/{{ version }}/js/hls.min.js';
+    //   }
+    // });
   });
 </script>
 

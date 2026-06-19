@@ -9,6 +9,7 @@ pub struct Model {
     pub content_id: Uuid,
     pub duration_seconds: Option<i32>,
     pub source_quality: Option<String>,
+    pub source_resolution: Option<String>,
     pub free_preview_duration_s: Option<i32>,
     pub preview_path: Option<String>,
 }

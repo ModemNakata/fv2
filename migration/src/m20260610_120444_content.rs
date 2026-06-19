@@ -102,7 +102,8 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid("content_id").primary_key())
                     .col(integer_null("duration_seconds"))
-                    .col(string_len("source_quality", 10).null()) // e.g. "1080p", "1080p60", "4K"
+                    .col(string_len("source_quality", 10).null()) // e.g. "1080p", "1080p60", "4K" | shouldn't be null ?
+                    .col(string_len("source_resolution", 10).null()) // e.g. WxH (1920x1080) | actually shouldn't be null
                     // ^ can also include resolution_dimensions (?)
                     .col(integer_null("free_preview_duration_s"))
                     .col(string_len("preview_path", 1024).null())
@@ -114,7 +115,7 @@ impl MigrationTrait for Migration {
                             .to("content_items", "id")
                             .on_delete(ForeignKeyAction::Cascade),
                     )
-                    .to_owned(),
+                    .to_owned(), // (?)
             )
             .await?;
 
