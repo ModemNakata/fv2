@@ -9,7 +9,24 @@
   margin: 0 auto;
   /* padding: clamp(16px, 2vh, 32px) 0; */
   padding-bottom: clamp(16px, 2vh, 32px);
+
+  width: 100%;
+  /* Reserves a 16:9 box space immediately on page load */
+  aspect-ratio: 16 / 9;
+  /* Fallback background color so it looks like a player skeleton while loading */
+  /* background-color: #000; */
+  position: relative;
+  overflow: hidden;
+
+  margin-bottom: 2vh;
 }
+
+/* Ensure the target element and the initialized Vidstack player fill the reserved box */
+/* #video-target, */
+/* .video-player-wrapper :first-child { */
+/* width: 100%; */
+/* height: 100%; */
+/* } */
 
 .video-player-wrapper [data-media-player] {
   display: flex;
