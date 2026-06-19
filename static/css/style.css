@@ -337,6 +337,8 @@ input {
   display: none;
 }
 
+
+/* also on mobile screens (less than 800px) we can make font size of header logo smaller */
 @media (min-width: 800px) {
 
   /* desktop only (680) */
