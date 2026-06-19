@@ -11,10 +11,6 @@
   padding-bottom: clamp(16px, 2vh, 32px);
 
   width: 100%;
-  /* Reserves a 16:9 box space immediately on page load */
-  aspect-ratio: 16 / 9;
-  /* Fallback background color so it looks like a player skeleton while loading */
-  /* background-color: #000; */
   position: relative;
   overflow: hidden;
 
@@ -216,4 +212,14 @@
 .free-preview-price {
   font-size: 0.82rem;
   color: var(--text-tertiary);
+}
+
+/* Clean screen on mobile fullscreen — hide all time overlays */
+/* [data-fullscreen] .vds-video-layout[data-sm] .vds-start-duration .vds-time { */
+/* display: none; */
+/* } */
+
+/* actuall let's hide it completely from mobile (sm) screens */
+.vds-video-layout[data-sm] .vds-start-duration .vds-time {
+  display: none;
 }
