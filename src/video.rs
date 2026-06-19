@@ -19,7 +19,7 @@ struct VideoPage {
     session_avatar_url: Option<String>,
     video_title: String,
     video_description: Option<String>,
-    source_url: String,
+    sources_json: String,
     uploader_username: String,
     uploader_display_name: String,
     uploader_avatar_url: Option<String>,
@@ -72,12 +72,6 @@ pub async fn video(
             .map_err(actix_web::error::ErrorInternalServerError)?
             .ok_or_else(|| actix_web::error::ErrorNotFound("Uploader not found"))?;
 
-        let video = Videos::find_by_id(content_id)
-            .one(&state.conn)
-            .await
-            .map_err(actix_web::error::ErrorInternalServerError)?
-            .ok_or_else(|| actix_web::error::ErrorNotFound("Video not found"))?;
-
         let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
         let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
         let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
@@ -89,12 +83,7 @@ pub async fn video(
         let is_paywalled = content.is_paywalled;
         let is_free_preview = is_paywalled && !is_uploader;
 
-        let source_url = if is_free_preview {
-            video.preview_path
-                .map(|p| format!("{}/{}", s3_base, p))
-                .unwrap_or_default()
-        } else {
-            // Multi-resolution: pick the best available format
+        let sources_json = {
             // HLS mode (can be revived):
             // format!("{}/videos/{}/master.m3u8", s3_base, content_id)
             let formats = VideoFormats::find()
@@ -104,12 +93,22 @@ pub async fn video(
                 .await
                 .map_err(actix_web::error::ErrorInternalServerError)?;
 
-            let best = formats.iter()
-                .max_by_key(|f| resolution_priority(&f.resolution));
+            let sources: Vec<serde_json::Value> = formats.iter()
+                .map(|f| {
+                    let url = f.storage_path.as_ref()
+                        .map(|p| format!("{}/{}", s3_base, p))
+                        .unwrap_or_default();
+                    let (width, height) = parse_resolution(&f.resolution);
+                    serde_json::json!({
+                        "src": url,
+                        "type": mime_for_format(&f.format),
+                        "width": width,
+                        "height": height,
+                    })
+                })
+                .collect();
 
-            best.and_then(|f| f.storage_path.as_ref())
-                .map(|p| format!("{}/{}", s3_base, p))
-                .unwrap_or_default()
+            serde_json::to_string(&sources).unwrap_or_default()
         };
 
         let is_favourited = if let Some(uid) = session_user_id {
@@ -130,7 +129,7 @@ pub async fn video(
             session_avatar_url: session_user.and_then(|u| u.avatar_url),
             video_title: content.title,
             video_description: content.description,
-            source_url,
+            sources_json,
             uploader_username: uploader.username,
             uploader_display_name: uploader.display_name,
             uploader_avatar_url: uploader.avatar_url,
@@ -176,15 +175,16 @@ pub async fn video(
     }
 }
 
-/// Rank resolution strings by pixel height for selecting the best quality.
-/// Supports "WxH" format (e.g. "1920x1080") and legacy labels (e.g. "1080p", "4K").
-fn resolution_priority(res: &str) -> u32 {
-    // Try "WxH" format first (e.g. "1920x1080" → 1080)
-    if let Some(h) = res.split_once('x').and_then(|(_, h)| h.parse::<u32>().ok()) {
-        return h;
+/// Parse a "WxH" resolution string into (width, height).
+/// Returns (0, 0) for unrecognized formats.
+fn parse_resolution(res: &str) -> (u32, u32) {
+    if let Some((w, h)) = res.split_once('x') {
+        if let (Ok(w), Ok(h)) = (w.parse::<u32>(), h.parse::<u32>()) {
+            return (w, h);
+        }
     }
-    // Fall back to label format (e.g. "1080p", "4K")
-    match res {
+    // Fall back to label format (e.g. "1080p", "4K") — width unknown, use height as estimate
+    let h = match res {
         "4K" | "2160p" => 2160,
         "1440p" | "2K" => 1440,
         "1080p" | "1080p60" => 1080,
@@ -194,5 +194,17 @@ fn resolution_priority(res: &str) -> u32 {
         "240p" => 240,
         "144p" => 144,
         _ => 0,
+    };
+    (0, h)
+}
+
+/// Map a file format extension to its MIME type for the Vidstack source array.
+fn mime_for_format(ext: &str) -> &'static str {
+    match ext {
+        "webm" => "video/webm",
+        "mp4" => "video/mp4",
+        "ogg" => "video/ogg",
+        "m3u8" => "application/x-mpegurl",
+        _ => "video/webm",
     }
 }

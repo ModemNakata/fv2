@@ -71,7 +71,7 @@
     const player = await VidstackPlayer.create({
       target: '#video-target',
       title: 'FeVid.Cloud',
-      src: '{{ source_url }}',
+      src: {{ sources_json|safe }},
       storage: 'fevid-player',
       layout: new VidstackPlayerLayout(),
     });
