@@ -39,6 +39,9 @@
       <div class="thumb-spinner"></div>
       {% endif %}
       <span class="duration">{{ v.duration }}</span>
+      {% if !v.resolution.is_empty() %}
+      <span class="resolution">{{ v.resolution }}</span>
+      {% endif %}
     </a>
     <div class="video-info">
       {% if v.uploader_avatar_url.is_some() %}

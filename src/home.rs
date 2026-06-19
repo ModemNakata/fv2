@@ -34,6 +34,7 @@ struct VideoItem {
     views: String,
     favourite_count: String,
     duration: String,
+    resolution: String,
     time_ago: String,
     thumbnail_url: Option<String>,
     preview_url: Option<String>,
@@ -216,12 +217,19 @@ pub async fn index(
                 .filter(|k| !k.is_empty())
                 .map(|key| format!("{}/{}", s3_base, key));
 
+            let resolution_str = video_opt
+                .as_ref()
+                .and_then(|v| v.source_quality.as_ref())
+                .cloned()
+                .unwrap_or_default();
+
             VideoItem {
                 id: content.id,
                 title: content.title,
                 views: views_str,
                 favourite_count,
                 duration: duration_str,
+                resolution: resolution_str,
                 time_ago: time_ago_str,
                 thumbnail_url,
                 preview_url,

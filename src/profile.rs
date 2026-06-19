@@ -124,6 +124,7 @@ struct ApiVideoItem {
     thumbnail_url: Option<String>,
     preview_url: Option<String>,
     duration: String,
+    resolution: String,
     views: String,
     favourite_count: String,
     time_ago: String,
@@ -243,6 +244,10 @@ pub async fn api_videos(
                 thumbnail_url,
                 preview_url,
                 duration: duration_str,
+                resolution: video_opt
+                    .as_ref()
+                    .and_then(|v| v.source_quality.clone())
+                    .unwrap_or_default(),
                 views: crate::components::format_view_count(content.view_count),
                 favourite_count,
                 time_ago: gallery::time_ago(&content.created_at, now),

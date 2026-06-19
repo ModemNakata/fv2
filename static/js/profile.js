@@ -21,7 +21,8 @@
     return '<a href="/video/' + item.id + '" class="video-card"' + (item.preview_url ? ' data-preview="true"' : '') + '>'
       + '<div class="thumbnail">' + thumb
       + (item.preview_url ? '<video class="thumb-preview" src="' + item.preview_url + '" muted playsinline preload="none" loop' + (item.thumbnail_url ? ' poster="' + item.thumbnail_url + '"' : '') + '></video><div class="thumb-spinner"></div>' : '')
-      + '<span class="duration">' + item.duration + '</span></div>'
+      + '<span class="duration">' + item.duration + '</span>'
+      + (item.resolution ? '<span class="resolution">' + item.resolution + '</span>' : '') + '</div>'
       + '<div class="video-info"><div class="video-details">'
       + '<h3 class="video-title">' + item.title + '</h3>'
       + '<p class="video-meta"><span class="meta-left">' + item.time_ago + '</span><span class="meta-right">'
