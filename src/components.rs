@@ -1,6 +1,27 @@
 use askama::Template;
 use uuid::Uuid;
 
+/// Format an i64 view count into a human-readable string like "1.2K views".
+pub fn format_view_count(count: i64) -> String {
+    if count >= 1_000_000 {
+        let millions = count as f64 / 1_000_000.0;
+        if millions < 10.0 {
+            format!("{:.1}M views", millions)
+        } else {
+            format!("{:.0}M views", millions)
+        }
+    } else if count >= 1_000 {
+        let thousands = count as f64 / 1_000.0;
+        if thousands < 10.0 {
+            format!("{:.1}K views", thousands)
+        } else {
+            format!("{:.0}K views", thousands)
+        }
+    } else {
+        format!("{} views", count)
+    }
+}
+
 #[derive(Template)]
 #[template(path = "content-processing.html")]
 pub struct ProcessingPage {

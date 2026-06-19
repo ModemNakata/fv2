@@ -11,7 +11,7 @@ use crate::components::build_sort_options;
 use crate::components::SortOption;
 use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
-use crate::entity::{content_items, users, videos};
+use crate::entity::{content_items, users};
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -125,10 +125,10 @@ pub async fn index(
 
     match (sort.as_str(), order.as_str()) {
         ("views", "asc") => {
-            select = select.order_by_asc(videos::Column::ViewCount);
+            select = select.order_by_asc(content_items::Column::ViewCount);
         }
         ("views", "desc") => {
-            select = select.order_by_desc(videos::Column::ViewCount);
+            select = select.order_by_desc(content_items::Column::ViewCount);
         }
         ("date", "asc") => {
             select = select.order_by_asc(content_items::Column::CreatedAt);
@@ -185,8 +185,7 @@ pub async fn index(
                 format!("{}:{:02}", minutes, secs)
             };
 
-            let view_count = video_opt.as_ref().map(|v| v.view_count).unwrap_or(0);
-            let views_str = format_view_count(view_count);
+            let views_str = crate::components::format_view_count(content.view_count);
 
             let favourite_count = content.favorite_count.to_string();
 
@@ -276,26 +275,6 @@ pub async fn index(
     .expect("index.html should be valid");
 
     Ok(web::Html::new(html))
-}
-
-fn format_view_count(count: i64) -> String {
-    if count >= 1_000_000 {
-        let millions = count as f64 / 1_000_000.0;
-        if millions < 10.0 {
-            format!("{:.1}M views", millions)
-        } else {
-            format!("{:.0}M views", millions)
-        }
-    } else if count >= 1_000 {
-        let thousands = count as f64 / 1_000.0;
-        if thousands < 10.0 {
-            format!("{:.1}K views", thousands)
-        } else {
-            format!("{:.0}K views", thousands)
-        }
-    } else {
-        format!("{} views", count)
-    }
 }
 
 fn time_ago(created_at: &sea_orm::prelude::DateTime, now: ChronoDateTime<Utc>) -> String {

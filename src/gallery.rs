@@ -126,14 +126,10 @@ pub async fn index(
 
     match (sort.as_str(), order.as_str()) {
         ("views", "asc") => {
-            select = select
-                .join(JoinType::LeftJoin, content_items::Relation::ImageSets.def())
-                .order_by_asc(image_sets::Column::ViewCount);
+            select = select.order_by_asc(content_items::Column::ViewCount);
         }
         ("views", "desc") => {
-            select = select
-                .join(JoinType::LeftJoin, content_items::Relation::ImageSets.def())
-                .order_by_desc(image_sets::Column::ViewCount);
+            select = select.order_by_desc(content_items::Column::ViewCount);
         }
         ("date", "asc") => {
             select = select.order_by_asc(content_items::Column::CreatedAt);
@@ -222,8 +218,7 @@ pub async fn index(
                 })
                 .map(|path| format!("{}/{}", s3_base, path));
 
-            let view_count = image_set.map(|is| is.view_count).unwrap_or(0);
-            let views = format_view_count(view_count);
+            let views = crate::components::format_view_count(content.view_count);
             let favourite_count = content.favorite_count.to_string();
             let time_ago_str = time_ago(&content.created_at, now);
 
@@ -420,7 +415,7 @@ pub async fn gallery(
             uploader_avatar_url: uploader.avatar_url,
             created_at,
             images,
-            view_count: format!("{}K", (content_id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 3 + 5) % 90 + 1),
+            view_count: crate::components::format_view_count(content.view_count),
             favourite_count: content.favorite_count.to_string(),
             is_uploader,
             content_id,
@@ -457,26 +452,6 @@ pub async fn gallery(
         Ok(web::Html::new(html))
     } else {
         Err(actix_web::error::ErrorNotFound("Gallery not found"))
-    }
-}
-
-pub(crate) fn format_view_count(count: i64) -> String {
-    if count >= 1_000_000 {
-        let millions = count as f64 / 1_000_000.0;
-        if millions < 10.0 {
-            format!("{:.1}M views", millions)
-        } else {
-            format!("{:.0}M views", millions)
-        }
-    } else if count >= 1_000 {
-        let thousands = count as f64 / 1_000.0;
-        if thousands < 10.0 {
-            format!("{:.1}K views", thousands)
-        } else {
-            format!("{:.0}K views", thousands)
-        }
-    } else {
-        format!("{} views", count)
     }
 }
 

@@ -117,7 +117,7 @@ pub async fn video(
             uploader_display_name: uploader.display_name,
             uploader_avatar_url: uploader.avatar_url,
             created_at,
-            view_count: format!("{}K", (content_id.to_string().bytes().fold(0u64, |acc, b| acc.wrapping_add(b as u64)) * 3 + 5) % 90 + 1),
+            view_count: crate::components::format_view_count(content.view_count),
             favourite_count: content.favorite_count.to_string(),
             is_uploader,
             content_id,

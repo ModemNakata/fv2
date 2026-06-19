@@ -22,6 +22,7 @@ mod s3;
 mod settings;
 mod upload;
 mod video;
+mod view_counter;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -29,6 +30,7 @@ pub struct AppState {
     pub s3_processed: Bucket,
     pub s3_orig: Bucket,
     pub static_version: String,
+    pub redis_conn: redis::aio::ConnectionManager,
 }
 
 #[actix_web::main]
@@ -56,13 +58,27 @@ async fn main() -> std::io::Result<()> {
     let conn = Database::connect(&db_url).await.unwrap();
     let (s3_processed, s3_orig) = s3::init_buckets();
 
+    // ── View counter: Redis connection ──────────────────────────────────────
+    let redis_client =
+        redis::Client::open(view_counter::redis_url()).expect("invalid REDIS_URL");
+    let redis_conn = redis::aio::ConnectionManager::new(redis_client)
+        .await
+        .expect("failed to connect to Redis");
+
     let static_version = env!("CARGO_PKG_VERSION").to_string();
     let state = AppState {
         conn,
         s3_processed,
         s3_orig,
         static_version,
+        redis_conn,
     };
+
+    // ── Background worker: flush view counters to Postgres every 5 min ──────
+    let worker_state = state.clone();
+    actix_web::rt::spawn(async move {
+        view_counter::sync_views_to_db(worker_state).await;
+    });
 
     HttpServer::new(move || {
         App::new()
@@ -150,6 +166,11 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/favorites",
                         web::get().to(favorites::api_favorites),
+                    )
+                    // ── View counter ────────────────────────────────────────
+                    .route(
+                        "/content/{uuid}/view",
+                        web::post().to(view_counter::track_view),
                     ),
             )
     })

@@ -254,6 +254,7 @@ pub async fn upload_video(
         updated_at: Set(now),
         price_cents: Set(price_cents),
         is_paywalled: Set(price_cents > 0),
+        view_count: Set(0),
         favorite_count: Set(0),
     };
 
@@ -276,7 +277,6 @@ pub async fn upload_video(
         source_quality: Set(None),
         free_preview_duration_s: Set(preview_length),
         preview_path: Set(None),
-        view_count: Set(0),
     };
 
     if let Err(e) = video.insert(&state.conn).await {
@@ -458,6 +458,7 @@ pub async fn upload_gallery(
         updated_at: Set(now),
         price_cents: Set(price_cents),
         is_paywalled: Set(price_cents > 0),
+        view_count: Set(0),
         favorite_count: Set(0),
     };
 
@@ -475,7 +476,6 @@ pub async fn upload_gallery(
         content_id: Set(content_id),
         layout_preference: Set(None),
         preview_path: Set(None),
-        view_count: Set(0),
         unblurred_count: Set(unblurred_count),
     };
 

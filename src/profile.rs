@@ -98,7 +98,7 @@ pub async fn user_profile(
         about_me: user.about_me,
         follower_count: "1.2K".to_string(),
         following_count: "42".to_string(),
-        profile_views: "8.7K".to_string(),
+        profile_views: crate::components::format_view_count(user.view_count),
         active_tab,
         video_count: video_count as i64,
         gallery_count: gallery_count as i64,
@@ -211,7 +211,6 @@ pub async fn api_videos(
                 format!("{}:{:02}", minutes, secs)
             };
 
-            let view_count = video_opt.as_ref().map(|v| v.view_count).unwrap_or(0);
             let favourite_count = content.favorite_count.to_string();
 
             let hue = (content
@@ -239,7 +238,7 @@ pub async fn api_videos(
                 thumbnail_url,
                 preview_url,
                 duration: duration_str,
-                views: gallery::format_view_count(view_count),
+                views: crate::components::format_view_count(content.view_count),
                 favourite_count,
                 time_ago: gallery::time_ago(&content.created_at, now),
                 hue,
@@ -386,7 +385,6 @@ pub async fn api_galleries(
                 })
                 .map(|path| format!("{}/{}", s3_base, path));
 
-            let view_count = image_set.map(|is| is.view_count).unwrap_or(0);
             let favourite_count = content.favorite_count.to_string();
 
             ApiGalleryItem {
@@ -394,7 +392,7 @@ pub async fn api_galleries(
                 title: content.title,
                 thumbnail_url,
                 image_count,
-                views: gallery::format_view_count(view_count),
+                views: crate::components::format_view_count(content.view_count),
                 favourite_count,
                 time_ago: gallery::time_ago(&content.created_at, now),
             }

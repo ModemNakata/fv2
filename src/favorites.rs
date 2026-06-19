@@ -334,7 +334,7 @@ async fn render_video_cards(
         } else {
             format!("{}:{:02}", minutes, secs)
         };
-        let view_count = video_opt.map(|v| v.view_count).unwrap_or(0);
+        let view_count = content.view_count;
         let (username, display_name, uploader_avatar_url) = users_map
             .get(&content.uploader_id)
             .cloned()
@@ -359,7 +359,7 @@ async fn render_video_cards(
         let item = FavVideoItem {
             id: content.id,
             title: content.title.clone(),
-            views: gallery::format_view_count(view_count),
+            views: crate::components::format_view_count(view_count),
             _favourite_count: content.favorite_count.to_string(),
             duration: duration_str,
             time_ago: gallery::time_ago(&content.created_at, now),
@@ -433,7 +433,7 @@ async fn render_gallery_cards(
                     .map(|img| img.storage_path.as_ref().unwrap_or(&img.orig_storage_path))
             })
             .map(|path| format!("{}/{}", s3_base, path));
-        let view_count = image_set.map(|is| is.view_count).unwrap_or(0);
+        let view_count = content.view_count;
         let (username, display_name, uploader_avatar_url) = users_map
             .get(&content.uploader_id)
             .cloned()
@@ -444,7 +444,7 @@ async fn render_gallery_cards(
             title: content.title.clone(),
             image_count,
             thumbnail_url,
-            views: gallery::format_view_count(view_count),
+            views: crate::components::format_view_count(view_count),
             _favourite_count: content.favorite_count.to_string(),
             time_ago: gallery::time_ago(&content.created_at, now),
             uploader_avatar_url,
