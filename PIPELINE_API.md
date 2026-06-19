@@ -2,6 +2,8 @@
 
 Internal HTTP endpoints used by the AV1 + AVIF processing pipeline to discover and update unprocessed content.
 
+NOTE: it returns free preview duration secs but pipeline ignores it if paywalled isn't true
+
 ## Auth
 
 | Endpoint | Auth |
