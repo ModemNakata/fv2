@@ -21,7 +21,8 @@ impl MigrationTrait for Migration {
                     // | copied from username on initial registration, can be changed later in settings
                     .col(string_len("display_name", 32)) // 50
                     .col(string_len("password_hash", 255))
-                    .col(string_len("avatar_url", 1024).null()) // profile pic path /// or string("")
+                    .col(string_len("avatar_url", 1024).null()) // profile pic path /// or string("") ||| user uuid + unix timestamp + .avif
+                    //// save original avatar url name and source picture?
                     // add profile background image (e.g. `profile-banner`)
                     // .col(string_len("about_me", 280).null()) // 160
                     .col(string_len("about_me", 500).null())

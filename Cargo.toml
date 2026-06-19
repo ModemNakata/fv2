@@ -25,4 +25,3 @@ sha2 = "0.11.0"
 # tracing-actix-web = "0.7.21"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 uuid = { version = "1.23.2", features = ["v4", "serde"] }
-webp = "0.3.1"

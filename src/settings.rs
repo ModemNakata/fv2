@@ -135,6 +135,7 @@ pub async fn update_settings(
         }
     }
 
+    let current_avatar_url = user.avatar_url.clone();
     let mut user: users::ActiveModel = user.into();
 
     if let Some(ref new_username) = username {
@@ -185,10 +186,16 @@ pub async fn update_settings(
     }
 
     if remove_avatar {
-        let old_path = format!("static/avatars/{user_id}.webp");
-        let _ = std::fs::remove_file(&old_path);
+        if let Some(ref url) = current_avatar_url {
+            let path = url.trim_start_matches('/');
+            let _ = std::fs::remove_file(path);
+        }
         user.avatar_url = Set(None);
     } else if let Some(data) = avatar_data {
+        if let Some(ref url) = current_avatar_url {
+            let path = url.trim_start_matches('/');
+            let _ = std::fs::remove_file(path);
+        }
         match process_avatar(&data, user_id) {
             Ok(avatar_url) => {
                 user.avatar_url = Set(Some(avatar_url));
@@ -218,19 +225,20 @@ pub async fn update_settings(
 
 fn process_avatar(data: &[u8], user_id: Uuid) -> Result<String, String> {
     let img = image::load_from_memory(data).map_err(|e| format!("Invalid image: {e}"))?;
-    let resized = img.resize_to_fill(256, 256, image::imageops::FilterType::Lanczos3); // 128
-    // 300, 500 |
+    let resized = img.resize_to_fill(256, 256, image::imageops::FilterType::Lanczos3);
 
-    let filename = format!("{user_id}.webp");
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let filename = format!("{user_id}_{now}.avif");
     let path = format!("static/avatars/{filename}");
 
     let mut output =
         std::fs::File::create(&path).map_err(|e| format!("Failed to create file: {e}"))?;
-    let encoder =
-        webp::Encoder::from_image(&resized).map_err(|e| format!("WebP encoding failed: {e}"))?;
-    let webp_data = encoder.encode(100.0); // 90 /// //// /////
-    std::io::Write::write_all(&mut output, &webp_data)
-        .map_err(|e| format!("Failed to write avatar: {e}"))?;
+    resized
+        .write_to(&mut output, image::ImageFormat::Avif)
+        .map_err(|e| format!("AVIF encoding failed: {e}"))?;
 
     Ok(format!("/static/avatars/{filename}"))
 }
