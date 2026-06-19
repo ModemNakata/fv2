@@ -103,6 +103,7 @@ impl MigrationTrait for Migration {
                     .col(uuid("content_id").primary_key())
                     .col(integer_null("duration_seconds"))
                     .col(string_len("source_quality", 10).null()) // e.g. "1080p", "1080p60", "4K" | shouldn't be null ?
+                    // source quality pure digit? to apply `min-quality` filter? or order by quality...
                     .col(string_len("source_resolution", 10).null()) // e.g. WxH (1920x1080) | actually shouldn't be null
                     // ^ can also include resolution_dimensions (?)
                     .col(integer_null("free_preview_duration_s"))
