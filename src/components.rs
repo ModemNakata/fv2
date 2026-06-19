@@ -6,19 +6,24 @@ pub fn format_view_count(count: i64) -> String {
     if count >= 1_000_000 {
         let millions = count as f64 / 1_000_000.0;
         if millions < 10.0 {
-            format!("{:.1}M views", millions)
+            // format!("{:.1}M views", millions)
+            format!("{:.1}M", millions)
         } else {
-            format!("{:.0}M views", millions)
+            // format!("{:.0}M views", millions)
+            format!("{:.0}M", millions)
         }
     } else if count >= 1_000 {
         let thousands = count as f64 / 1_000.0;
         if thousands < 10.0 {
-            format!("{:.1}K views", thousands)
+            // format!("{:.1}K views", thousands)
+            format!("{:.1}K", thousands)
         } else {
-            format!("{:.0}K views", thousands)
+            // format!("{:.0}K views", thousands)
+            format!("{:.0}K", thousands)
         }
     } else {
-        format!("{} views", count)
+        // format!("{} views", count)
+        format!("{}", count)
     }
 }
 
