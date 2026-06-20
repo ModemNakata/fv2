@@ -116,6 +116,31 @@
           }
         }
 
+        /* ── Handle image loading for dynamically added cards ── */
+        var newImgs = grid.querySelectorAll('.thumb-img, .gallery-card-img');
+        for (var j = 0; j < newImgs.length; j++) {
+          (function (img) {
+            var parent = img.closest('.thumbnail') || img.closest('.gallery-card-thumb');
+            if (parent) {
+              parent.classList.add('loading');
+              parent.classList.remove('loaded');
+            }
+            function onDone() {
+              img.classList.add('loaded');
+              if (parent) {
+                parent.classList.remove('loading');
+                parent.classList.add('loaded');
+              }
+            }
+            if (img.complete && img.naturalWidth > 0) {
+              onDone();
+            } else {
+              img.addEventListener('load', onDone);
+              img.addEventListener('error', onDone);
+            }
+          })(newImgs[j]);
+        }
+
         offsets[type] += data.items.length;
         hasMore[type] = data.has_more;
         loading[type] = false;

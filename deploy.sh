@@ -18,7 +18,7 @@ scp "$BINARY" "$TARGET_HOST:$TARGET_DIR/fevid-binary"
 echo "🚀 Starting service..."
 ssh "$TARGET_HOST" "sudo systemctl start $SERVICE_NAME"
 
-echo "🎨 Syncing static files..."
-scp -r static/* "$TARGET_HOST:$TARGET_DIR/nginx/html/"
+# echo "🎨 Syncing static files..."
+# scp -r static/* "$TARGET_HOST:$TARGET_DIR/nginx/html/"
 
 echo "✅ Deployment complete"
