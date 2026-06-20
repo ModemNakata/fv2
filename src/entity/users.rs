@@ -12,6 +12,8 @@ pub struct Model {
     pub display_name: String,
     pub password_hash: String,
     pub avatar_url: Option<String>,
+    pub original_avatar_path: Option<String>,
+    pub original_avatar_name: Option<String>,
     pub about_me: Option<String>,
     pub view_count: i64,
     pub password_changed_at: DateTime,

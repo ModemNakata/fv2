@@ -78,6 +78,7 @@ pub async fn update_settings(
     let mut display_name: Option<String> = None;
     let mut about_me: Option<String> = None;
     let mut avatar_data: Option<Vec<u8>> = None;
+    let mut avatar_filename: Option<String> = None;
     let mut remove_avatar = false;
 
     while let Some(Ok(mut field)) = payload.next().await {
@@ -122,6 +123,7 @@ pub async fn update_settings(
                 }
                 if !data.is_empty() {
                     avatar_data = Some(data);
+                    avatar_filename = cd.get_filename().map(|s| s.to_string());
                 }
             }
             "remove_avatar" => {
@@ -196,16 +198,28 @@ pub async fn update_settings(
         if let Some(ref url) = current_avatar_url {
             let path = url.trim_start_matches('/');
             let _ = std::fs::remove_file(path);
+            // TEMPORARY: don't delete original avatar on `avatar remove`
+            // if let Some(filename) = path.rsplit_once('/').map(|(_, f)| f) {
+            //     let _ = std::fs::remove_file(format!("static/avatars/original-{filename}"));
+            // }
         }
         user.avatar_url = Set(None);
+        user.original_avatar_path = Set(None);
+        user.original_avatar_name = Set(None);
     } else if let Some(data) = avatar_data {
         if let Some(ref url) = current_avatar_url {
             let path = url.trim_start_matches('/');
             let _ = std::fs::remove_file(path);
+            // don't delete original avatar on avatar update
+            // if let Some(filename) = path.rsplit_once('/').map(|(_, f)| f) {
+            // let _ = std::fs::remove_file(format!("static/avatars/original-{filename}"));
+            // }
         }
-        match process_avatar(&data, user_id) {
-            Ok(avatar_url) => {
+        match process_avatar(&data, user_id, &avatar_filename) {
+            Ok((avatar_url, original_path)) => {
                 user.avatar_url = Set(Some(avatar_url));
+                user.original_avatar_path = Set(original_path);
+                user.original_avatar_name = Set(avatar_filename);
             }
             Err(e) => {
                 return HttpResponse::BadRequest().json(SettingsResponse {
@@ -230,7 +244,11 @@ pub async fn update_settings(
     })
 }
 
-fn process_avatar(data: &[u8], user_id: Uuid) -> Result<String, String> {
+fn process_avatar(
+    data: &[u8],
+    user_id: Uuid,
+    original_filename: &Option<String>,
+) -> Result<(String, Option<String>), String> {
     let img = image::load_from_memory(data).map_err(|e| format!("Invalid image: {e}"))?;
     let resized = img.resize_to_fill(256, 256, image::imageops::FilterType::Lanczos3); // 128 // 512 | Lanczos3 ???
 
@@ -238,15 +256,33 @@ fn process_avatar(data: &[u8], user_id: Uuid) -> Result<String, String> {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
-    let filename = format!("{user_id}_{now}.avif");
-    let path = format!("static/avatars/{filename}");
+    let avif_filename = format!("{user_id}_{now}.avif");
+    let avif_path = format!("static/avatars/{avif_filename}");
 
     let mut output =
-        std::fs::File::create(&path).map_err(|e| format!("Failed to create file: {e}"))?;
+        std::fs::File::create(&avif_path).map_err(|e| format!("Failed to create file: {e}"))?;
     resized
         .write_to(&mut output, image::ImageFormat::Avif)
         .map_err(|e| format!("AVIF encoding failed: {e}"))?;
 
-    Ok(format!("/static/avatars/{filename}"))
+    // Save original unprocessed image with its original extension
+    let original_ext = original_filename
+        .as_ref()
+        .and_then(|name| std::path::Path::new(name).extension())
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.to_lowercase())
+        .filter(|ext| !ext.is_empty())
+        .unwrap_or_else(|| "png".to_string());
+    let original_file = format!("original-{user_id}_{now}.{original_ext}");
+    let original_path = format!("static/avatars/{original_file}");
+    let mut original_output = std::fs::File::create(&original_path)
+        .map_err(|e| format!("Failed to create original file: {e}"))?;
+    std::io::copy(&mut std::io::Cursor::new(data), &mut original_output)
+        .map_err(|e| format!("Failed to write original image: {e}"))?;
+
+    Ok((
+        format!("/static/avatars/{avif_filename}"),
+        Some(format!("/static/avatars/{original_file}")),
+    ))
 }
 // ? (???) (?)
