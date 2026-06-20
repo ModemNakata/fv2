@@ -633,6 +633,77 @@ pub async fn cancel_content(
         }));
     }
 
+    // Collect all S3 keys from related records before DB cascade deletes them
+    let mut processed_keys: Vec<String> = Vec::new(); // processed bucket
+    let mut orig_keys: Vec<String> = Vec::new();      // original bucket
+
+    if let Some(ref url) = content.thumbnail_url {
+        processed_keys.push(url.clone());
+    }
+
+    match content.r#type {
+        ContentType::Video => {
+            if let Ok(Some(video)) = Videos::find_by_id(content_id).one(&state.conn).await {
+                if let Some(ref path) = video.preview_path {
+                    processed_keys.push(path.clone());
+                }
+            }
+            if let Ok(formats) = VideoFormats::find()
+                .filter(video_formats::Column::VideoId.eq(content_id))
+                .all(&state.conn)
+                .await
+            {
+                for fmt in formats {
+                    if !fmt.orig_storage_path.is_empty() {
+                        orig_keys.push(fmt.orig_storage_path);
+                    }
+                    if let Some(ref path) = fmt.storage_path {
+                        processed_keys.push(path.clone());
+                    }
+                }
+            }
+        }
+        ContentType::ImageSet => {
+            if let Ok(Some(image_set)) = ImageSets::find_by_id(content_id).one(&state.conn).await {
+                if let Some(ref path) = image_set.preview_path {
+                    processed_keys.push(path.clone());
+                }
+            }
+            if let Ok(imgs) = Images::find()
+                .filter(images::Column::ImageSetId.eq(content_id))
+                .all(&state.conn)
+                .await
+            {
+                for img in imgs {
+                    if !img.orig_storage_path.is_empty() {
+                        orig_keys.push(img.orig_storage_path);
+                    }
+                    if let Some(ref path) = img.storage_path {
+                        processed_keys.push(path.clone());
+                    }
+                    if let Some(ref path) = img.blurred_storage_path {
+                        processed_keys.push(path.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    // Delete files from processed bucket
+    for key in &processed_keys {
+        if let Err(e) = state.s3_processed.delete_object(key).await {
+            log::warn!("Failed to delete processed file {key}: {e}");
+        }
+    }
+
+    // Delete files from original bucket
+    for key in &orig_keys {
+        if let Err(e) = state.s3_orig.delete_object(key).await {
+            log::warn!("Failed to delete original file {key}: {e}");
+        }
+    }
+
+    // Delete from DB
     if let Err(e) = content.delete(&state.conn).await {
         log::error!("DB error deleting content {content_id}: {e}");
         return HttpResponse::InternalServerError().json(serde_json::json!({
@@ -640,7 +711,7 @@ pub async fn cancel_content(
         }));
     }
 
-    log::info!("Content {content_id} cancelled by uploader");
+    log::info!("Content {content_id} cancelled by uploader, S3 files cleaned up");
 
     HttpResponse::Ok().json(serde_json::json!({"ok": true}))
 }
