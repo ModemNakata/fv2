@@ -183,7 +183,9 @@
 }
 
 @keyframes like-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Purchase Banner ── */
@@ -283,7 +285,7 @@
   justify-content: center;
   background: rgba(0, 0, 0, 0.15);
   cursor: pointer;
-  transition: background 0.15s;
+  /* transition: background 0.15s; */
 }
 
 .img-lock-overlay:hover {
