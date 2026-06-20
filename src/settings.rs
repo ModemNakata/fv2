@@ -253,6 +253,7 @@ fn process_avatar(
     let img = image::load_from_memory(data).map_err(|e| format!("Invalid image: {e}"))?;
     let resized = img.resize_to_fill(256, 256, image::imageops::FilterType::Lanczos3); // 128 // 512 | Lanczos3 ???
 
+    // using UNIX TIMESTAMP assuming user can't change profile picture twice in a second...
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
@@ -276,6 +277,8 @@ fn process_avatar(
         .unwrap_or_else(|| "png".to_string());
     let original_file = format!("original-{user_id}_{now}.{original_ext}");
     let original_path = format!("static/avatars/{original_file}");
+
+    // saving original profile picutre | store it to change later if needed
     let mut original_output = std::fs::File::create(&original_path)
         .map_err(|e| format!("Failed to create original file: {e}"))?;
     std::io::copy(&mut std::io::Cursor::new(data), &mut original_output)
