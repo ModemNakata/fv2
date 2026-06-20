@@ -21,7 +21,7 @@
           stroke-linejoin="round" stroke-width="16" />
       </svg>
       <p class="upload-text">Drag & drop images or <span class="upload-link">browse</span></p>
-      <p class="upload-hint">Converted to WebP — up to 100 images, 5GB total</p>
+      <p class="upload-hint">Converted to Avif — up to 100 images, 5GB total</p>
       <input type="file" id="galleryFileInput" accept="image/*" hidden multiple>
     </div>
     <div class="file-list" id="fileList"></div>
@@ -351,7 +351,7 @@
     // Upload with progress
     document.getElementById('uploadForm').addEventListener('submit', function (e) {
       e.preventDefault();
-      if (getPricingError()) { return; }
+      if (getPricingError()) {return;}
       var btn = document.getElementById('uploadBtn');
       var dropzone = document.getElementById('galleryDropzone');
       var progressContainer = document.getElementById('progressContainer');

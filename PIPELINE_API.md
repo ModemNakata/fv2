@@ -10,7 +10,7 @@ NOTE: it returns free preview duration secs but pipeline ignores it if paywalled
 |----------|------|
 | `GET /api/pending-processing` | None |
 | `GET /api/content/{id}` | None |
-| `PATCH /api/content/{id}/status` | `X-Api-Key` header must match `S3_ACCESS_KEY` from `.env` |
+| `PATCH /api/content/{id}/status` | `X-Api-Key` header must match `PIPELINE_RAND_HEX` from `.env` |
 
 ## Flow
 
@@ -166,7 +166,7 @@ Updates the processing status of a content item after the pipeline finishes.
 
 | Header | Value |
 |--------|-------|
-| `X-Api-Key` | `S3_ACCESS_KEY` from `.env` (required) |
+| `X-Api-Key` | `PIPELINE_RAND_HEX` from `.env` (required) |
 | `Content-Type` | `application/json` |
 
 ### Request Body
@@ -293,7 +293,7 @@ loop:
       preview_path = "galleries/{content_id}/preview.avif"        # optional
     
     PATCH http://app:8080/api/content/{item.content_id}/status
-      X-Api-Key: {S3_ACCESS_KEY}
+      X-Api-Key: {PIPELINE_RAND_HEX}
       {
         "status": "ready",
         "source_resolution": "{detected WxH}",

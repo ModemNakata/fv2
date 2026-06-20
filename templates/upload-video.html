@@ -22,7 +22,7 @@
             stroke-linejoin="round" stroke-width="16" />
         </svg>
         <p class="upload-text">Drag & drop a video or <span class="upload-link">browse</span></p>
-        <p class="upload-hint">Encoded to HLS (H.264) — up to 10GB</p>
+        <p class="upload-hint">Encoded to WebM (AV1) — up to 10GB</p>
       </div>
       <div class="dropzone-file" id="dropzoneFile" hidden>
         <svg class="icon file-selected-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
@@ -51,7 +51,8 @@
         <div class="upload-field-row">
           <label class="upload-label" for="previewLength">Free preview duration</label>
           <div class="range-wrapper">
-            <input type="range" id="previewLength" name="preview_length" class="upload-range" min="5" max="60" value="5">
+            <input type="range" id="previewLength" name="preview_length" class="upload-range" min="5" max="60"
+              value="5">
             <span class="upload-range-value" id="previewLengthValue">5s</span>
           </div>
         </div>
@@ -140,7 +141,7 @@
             window.URL.revokeObjectURL(video.src);
             resolve(video.duration);
           };
-          video.onerror = function () { resolve(null); };
+          video.onerror = function () {resolve(null);};
           video.src = URL.createObjectURL(file);
         });
       }
@@ -200,7 +201,7 @@
 
       form.addEventListener('submit', function (e) {
         e.preventDefault();
-        if (!validateVideo()) { btn.disabled = false; return; }
+        if (!validateVideo()) {btn.disabled = false; return;}
         var dropzone = document.getElementById('videoDropzone');
         var progressContainer = document.getElementById('progressContainer');
         var progressFill = document.getElementById('progressFill');

@@ -1,16 +1,18 @@
 use actix_session::Session;
 use actix_web::{HttpRequest, HttpResponse, web};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, ModelTrait, QueryFilter, QueryOrder, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, ModelTrait, QueryFilter, QueryOrder, Set,
+};
 use serde::Serialize;
 use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::auth;
 
+use crate::AppState;
 use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::{ContentStatus, ContentType};
 use crate::entity::{content_items, image_sets, images, users, video_formats, videos};
-use crate::AppState;
 
 #[derive(Serialize)]
 struct PendingItem {
@@ -48,7 +50,9 @@ fn item_to_pending(
 
     let (free_preview_duration_s, unblurred_count) = match item.r#type {
         ContentType::Video => (
-            videos_map.get(&item.id).and_then(|v| v.free_preview_duration_s),
+            videos_map
+                .get(&item.id)
+                .and_then(|v| v.free_preview_duration_s),
             None,
         ),
         ContentType::ImageSet => (
@@ -98,8 +102,7 @@ pub async fn pending_processing(
         filter = filter.filter(content_items::Column::Status.eq(ContentStatus::Processing));
     }
 
-    let items = match filter.all(&state.conn).await
-    {
+    let items = match filter.all(&state.conn).await {
         Ok(items) => items,
         Err(e) => {
             log::error!("DB error fetching pending items: {e}");
@@ -159,18 +162,19 @@ pub async fn pending_processing(
         std::collections::HashMap::new()
     };
 
-    let image_sets_map: std::collections::HashMap<Uuid, image_sets::Model> = if !image_set_ids.is_empty() {
-        ImageSets::find()
-            .filter(image_sets::Column::ContentId.is_in(image_set_ids.clone()))
-            .all(&state.conn)
-            .await
-            .unwrap_or_default()
-            .into_iter()
-            .map(|s| (s.content_id, s))
-            .collect()
-    } else {
-        std::collections::HashMap::new()
-    };
+    let image_sets_map: std::collections::HashMap<Uuid, image_sets::Model> =
+        if !image_set_ids.is_empty() {
+            ImageSets::find()
+                .filter(image_sets::Column::ContentId.is_in(image_set_ids.clone()))
+                .all(&state.conn)
+                .await
+                .unwrap_or_default()
+                .into_iter()
+                .map(|s| (s.content_id, s))
+                .collect()
+        } else {
+            std::collections::HashMap::new()
+        };
 
     let uploader_ids: Vec<Uuid> = items.iter().map(|i| i.uploader_id).collect();
     let users_map: std::collections::HashMap<Uuid, String> = if !uploader_ids.is_empty() {
@@ -189,18 +193,25 @@ pub async fn pending_processing(
     let result: Vec<PendingItem> = items
         .iter()
         .map(|item| {
-            let username = users_map.get(&item.uploader_id).cloned().unwrap_or_default();
-            item_to_pending(item, &video_formats, &all_images, &videos_map, &image_sets_map, &username)
+            let username = users_map
+                .get(&item.uploader_id)
+                .cloned()
+                .unwrap_or_default();
+            item_to_pending(
+                item,
+                &video_formats,
+                &all_images,
+                &videos_map,
+                &image_sets_map,
+                &username,
+            )
         })
         .collect();
 
     HttpResponse::Ok().json(result)
 }
 
-pub async fn get_content(
-    state: web::Data<AppState>,
-    content_id: web::Path<Uuid>,
-) -> HttpResponse {
+pub async fn get_content(state: web::Data<AppState>, content_id: web::Path<Uuid>) -> HttpResponse {
     let content_id = content_id.into_inner();
 
     let item = match ContentItems::find_by_id(content_id).one(&state.conn).await {
@@ -267,7 +278,14 @@ pub async fn get_content(
         ContentType::Video => std::collections::HashMap::new(),
     };
 
-    let result = item_to_pending(&item, &video_formats, &all_images, &v_map, &is_map, &username);
+    let result = item_to_pending(
+        &item,
+        &video_formats,
+        &all_images,
+        &v_map,
+        &is_map,
+        &username,
+    );
     HttpResponse::Ok().json(result)
 }
 
@@ -314,7 +332,7 @@ pub async fn update_status(
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
 
-    let expected = std::env::var("S3_ACCESS_KEY").ok();
+    let expected = std::env::var("PIPELINE_RAND_HEX").ok();
 
     match (api_key, expected) {
         (Some(key), Some(expected)) if key == expected => {}
@@ -359,25 +377,33 @@ pub async fn update_status(
             if let Some(ref preview) = body.preview_path {
                 match content_type {
                     ContentType::Video => {
-                        if let Ok(Some(video)) = Videos::find_by_id(content_id).one(&state.conn).await {
+                        if let Ok(Some(video)) =
+                            Videos::find_by_id(content_id).one(&state.conn).await
+                        {
                             let mut video: videos::ActiveModel = video.into();
                             video.preview_path = Set(Some(preview.clone()));
                             if let Err(e) = video.update(&state.conn).await {
                                 log::error!("DB error updating video preview_path: {e}");
                             }
                         } else {
-                            log::warn!("video record not found for content_id {content_id}, skipping preview_path");
+                            log::warn!(
+                                "video record not found for content_id {content_id}, skipping preview_path"
+                            );
                         }
                     }
                     ContentType::ImageSet => {
-                        if let Ok(Some(image_set)) = ImageSets::find_by_id(content_id).one(&state.conn).await {
+                        if let Ok(Some(image_set)) =
+                            ImageSets::find_by_id(content_id).one(&state.conn).await
+                        {
                             let mut image_set: image_sets::ActiveModel = image_set.into();
                             image_set.preview_path = Set(Some(preview.clone()));
                             if let Err(e) = image_set.update(&state.conn).await {
                                 log::error!("DB error updating image_set preview_path: {e}");
                             }
                         } else {
-                            log::warn!("image_set record not found for content_id {content_id}, skipping preview_path");
+                            log::warn!(
+                                "image_set record not found for content_id {content_id}, skipping preview_path"
+                            );
                         }
                     }
                 }
@@ -392,7 +418,9 @@ pub async fn update_status(
                         log::error!("DB error updating duration_seconds: {e}");
                     }
                 } else {
-                    log::warn!("video record not found for content_id {content_id}, skipping duration");
+                    log::warn!(
+                        "video record not found for content_id {content_id}, skipping duration"
+                    );
                 }
             }
 
@@ -404,7 +432,9 @@ pub async fn update_status(
                         log::error!("DB error updating free preview_path: {e}");
                     }
                 } else {
-                    log::warn!("video record not found for content_id {content_id}, skipping free_preview_path");
+                    log::warn!(
+                        "video record not found for content_id {content_id}, skipping free_preview_path"
+                    );
                 }
             }
 
@@ -416,7 +446,9 @@ pub async fn update_status(
                         log::error!("DB error updating source_quality: {e}");
                     }
                 } else {
-                    log::warn!("video record not found for content_id {content_id}, skipping source_quality");
+                    log::warn!(
+                        "video record not found for content_id {content_id}, skipping source_quality"
+                    );
                 }
             }
 
@@ -428,7 +460,9 @@ pub async fn update_status(
                         log::error!("DB error updating source_resolution: {e}");
                     }
                 } else {
-                    log::warn!("video record not found for content_id {content_id}, skipping source_resolution");
+                    log::warn!(
+                        "video record not found for content_id {content_id}, skipping source_resolution"
+                    );
                 }
             }
 
@@ -498,7 +532,10 @@ pub async fn update_status(
                 if content_type == ContentType::Video {
                     for (resolution, path) in formats {
                         // Derive format from path extension (e.g. "videos/u/1080p.webm" → "webm")
-                        let fmt_ext = path.rsplit_once('.').map(|(_, ext)| ext.to_lowercase()).unwrap_or_default();
+                        let fmt_ext = path
+                            .rsplit_once('.')
+                            .map(|(_, ext)| ext.to_lowercase())
+                            .unwrap_or_default();
                         if let Ok(Some(fmt)) = VideoFormats::find()
                             .filter(video_formats::Column::VideoId.eq(content_id))
                             .filter(video_formats::Column::Resolution.eq(resolution.as_str()))
