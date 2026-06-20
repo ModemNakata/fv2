@@ -4,12 +4,12 @@ use askama::Template;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
+use crate::AppState;
 use crate::auth;
 use crate::components::ProcessingPage;
 use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
 use crate::entity::video_formats;
-use crate::AppState;
 
 #[derive(Template)]
 #[template(path = "video.html")]
@@ -88,7 +88,10 @@ pub async fn video(
             let mut sources = Vec::with_capacity(formats.len());
             for f in &formats {
                 let url = match f.storage_path.as_ref() {
-                    Some(p) => state.s3.presigned(p).await
+                    Some(p) => state
+                        .s3
+                        .presigned(p)
+                        .await
                         .map_err(actix_web::error::ErrorInternalServerError)?,
                     None => String::new(),
                 };
@@ -117,7 +120,10 @@ pub async fn video(
         let created_at = content.created_at.format("%b %e, %Y").to_string();
 
         let html = VideoPage {
-            username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
+            username: session_user
+                .as_ref()
+                .map(|u| u.username.clone())
+                .unwrap_or_default(),
             logged_in,
             session_avatar_url: session_user.and_then(|u| u.avatar_url),
             video_title: content.title,
@@ -150,7 +156,10 @@ pub async fn video(
         };
 
         let html = ProcessingPage {
-            username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
+            username: session_user
+                .as_ref()
+                .map(|u| u.username.clone())
+                .unwrap_or_default(),
             logged_in,
             session_avatar_url: session_user.and_then(|u| u.avatar_url),
             title: content.title,
@@ -194,10 +203,10 @@ fn parse_resolution(res: &str) -> (u32, u32) {
 /// Map a file format extension to its MIME type for the Vidstack source array.
 fn mime_for_format(ext: &str) -> &'static str {
     match ext {
-        "webm" => "video/webm",
-        "mp4" => "video/mp4",
-        "ogg" => "video/ogg",
-        "m3u8" => "application/x-mpegurl",
+        // "webm" => "video/webm",
+        // "mp4" => "video/mp4",
+        // "ogg" => "video/ogg",
+        // "m3u8" => "application/x-mpegurl",
         _ => "video/webm",
     }
 }
