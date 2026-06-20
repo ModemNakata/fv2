@@ -1,0 +1,32 @@
+[Unit]
+Description=fevid-web Rust web application
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=fevidcloud
+Group=fevidcloud
+WorkingDirectory=/home/fevidcloud
+ExecStart=/home/fevidcloud/fevid-binary
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fevid-web
+
+# Load DATABASE_URL, SESSION_SECRET, RUST_LOG, etc from .env
+EnvironmentFile=/home/fevidcloud/.env
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/home/fevidcloud
+
+# Resource limits
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
