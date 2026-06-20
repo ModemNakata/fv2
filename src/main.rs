@@ -142,7 +142,8 @@ async fn main() -> std::io::Result<()> {
                     .service(auth::auth_check)
                     .service(auth::sign_up)
                     .service(auth::sign_in)
-                    .service(auth::sign_out),
+                    .service(auth::sign_out)
+                    .service(auth::instant_register),
             )
             .service(
                 web::scope("/api")

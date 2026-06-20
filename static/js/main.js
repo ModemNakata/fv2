@@ -209,6 +209,25 @@
 
   if (signInForm && signInError) handleFormSubmit(signInForm, signInError);
 
+  var instantBtn = document.getElementById('instantRegisterBtn');
+  if (instantBtn) {
+    instantBtn.addEventListener('click', function() {
+      setLoading(instantBtn, true);
+      fetch('/auth/instant-register', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+          if (resp.ok) {
+            location.reload();
+          } else {
+            setLoading(instantBtn, false);
+          }
+        })
+        .catch(function() {
+          setLoading(instantBtn, false);
+        });
+    });
+  }
+
   if (signUpForm && signUpError) {
     signUpForm.addEventListener('submit', function(e) {
       e.preventDefault();

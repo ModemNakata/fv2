@@ -301,6 +301,61 @@ pub async fn sign_in(
     })
 }
 
+#[post("/instant-register")]
+pub async fn instant_register(
+    session: Session,
+    state: web::Data<AppState>,
+) -> HttpResponse {
+    let username = loop {
+        let suffix: String = Uuid::new_v4().to_string()[..8].to_string();
+        let username = format!("User_{}", suffix);
+
+        let existing = Users::find()
+            .filter(users::Column::Username.eq(&username))
+            .one(&state.conn)
+            .await;
+
+        match existing {
+            Ok(None) => break username,
+            Ok(Some(_)) => continue,
+            Err(e) => {
+                log::error!("DB error checking username: {e}");
+                return HttpResponse::InternalServerError().json(AuthResponse {
+                    ok: false,
+                    error: Some("Something went wrong".to_string()),
+                });
+            }
+        }
+    };
+
+    let user_id = Uuid::new_v4();
+    let now = chrono::Utc::now().naive_utc();
+
+    let insert = users::ActiveModel {
+        id: Set(user_id),
+        username: Set(username.clone()),
+        display_name: Set(username.clone()),
+        password_hash: Set("__no_password__".to_string()),
+        password_changed_at: Set(now),
+        ..Default::default()
+    };
+
+    if let Err(e) = Users::insert(insert).exec(&state.conn).await {
+        log::error!("DB error inserting anonymous user: {e}");
+        return HttpResponse::InternalServerError().json(AuthResponse {
+            ok: false,
+            error: Some("Something went wrong".to_string()),
+        });
+    }
+
+    set_session_auth(&session, user_id, now);
+
+    HttpResponse::Created().json(AuthResponse {
+        ok: true,
+        error: None,
+    })
+}
+
 #[post("/sign-out")] // logout
 pub async fn sign_out(session: Session) -> HttpResponse {
     session.purge();

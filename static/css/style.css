@@ -819,6 +819,67 @@ body.sidebar-open {
   min-height: 1.2em;
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.auth-divider span {
+  padding: 0 12px;
+}
+
+.auth-instant {
+  text-align: center;
+}
+
+.auth-instant-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.auth-instant-note {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.auth-instant-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 20px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-instant-btn:hover {
+  background: var(--bg-hover);
+}
+
+.auth-instant-btn.btn--loading {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .content-header {
   display: flex;
   align-items: center;

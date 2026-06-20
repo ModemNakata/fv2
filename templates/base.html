@@ -299,6 +299,27 @@
           minlength="8">
         <button type="submit" class="auth-submit">Create account</button>
       </form>
+
+      <div class="auth-divider"><span>or</span></div>
+
+      <div class="auth-instant" id="instantRegister">
+        <p class="auth-instant-text">
+          Start browsing with an anonymous account &mdash; no password needed.
+          You can set a username and password later in settings.
+        </p>
+        <p class="auth-instant-note">
+          Session is stored in your browser for 365 days unless you clear cookies.
+        </p>
+        <button class="auth-instant-btn" id="instantRegisterBtn">
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+            <rect width="256" height="256" fill="none"/>
+            <circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+            <circle cx="128" cy="120" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+            <path d="M63.8,199.37a72,72,0,0,1,128.4,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+          </svg>
+          Instant registration
+        </button>
+      </div>
     </div>
   </dialog>
   {% endif %}
