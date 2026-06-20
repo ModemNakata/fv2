@@ -193,55 +193,50 @@ pub async fn index(
             .collect()
     };
 
-    let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
-    let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
-    let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
-        String::new()
-    } else {
-        format!("{}/{}", s3_endpoint.trim_end_matches('/'), s3_bucket)
-    };
-
     let now = Utc::now();
 
-    let galleries: Vec<GalleryCard> = items
-        .into_iter()
-        .map(|content| {
-            let image_set = image_set_map.get(&content.id);
-            let images = image_map.get(&content.id);
-            let image_count = images.map(|v| v.len()).unwrap_or(0);
+    let mut galleries = Vec::with_capacity(items.len());
+    for content in items {
+        let image_set = image_set_map.get(&content.id);
+        let images = image_map.get(&content.id);
+        let image_count = images.map(|v| v.len()).unwrap_or(0);
 
-            let thumbnail_url = image_set
-                .and_then(|is| is.preview_path.as_ref())
-                .or_else(|| {
-                    images
-                        .and_then(|imgs| imgs.first())
-                        .map(|img| img.storage_path.as_ref().unwrap_or(&img.orig_storage_path))
-                })
-                .map(|path| format!("{}/{}", s3_base, path));
+        let thumb_key = image_set
+            .and_then(|is| is.preview_path.clone())
+            .or_else(|| {
+                images
+                    .and_then(|imgs| imgs.first())
+                    .map(|img| img.storage_path.clone().unwrap_or(img.orig_storage_path.clone()))
+            });
 
-            let views = crate::components::format_view_count(content.view_count);
-            let favourite_count = content.favorite_count.to_string();
-            let time_ago_str = time_ago(&content.created_at, now);
+        let thumbnail_url = state
+            .s3
+            .presigned_opt(thumb_key)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
 
-            let (username, display_name, avatar_url) = users_map
-                .get(&content.uploader_id)
-                .cloned()
-                .unwrap_or_else(|| ("?".to_string(), "?".to_string(), None));
+        let views = crate::components::format_view_count(content.view_count);
+        let favourite_count = content.favorite_count.to_string();
+        let time_ago_str = time_ago(&content.created_at, now);
 
-            GalleryCard {
-                id: content.id,
-                title: content.title,
-                image_count,
-                thumbnail_url,
-                views,
-                favourite_count,
-                time_ago: time_ago_str,
-                uploader_avatar_url: avatar_url,
-                uploader_display_name: display_name,
-                uploader_username: username,
-            }
-        })
-        .collect();
+        let (username, display_name, avatar_url) = users_map
+            .get(&content.uploader_id)
+            .cloned()
+            .unwrap_or_else(|| ("?".to_string(), "?".to_string(), None));
+
+        galleries.push(GalleryCard {
+            id: content.id,
+            title: content.title,
+            image_count,
+            thumbnail_url,
+            views,
+            favourite_count,
+            time_ago: time_ago_str,
+            uploader_avatar_url: avatar_url,
+            uploader_display_name: display_name,
+            uploader_username: username,
+        });
+    }
 
     let mut query_params = String::new();
     if !search_query.is_empty() {
@@ -364,37 +359,30 @@ pub async fn gallery(
             .map_err(actix_web::error::ErrorInternalServerError)?
             .ok_or_else(|| actix_web::error::ErrorNotFound("Gallery not found"))?;
 
-        let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
-        let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
-        let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
-            String::new()
-        } else {
-            format!("{}/{}", s3_endpoint.trim_end_matches('/'), s3_bucket)
-        };
-
         let is_paywalled = content.is_paywalled;
         let is_free_preview = is_paywalled && !is_uploader;
         let unblurred_count = image_set.unblurred_count.unwrap_or(0) as usize;
 
-        let images: Vec<GalleryImage> = image_rows
-            .into_iter()
-            .enumerate()
-            .map(|(i, img)| {
-                let url = if is_free_preview && i >= unblurred_count {
-                    img.blurred_storage_path.as_ref()
-                        .map(|p| format!("{}/{}", s3_base, p))
-                        .unwrap_or_else(|| {
-                            format!("{}/{}", s3_base, img.storage_path.as_ref().unwrap_or(&img.orig_storage_path))
-                        })
-                } else {
-                    format!("{}/{}", s3_base, img.storage_path.as_ref().unwrap_or(&img.orig_storage_path))
-                };
-                GalleryImage {
-                    url,
-                    alt: img.alt_text.unwrap_or(img.original_name),
-                }
-            })
-            .collect();
+        let mut images = Vec::with_capacity(image_rows.len());
+        for (i, img) in image_rows.into_iter().enumerate() {
+            let key = if is_free_preview && i >= unblurred_count {
+                img.blurred_storage_path
+                    .or(img.storage_path)
+                    .unwrap_or(img.orig_storage_path)
+            } else {
+                img.storage_path
+                    .unwrap_or(img.orig_storage_path)
+            };
+            let url = state
+                .s3
+                .presigned(&key)
+                .await
+                .map_err(actix_web::error::ErrorInternalServerError)?;
+            images.push(GalleryImage {
+                url,
+                alt: img.alt_text.unwrap_or(img.original_name),
+            });
+        }
 
         let is_favourited = if let Some(uid) = session_user_id {
             UserFavorites::find_by_id((uid, content_id))

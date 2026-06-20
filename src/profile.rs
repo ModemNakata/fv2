@@ -1,5 +1,5 @@
 use actix_session::Session;
-use actix_web::{HttpResponse, web};
+use actix_web::{HttpResponse, Responder, web};
 use askama::Template;
 use sea_orm::*;
 use serde::Serialize;
@@ -141,7 +141,7 @@ pub async fn api_videos(
     state: web::Data<AppState>,
     username: web::Path<String>,
     query: web::Query<std::collections::HashMap<String, String>>,
-) -> HttpResponse {
+) -> Result<impl Responder, actix_web::Error> {
     let username = username.into_inner();
 
     let limit: u64 = query
@@ -162,10 +162,10 @@ pub async fn api_videos(
     {
         Ok(Some(u)) => u,
         _ => {
-            return HttpResponse::Ok().json(ApiVideosResponse {
+            return Ok(HttpResponse::Ok().json(ApiVideosResponse {
                 items: Vec::new(),
                 has_more: false,
-            });
+            }));
         }
     };
 
@@ -191,77 +191,68 @@ pub async fn api_videos(
         .await
         .unwrap_or_default();
 
-    let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
-    let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
-    let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
-        String::new()
-    } else {
-        format!("{}/{}", s3_endpoint.trim_end_matches('/'), s3_bucket)
-    };
-
     let now = chrono::Utc::now();
 
-    let video_items: Vec<ApiVideoItem> = items
-        .into_iter()
-        .map(|(content, video_opt)| {
-            let duration_secs = video_opt
+    let mut video_items = Vec::with_capacity(items.len());
+    for (content, video_opt) in items {
+        let duration_secs = video_opt
+            .as_ref()
+            .and_then(|v| v.duration_seconds)
+            .unwrap_or(0);
+        let hours = duration_secs / 3600;
+        let minutes = (duration_secs % 3600) / 60;
+        let secs = duration_secs % 60;
+        let duration_str = if hours > 0 {
+            format!("{}:{:02}:{:02}", hours, minutes, secs)
+        } else {
+            format!("{}:{:02}", minutes, secs)
+        };
+
+        let favourite_count = content.favorite_count.to_string();
+
+        let hue = (content
+            .id
+            .to_string()
+            .bytes()
+            .fold(0u32, |acc, b| acc.wrapping_add(b as u32))
+            * 37)
+            % 360;
+
+        let thumbnail_url = state
+            .s3
+            .presigned_opt(content.thumbnail_url)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+
+        let preview_url = state
+            .s3
+            .presigned_opt(video_opt.as_ref().and_then(|v| v.preview_path.clone()))
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+
+        video_items.push(ApiVideoItem {
+            id: content.id,
+            title: content.title,
+            thumbnail_url,
+            preview_url,
+            duration: duration_str,
+            resolution: video_opt
                 .as_ref()
-                .and_then(|v| v.duration_seconds)
-                .unwrap_or(0);
-            let hours = duration_secs / 3600;
-            let minutes = (duration_secs % 3600) / 60;
-            let secs = duration_secs % 60;
-            let duration_str = if hours > 0 {
-                format!("{}:{:02}:{:02}", hours, minutes, secs)
-            } else {
-                format!("{}:{:02}", minutes, secs)
-            };
-
-            let favourite_count = content.favorite_count.to_string();
-
-            let hue = (content
-                .id
-                .to_string()
-                .bytes()
-                .fold(0u32, |acc, b| acc.wrapping_add(b as u32))
-                * 37)
-                % 360;
-
-            let thumbnail_url = content
-                .thumbnail_url
-                .filter(|k| !k.is_empty())
-                .map(|key| format!("{}/{}", s3_base, key));
-
-            let preview_url = video_opt
-                .as_ref()
-                .and_then(|v| v.preview_path.as_ref())
-                .filter(|k| !k.is_empty())
-                .map(|key| format!("{}/{}", s3_base, key));
-
-            ApiVideoItem {
-                id: content.id,
-                title: content.title,
-                thumbnail_url,
-                preview_url,
-                duration: duration_str,
-                resolution: video_opt
-                    .as_ref()
-                    .and_then(|v| v.source_quality.clone())
-                    .unwrap_or_default(),
-                views: crate::components::format_view_count(content.view_count),
-                favourite_count,
-                time_ago: gallery::time_ago(&content.created_at, now),
-                hue,
-            }
-        })
-        .collect();
+                .and_then(|v| v.source_quality.clone())
+                .unwrap_or_default(),
+            views: crate::components::format_view_count(content.view_count),
+            favourite_count,
+            time_ago: gallery::time_ago(&content.created_at, now),
+            hue,
+        });
+    }
 
     let has_more = (offset as u64 + limit) < total;
 
-    HttpResponse::Ok().json(ApiVideosResponse {
+    Ok(HttpResponse::Ok().json(ApiVideosResponse {
         items: video_items,
         has_more,
-    })
+    }))
 }
 
 // ---- API: galleries ----
@@ -287,7 +278,7 @@ pub async fn api_galleries(
     state: web::Data<AppState>,
     username: web::Path<String>,
     query: web::Query<std::collections::HashMap<String, String>>,
-) -> HttpResponse {
+) -> Result<impl Responder, actix_web::Error> {
     let username = username.into_inner();
 
     let limit: u64 = query
@@ -308,10 +299,10 @@ pub async fn api_galleries(
     {
         Ok(Some(u)) => u,
         _ => {
-            return HttpResponse::Ok().json(ApiGalleriesResponse {
+            return Ok(HttpResponse::Ok().json(ApiGalleriesResponse {
                 items: Vec::new(),
                 has_more: false,
-            });
+            }));
         }
     };
 
@@ -370,51 +361,46 @@ pub async fn api_galleries(
         std::collections::HashMap::new()
     };
 
-    let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
-    let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
-    let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
-        String::new()
-    } else {
-        format!("{}/{}", s3_endpoint.trim_end_matches('/'), s3_bucket)
-    };
-
     let now = chrono::Utc::now();
 
-    let items: Vec<ApiGalleryItem> = gallery_items
-        .into_iter()
-        .map(|content| {
-            let image_set = image_set_map.get(&content.id);
-            let imgs = image_map.get(&content.id);
-            let image_count = imgs.map(|v| v.len()).unwrap_or(0);
+    let mut items = Vec::with_capacity(gallery_items.len());
+    for content in gallery_items {
+        let image_set = image_set_map.get(&content.id);
+        let imgs = image_map.get(&content.id);
+        let image_count = imgs.map(|v| v.len()).unwrap_or(0);
 
-            let thumbnail_url = image_set
-                .and_then(|is| is.preview_path.as_ref())
-                .or_else(|| {
-                    imgs.and_then(|imgs| imgs.first())
-                        .map(|img| img.storage_path.as_ref().unwrap_or(&img.orig_storage_path))
-                })
-                .map(|path| format!("{}/{}", s3_base, path));
+        let thumb_key = image_set
+            .and_then(|is| is.preview_path.clone())
+            .or_else(|| {
+                imgs.and_then(|imgs| imgs.first())
+                    .map(|img| img.storage_path.clone().unwrap_or(img.orig_storage_path.clone()))
+            });
 
-            let favourite_count = content.favorite_count.to_string();
+        let thumbnail_url = state
+            .s3
+            .presigned_opt(thumb_key)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
 
-            ApiGalleryItem {
-                id: content.id,
-                title: content.title,
-                thumbnail_url,
-                image_count,
-                views: crate::components::format_view_count(content.view_count),
-                favourite_count,
-                time_ago: gallery::time_ago(&content.created_at, now),
-            }
-        })
-        .collect();
+        let favourite_count = content.favorite_count.to_string();
+
+        items.push(ApiGalleryItem {
+            id: content.id,
+            title: content.title,
+            thumbnail_url,
+            image_count,
+            views: crate::components::format_view_count(content.view_count),
+            favourite_count,
+            time_ago: gallery::time_ago(&content.created_at, now),
+        });
+    }
 
     let has_more = (offset as u64 + limit) < total;
 
-    HttpResponse::Ok().json(ApiGalleriesResponse {
+    Ok(HttpResponse::Ok().json(ApiGalleriesResponse {
         items,
         has_more,
-    })
+    }))
 }
 
 // ---- API: followers / following ----

@@ -153,13 +153,13 @@ pub async fn api_favorites(
     session: Session,
     state: web::Data<AppState>,
     query: web::Query<std::collections::HashMap<String, String>>,
-) -> HttpResponse {
+) -> Result<impl Responder, actix_web::Error> {
     let user_id = match auth::get_session_user_id(&session, &state.conn).await {
         Some(id) => id,
         None => {
-            return HttpResponse::Unauthorized().json(serde_json::json!({
+            return Ok(HttpResponse::Unauthorized().json(serde_json::json!({
                 "ok": false, "error": "Not signed in"
-            }));
+            })));
         }
     };
 
@@ -185,18 +185,18 @@ pub async fn api_favorites(
         Ok(f) => f,
         Err(e) => {
             log::error!("DB error querying favorites: {e}");
-            return HttpResponse::InternalServerError().json(serde_json::json!({
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
                 "ok": false, "error": "Database error"
-            }));
+            })));
         }
     };
 
     let all_content_ids: Vec<Uuid> = favs.iter().map(|f| f.content_id).collect();
 
     if all_content_ids.is_empty() {
-        return HttpResponse::Ok().json(serde_json::json!({
+        return Ok(HttpResponse::Ok().json(serde_json::json!({
             "ok": true, "html": "", "has_more": false
-        }));
+        })));
     }
 
     // Fetch content items that are ready + public
@@ -213,9 +213,9 @@ pub async fn api_favorites(
         Ok(c) => c,
         Err(e) => {
             log::error!("DB error querying content: {e}");
-            return HttpResponse::InternalServerError().json(serde_json::json!({
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
                 "ok": false, "error": "Database error"
-            }));
+            })));
         }
     };
 
@@ -248,23 +248,22 @@ pub async fn api_favorites(
         .collect();
 
     if page_ids.is_empty() {
-        return HttpResponse::Ok().json(serde_json::json!({
+        return Ok(HttpResponse::Ok().json(serde_json::json!({
             "ok": true, "html": "", "has_more": false, "total": total
-        }));
+        })));
     }
 
     // Batch-fetch related data
     let users_map = fetch_users(&state, &content_map).await;
-    let s3_base = build_s3_base();
 
     let html = match tab {
-        "videos" => render_video_cards(&state, &page_ids, &content_map, &users_map, &s3_base).await,
-        _ => render_gallery_cards(&state, &page_ids, &content_map, &users_map, &s3_base).await,
+        "videos" => render_video_cards(&state, &page_ids, &content_map, &users_map).await?,
+        _ => render_gallery_cards(&state, &page_ids, &content_map, &users_map).await?,
     };
 
-    HttpResponse::Ok().json(serde_json::json!({
+    Ok(HttpResponse::Ok().json(serde_json::json!({
         "ok": true, "html": html, "has_more": has_more, "total": total
-    }))
+    })))
 }
 
 // ---- Helpers ----
@@ -287,23 +286,12 @@ async fn fetch_users(
         .collect()
 }
 
-fn build_s3_base() -> String {
-    let endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
-    let bucket = std::env::var("S3_BUCKET").unwrap_or_default();
-    if endpoint.is_empty() || bucket.is_empty() {
-        String::new()
-    } else {
-        format!("{}/{}", endpoint.trim_end_matches('/'), bucket)
-    }
-}
-
 async fn render_video_cards(
     state: &web::Data<AppState>,
     ids: &[Uuid],
     content_map: &std::collections::HashMap<Uuid, content_items::Model>,
     users_map: &std::collections::HashMap<Uuid, (String, String, Option<String>)>,
-    s3_base: &str,
-) -> String {
+) -> Result<String, actix_web::Error> {
     let video_map: std::collections::HashMap<Uuid, crate::entity::videos::Model> = if ids.is_empty()
     {
         std::collections::HashMap::new()
@@ -348,15 +336,16 @@ async fn render_video_cards(
             .fold(0u32, |acc, b| acc.wrapping_add(b as u32))
             * 37)
             % 360;
-        let thumbnail_url = content
-            .thumbnail_url
-            .clone()
-            .filter(|k| !k.is_empty())
-            .map(|key| format!("{}/{}", s3_base, key));
-        let preview_url = video_opt
-            .and_then(|v| v.preview_path.as_ref())
-            .filter(|k| !k.is_empty())
-            .map(|key| format!("{}/{}", s3_base, key));
+        let thumbnail_url = state
+            .s3
+            .presigned_opt(content.thumbnail_url.clone())
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+        let preview_url = state
+            .s3
+            .presigned_opt(video_opt.and_then(|v| v.preview_path.clone()))
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
 
         let item = FavVideoItem {
             id: content.id,
@@ -376,7 +365,7 @@ async fn render_video_cards(
         html.push_str(&FavVideoCardTemplate { v: item }.render().unwrap());
     }
 
-    html
+    Ok(html)
 }
 
 async fn render_gallery_cards(
@@ -384,8 +373,7 @@ async fn render_gallery_cards(
     ids: &[Uuid],
     content_map: &std::collections::HashMap<Uuid, content_items::Model>,
     users_map: &std::collections::HashMap<Uuid, (String, String, Option<String>)>,
-    s3_base: &str,
-) -> String {
+) -> Result<String, actix_web::Error> {
     let image_set_map: std::collections::HashMap<Uuid, crate::entity::image_sets::Model> =
         if ids.is_empty() {
             std::collections::HashMap::new()
@@ -428,13 +416,17 @@ async fn render_gallery_cards(
         let image_set = image_set_map.get(id);
         let imgs = image_map.get(id);
         let image_count = imgs.map(|v| v.len()).unwrap_or(0);
-        let thumbnail_url = image_set
-            .and_then(|is| is.preview_path.as_ref())
+        let thumb_key = image_set
+            .and_then(|is| is.preview_path.clone())
             .or_else(|| {
                 imgs.and_then(|imgs| imgs.first())
-                    .map(|img| img.storage_path.as_ref().unwrap_or(&img.orig_storage_path))
-            })
-            .map(|path| format!("{}/{}", s3_base, path));
+                    .map(|img| img.storage_path.clone().unwrap_or(img.orig_storage_path.clone()))
+            });
+        let thumbnail_url = state
+            .s3
+            .presigned_opt(thumb_key)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
         let view_count = content.view_count;
         let (username, display_name, uploader_avatar_url) = users_map
             .get(&content.uploader_id)
@@ -457,5 +449,5 @@ async fn render_gallery_cards(
         html.push_str(&FavGalleryCardTemplate { g: item }.render().unwrap());
     }
 
-    html
+    Ok(html)
 }

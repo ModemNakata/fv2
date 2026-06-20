@@ -161,85 +161,76 @@ pub async fn index(
                 .collect()
         };
 
-    let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
-    let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
-    let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
-        String::new()
-    } else {
-        format!("{}/{}", s3_endpoint.trim_end_matches('/'), s3_bucket)
-    };
-
     let now = Utc::now();
 
-    let video_items: Vec<VideoItem> = items
-        .into_iter()
-        .map(|(content, video_opt)| {
-            let duration_secs = video_opt
-                .as_ref()
-                .and_then(|v| v.duration_seconds)
-                .unwrap_or(0);
-            let hours = duration_secs / 3600;
-            let minutes = (duration_secs % 3600) / 60;
-            let secs = duration_secs % 60;
-            let duration_str = if hours > 0 {
-                format!("{}:{:02}:{:02}", hours, minutes, secs)
-            } else {
-                format!("{}:{:02}", minutes, secs)
-            };
+    let mut video_items = Vec::with_capacity(items.len());
+    for (content, video_opt) in items {
+        let duration_secs = video_opt
+            .as_ref()
+            .and_then(|v| v.duration_seconds)
+            .unwrap_or(0);
+        let hours = duration_secs / 3600;
+        let minutes = (duration_secs % 3600) / 60;
+        let secs = duration_secs % 60;
+        let duration_str = if hours > 0 {
+            format!("{}:{:02}:{:02}", hours, minutes, secs)
+        } else {
+            format!("{}:{:02}", minutes, secs)
+        };
 
-            let views_str = crate::components::format_view_count(content.view_count);
+        let views_str = crate::components::format_view_count(content.view_count);
 
-            let favourite_count = content.favorite_count.to_string();
+        let favourite_count = content.favorite_count.to_string();
 
-            let (username, display_name, uploader_avatar_url) = users_map
-                .get(&content.uploader_id)
-                .cloned()
-                .unwrap_or_else(|| ("?".to_string(), "?".to_string(), None));
+        let (username, display_name, uploader_avatar_url) = users_map
+            .get(&content.uploader_id)
+            .cloned()
+            .unwrap_or_else(|| ("?".to_string(), "?".to_string(), None));
 
-            let hue = (content
-                .id
-                .to_string()
-                .bytes()
-                .fold(0u32, |acc, b| acc.wrapping_add(b as u32))
-                * 37)
-                % 360;
+        let hue = (content
+            .id
+            .to_string()
+            .bytes()
+            .fold(0u32, |acc, b| acc.wrapping_add(b as u32))
+            * 37)
+            % 360;
 
-            let time_ago_str = time_ago(&content.created_at, now);
+        let time_ago_str = time_ago(&content.created_at, now);
 
-            let thumbnail_url = content
-                .thumbnail_url
-                .filter(|k| !k.is_empty())
-                .map(|key| format!("{}/{}", s3_base, key));
+        let thumbnail_url = state
+            .s3
+            .presigned_opt(content.thumbnail_url)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
 
-            let preview_url = video_opt
-                .as_ref()
-                .and_then(|v| v.preview_path.as_ref())
-                .filter(|k| !k.is_empty())
-                .map(|key| format!("{}/{}", s3_base, key));
+        let preview_url = state
+            .s3
+            .presigned_opt(video_opt.as_ref().and_then(|v| v.preview_path.clone()))
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
 
-            let resolution_str = video_opt
-                .as_ref()
-                .and_then(|v| v.source_quality.as_ref())
-                .cloned()
-                .unwrap_or_default();
+        let resolution_str = video_opt
+            .as_ref()
+            .and_then(|v| v.source_quality.as_ref())
+            .cloned()
+            .unwrap_or_default();
 
-            VideoItem {
-                id: content.id,
-                title: content.title,
-                views: views_str,
-                favourite_count,
-                duration: duration_str,
-                resolution: resolution_str,
-                time_ago: time_ago_str,
-                thumbnail_url,
-                preview_url,
-                uploader_avatar_url,
-                uploader_display_name: display_name,
-                uploader_username: username,
-                hue,
-            }
-        })
-        .collect();
+        video_items.push(VideoItem {
+            id: content.id,
+            title: content.title,
+            views: views_str,
+            favourite_count,
+            duration: duration_str,
+            resolution: resolution_str,
+            time_ago: time_ago_str,
+            thumbnail_url,
+            preview_url,
+            uploader_avatar_url,
+            uploader_display_name: display_name,
+            uploader_username: username,
+            hue,
+        });
+    }
 
     let mut query_params = String::new();
     if !search_query.is_empty() {

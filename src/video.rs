@@ -72,14 +72,6 @@ pub async fn video(
             .map_err(actix_web::error::ErrorInternalServerError)?
             .ok_or_else(|| actix_web::error::ErrorNotFound("Uploader not found"))?;
 
-        let s3_endpoint = std::env::var("PUBLIC_S3_ENDPOINT").unwrap_or_default();
-        let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_default();
-        let s3_base = if s3_endpoint.is_empty() || s3_bucket.is_empty() {
-            String::new()
-        } else {
-            format!("{}/{}", s3_endpoint.trim_end_matches('/'), s3_bucket)
-        };
-
         let is_paywalled = content.is_paywalled;
         let is_free_preview = is_paywalled && !is_uploader;
 
@@ -93,20 +85,21 @@ pub async fn video(
                 .await
                 .map_err(actix_web::error::ErrorInternalServerError)?;
 
-            let sources: Vec<serde_json::Value> = formats.iter()
-                .map(|f| {
-                    let url = f.storage_path.as_ref()
-                        .map(|p| format!("{}/{}", s3_base, p))
-                        .unwrap_or_default();
-                    let (width, height) = parse_resolution(&f.resolution);
-                    serde_json::json!({
-                        "src": url,
-                        "type": mime_for_format(&f.format),
-                        "width": width,
-                        "height": height,
-                    })
-                })
-                .collect();
+            let mut sources = Vec::with_capacity(formats.len());
+            for f in &formats {
+                let url = match f.storage_path.as_ref() {
+                    Some(p) => state.s3.presigned(p).await
+                        .map_err(actix_web::error::ErrorInternalServerError)?,
+                    None => String::new(),
+                };
+                let (width, height) = parse_resolution(&f.resolution);
+                sources.push(serde_json::json!({
+                    "src": url,
+                    "type": mime_for_format(&f.format),
+                    "width": width,
+                    "height": height,
+                }));
+            }
 
             serde_json::to_string(&sources).unwrap_or_default()
         };

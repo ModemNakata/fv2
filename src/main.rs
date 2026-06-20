@@ -1,4 +1,5 @@
 use ::s3::Bucket;
+use crate::s3::S3UrlProvider;
 use actix_session::SessionMiddleware;
 use actix_session::config::PersistentSession;
 use actix_session::storage::CookieSessionStore;
@@ -29,6 +30,7 @@ pub struct AppState {
     pub conn: DatabaseConnection,
     pub s3_processed: Bucket,
     pub s3_orig: Bucket,
+    pub s3: S3UrlProvider,
     pub static_version: String,
     pub redis_conn: redis::aio::ConnectionManager,
 }
@@ -74,6 +76,7 @@ async fn main() -> std::io::Result<()> {
     // let conn = Database::connect(&db_url).await.unwrap();
     let conn = Database::connect(opt).await.unwrap();
     let (s3_processed, s3_orig) = s3::init_buckets();
+    let s3 = S3UrlProvider::new(s3_processed.clone());
 
     // ── View counter: Redis connection ──────────────────────────────────────
     let redis_client = redis::Client::open(view_counter::redis_url()).expect("invalid REDIS_URL");
@@ -86,6 +89,7 @@ async fn main() -> std::io::Result<()> {
         conn,
         s3_processed,
         s3_orig,
+        s3,
         static_version,
         redis_conn,
     };
