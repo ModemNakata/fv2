@@ -9,9 +9,8 @@ fn build_bucket(bucket_name: &str) -> Bucket {
     let secret_key = env::var("S3_SECRET_KEY").expect("S3_SECRET_KEY is not set in .env");
     let region_str = env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".to_string());
 
-    let credentials =
-        Credentials::new(Some(&access_key), Some(&secret_key), None, None, None)
-            .expect("failed to create S3 credentials");
+    let credentials = Credentials::new(Some(&access_key), Some(&secret_key), None, None, None)
+        .expect("failed to create S3 credentials");
 
     let region = Region::Custom {
         region: region_str,

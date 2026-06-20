@@ -106,11 +106,13 @@
         if (resp.ok) {
           btn.classList.toggle('liked', resp.liked);
           span.textContent = resp.liked ? 'Liked' : 'I like it';
-          var starSvg = countEl.querySelector('svg');
-          countEl.innerHTML = '';
-          countEl.appendChild(starSvg.cloneNode(true));
-          countEl.appendChild(document.createTextNode(' ' + resp.favourite_count + ' '));
-          countEl.innerHTML += '<span class="stat-label"></span>';
+          var starSvg = countEl && countEl.querySelector('svg');
+          if (starSvg) {
+            countEl.innerHTML = '';
+            countEl.appendChild(starSvg.cloneNode(true));
+            countEl.appendChild(document.createTextNode(' ' + resp.favourite_count + ' '));
+            countEl.innerHTML += '<span class="stat-label"></span>';
+          }
         } else {
           alert(resp.error || 'Failed');
         }
