@@ -199,9 +199,10 @@ pub async fn update_settings(
             let path = url.trim_start_matches('/');
             let _ = std::fs::remove_file(path);
             // TEMPORARY: don't delete original avatar on `avatar remove`
-            // if let Some(filename) = path.rsplit_once('/').map(|(_, f)| f) {
-            //     let _ = std::fs::remove_file(format!("static/avatars/original-{filename}"));
-            // }
+            // ^ x
+            if let Some(filename) = path.rsplit_once('/').map(|(_, f)| f) {
+                let _ = std::fs::remove_file(format!("static/avatars/original-{filename}"));
+            }
         }
         user.avatar_url = Set(None);
         user.original_avatar_path = Set(None);
@@ -210,10 +211,10 @@ pub async fn update_settings(
         if let Some(ref url) = current_avatar_url {
             let path = url.trim_start_matches('/');
             let _ = std::fs::remove_file(path);
-            // don't delete original avatar on avatar update
-            // if let Some(filename) = path.rsplit_once('/').map(|(_, f)| f) {
-            // let _ = std::fs::remove_file(format!("static/avatars/original-{filename}"));
-            // }
+            // X -> don't delete original avatar on avatar update
+            if let Some(filename) = path.rsplit_once('/').map(|(_, f)| f) {
+                let _ = std::fs::remove_file(format!("static/avatars/original-{filename}"));
+            }
         }
         match process_avatar(&data, user_id, &avatar_filename) {
             Ok((avatar_url, original_path)) => {
