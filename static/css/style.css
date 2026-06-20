@@ -15,6 +15,10 @@
   size-adjust: 112.83%;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 :root {
   --bg-primary: #000000;
   --bg-secondary: #111111;
