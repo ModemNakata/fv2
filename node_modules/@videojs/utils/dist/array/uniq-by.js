@@ -1,0 +1,21 @@
+//#region src/array/uniq-by.ts
+/**
+* Returns array with duplicates removed, keeping the LAST occurrence.
+* Useful for feature merging where extensions should override base features.
+*
+* @example
+* ```ts
+* const features = [{ id: 'a', v: 1 }, { id: 'b', v: 2 }, { id: 'a', v: 3 }];
+* uniqBy(features, s => s.id);
+* // => [{ id: 'b', v: 2 }, { id: 'a', v: 3 }]
+* ```
+*/
+function uniqBy(arr, mapper) {
+	const seen = /* @__PURE__ */ new Map();
+	arr.forEach((item, i) => seen.set(mapper(item), i));
+	return arr.filter((_, i) => [...seen.values()].includes(i));
+}
+//#endregion
+export { uniqBy };
+
+//# sourceMappingURL=uniq-by.js.map

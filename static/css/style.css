@@ -899,7 +899,7 @@ body.sidebar-open {
 
 .sort-select {
   height: 36px;
-  /* padding: 0 10px; */
+  padding: 0 10px;
   /* margin: 0 10px; */
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);

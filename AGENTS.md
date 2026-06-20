@@ -180,7 +180,8 @@ bun add hls.js                        — HLS quality switching engine
    ```
 2. Bundle with bun:
    ```
-   cd static && NODE_ENV=production bun build build-player.js --outfile=./js/vidstack.min.js --minify
+   <!-- cd static && NODE_ENV=production bun build build-player.js --outfile=./js/vidstack.min.js --minify -->
+   NODE_ENV=production bun build build-player.js --outfile=./js/vidstack.min.js --minify
    ```
 3. Copy CSS:
    ```

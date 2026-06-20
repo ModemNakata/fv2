@@ -1,0 +1,44 @@
+# Installation
+> `npm install --save @types/fscreen`
+
+# Summary
+This package contains type definitions for fscreen (https://github.com/rafrex/fscreen#readme).
+
+# Details
+Files were exported from https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/fscreen.
+## [index.d.ts](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/fscreen/index.d.ts)
+````ts
+type Handler = (e?: Event) => void;
+type RequestFullScreenFunction = (element: Element) => void;
+type EventName =
+    | "fullscreenEnabled"
+    | "fullscreenElement"
+    | "requestFullscreen"
+    | "exitFullscreen"
+    | "fullscreenchange"
+    | "fullscreenerror";
+
+declare class Fscreen {
+    readonly fullscreenElement: Element | undefined;
+    readonly fullscreenEnabled: boolean;
+    readonly exitFullscreen: Handler;
+    onfullscreenchange: Handler;
+    onfullscreenerror: Handler;
+
+    addEventListener(type: EventName, handler: Handler, options?: boolean | AddEventListenerOptions): void;
+    removeEventListener(type: EventName, handler: Handler, options?: boolean | AddEventListenerOptions): void;
+    requestFullscreen(element: Element): void;
+    requestFullscreenFunction(element: Element): RequestFullScreenFunction;
+}
+
+declare const fscreen: Fscreen;
+export default fscreen;
+
+````
+
+### Additional Details
+ * Last updated: Tue, 07 Nov 2023 03:09:37 GMT
+ * Dependencies: none
+
+# Credits
+These definitions were written by [Joscha Feth](https://github.com/joscha), and [Terry Mun](https://github.com/terrymun).

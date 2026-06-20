@@ -1,0 +1,30 @@
+{
+    "name": "@types/fscreen",
+    "version": "1.0.4",
+    "description": "TypeScript definitions for fscreen",
+    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/fscreen",
+    "license": "MIT",
+    "contributors": [
+        {
+            "name": "Joscha Feth",
+            "githubUsername": "joscha",
+            "url": "https://github.com/joscha"
+        },
+        {
+            "name": "Terry Mun",
+            "githubUsername": "terrymun",
+            "url": "https://github.com/terrymun"
+        }
+    ],
+    "main": "",
+    "types": "index.d.ts",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/fscreen"
+    },
+    "scripts": {},
+    "dependencies": {},
+    "typesPublisherContentHash": "dfc55b3eeeffb12299d78ced57eecb2cdcccc71b687b54f0b41beb3180dfa449",
+    "typeScriptVersion": "4.5"
+}
