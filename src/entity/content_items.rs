@@ -24,6 +24,7 @@ pub struct Model {
     pub price_cents: i32,
     pub is_paywalled: bool,
     pub favorite_count: i32,
+    pub purchase_count: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -32,6 +33,8 @@ pub enum Relation {
     ImageSets,
     #[sea_orm(has_many = "super::user_favorites::Entity")]
     UserFavorites,
+    #[sea_orm(has_many = "super::user_purchases::Entity")]
+    UserPurchases,
     #[sea_orm(
         belongs_to = "super::users::Entity",
         from = "Column::UploaderId",
@@ -56,18 +59,21 @@ impl Related<super::user_favorites::Entity> for Entity {
     }
 }
 
-impl Related<super::videos::Entity> for Entity {
+impl Related<super::user_purchases::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Videos.def()
+        Relation::UserPurchases.def()
     }
 }
 
 impl Related<super::users::Entity> for Entity {
     fn to() -> RelationDef {
-        super::user_favorites::Relation::Users.def()
+        Relation::Users.def()
     }
-    fn via() -> Option<RelationDef> {
-        Some(super::user_favorites::Relation::ContentItems.def().rev())
+}
+
+impl Related<super::videos::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Videos.def()
     }
 }
 
