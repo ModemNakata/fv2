@@ -305,6 +305,7 @@ struct GalleryPage {
     content_id: Uuid,
     is_paywalled: bool,
     is_free_preview: bool,
+    has_purchased: bool,
     price_dollars: String,
     unblurred_count: i32,
     total_image_count: usize,
@@ -363,7 +364,16 @@ pub async fn gallery(
             .ok_or_else(|| actix_web::error::ErrorNotFound("Gallery not found"))?;
 
         let is_paywalled = content.is_paywalled;
-        let is_free_preview = is_paywalled && !is_uploader;
+        let has_purchased = if let Some(uid) = session_user_id {
+            UserPurchases::find_by_id((uid, content_id))
+                .one(&state.conn)
+                .await
+                .map_err(actix_web::error::ErrorInternalServerError)?
+                .is_some()
+        } else {
+            false
+        };
+        let is_free_preview = is_paywalled && !is_uploader && !has_purchased;
         let unblurred_count = image_set.unblurred_count.unwrap_or(0) as usize;
 
         let mut images = Vec::with_capacity(image_rows.len());
@@ -419,6 +429,7 @@ pub async fn gallery(
             content_id,
             is_paywalled,
             is_free_preview,
+            has_purchased,
             price_dollars: format!("{:.2}", content.price_cents as f64 / 100.0),
             unblurred_count: image_set.unblurred_count.unwrap_or(0),
             total_image_count,

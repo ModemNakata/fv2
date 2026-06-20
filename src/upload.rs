@@ -256,6 +256,7 @@ pub async fn upload_video(
         is_paywalled: Set(price_cents > 0),
         view_count: Set(0),
         favorite_count: Set(0),
+        purchase_count: Set(0),
     };
 
     if let Err(e) = content.insert(&state.conn).await {
@@ -461,6 +462,7 @@ pub async fn upload_gallery(
         is_paywalled: Set(price_cents > 0),
         view_count: Set(0),
         favorite_count: Set(0),
+        purchase_count: Set(0),
     };
 
     if let Err(e) = content.insert(&state.conn).await {

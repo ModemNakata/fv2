@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}My Purchases - FeVid{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/{{ version }}/css/index.css">
+<link rel="stylesheet" href="/static/{{ version }}/css/galleries.css">
+<link rel="stylesheet" href="/static/{{ version }}/css/favorites.css">
+<link rel="stylesheet" href="/static/{{ version }}/css/purchased.css">
+{% endblock %}
+{% block content %}
+<div class="fav-toggle">
+  <button class="fav-toggle-btn{% if active_tab == "videos" %} active{% endif %}" data-tab="videos">Videos ({{ video_count }})</button>
+  <button class="fav-toggle-btn{% if active_tab == "galleries" %} active{% endif %}" data-tab="galleries">Galleries ({{ gallery_count }})</button>
+</div>
+
+<div class="fav-panel{% if active_tab != "videos" %} hidden{% endif %}" id="panel-videos">
+  <div class="video-grid" id="purchVideoGrid"></div>
+  <div class="fav-loader" id="purchVideoLoader" style="display:none">Loading videos...</div>
+  <div class="empty-state" id="purchVideoEmpty" style="display:none">No purchased videos yet.</div>
+  <div class="fav-sentinel" id="purchVideoSentinel"></div>
+</div>
+
+<div class="fav-panel{% if active_tab != "galleries" %} hidden{% endif %}" id="panel-galleries">
+  <div class="gallery-grid" id="purchGalleryGrid"></div>
+  <div class="fav-loader" id="purchGalleryLoader" style="display:none">Loading galleries...</div>
+  <div class="empty-state" id="purchGalleryEmpty" style="display:none">No purchased galleries yet.</div>
+  <div class="fav-sentinel" id="purchGallerySentinel"></div>
+</div>
+
+<script>
+(function () {
+  var activeTab = '{{ active_tab }}';
+
+  var toggles = document.querySelectorAll('.fav-toggle-btn');
+  toggles.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var tab = this.getAttribute('data-tab');
+      if (tab === activeTab) return;
+      toggles.forEach(function (t) { t.classList.remove('active'); });
+      this.classList.add('active');
+      document.querySelectorAll('.fav-panel').forEach(function (p) { p.classList.add('hidden'); });
+      var panel = document.getElementById('panel-' + tab);
+      if (panel) panel.classList.remove('hidden');
+      activeTab = tab;
+      var url = new URL(window.location);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState(null, '', url);
+      var grid = document.getElementById('purch' + (tab === 'videos' ? 'Video' : 'Gallery') + 'Grid');
+      if (grid && grid.children.length === 0) loadNext(tab);
+    });
+  });
+
+  var loading = { videos: false, galleries: false };
+  var hasMore = { videos: true, galleries: true };
+  var offsets = { videos: 0, galleries: 0 };
+
+  function loadNext(tab) {
+    if (loading[tab] || !hasMore[tab]) return;
+    loading[tab] = true;
+    var loader = document.getElementById('purch' + (tab === 'videos' ? 'Video' : 'Gallery') + 'Loader');
+    var grid = document.getElementById('purch' + (tab === 'videos' ? 'Video' : 'Gallery') + 'Grid');
+    var empty = document.getElementById('purch' + (tab === 'videos' ? 'Video' : 'Gallery') + 'Empty');
+    if (loader) loader.style.display = '';
+    fetch('/api/purchased?tab=' + tab + '&offset=' + offsets[tab] + '&limit=20')
+      .then(function (r) { return r.json(); })
+      .then(function (resp) {
+        if (!resp.ok) return;
+        if (resp.html) {
+          grid.insertAdjacentHTML('beforeend', resp.html);
+          grid.querySelectorAll('.video-card[data-preview="true"]').forEach(function (card) {
+            if (!card.dataset.hoverSetup) {
+              card.dataset.hoverSetup = '1';
+              setupHover(card);
+            }
+          });
+          offsets[tab] += 20;
+        }
+        hasMore[tab] = resp.has_more;
+        if (grid.children.length === 0) {
+          if (empty) empty.style.display = '';
+        } else {
+          if (empty) empty.style.display = 'none';
+        }
+      })
+      .catch(function () {})
+      .finally(function () {
+        loading[tab] = false;
+        if (loader) loader.style.display = 'none';
+      });
+  }
+
+  loadNext(activeTab);
+
+  var sentinelVid = document.getElementById('purchVideoSentinel');
+  var sentinelGal = document.getElementById('purchGallerySentinel');
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      var tab = entry.target.id === 'purchVideoSentinel' ? 'videos' : 'galleries';
+      loadNext(tab);
+    });
+  }, { rootMargin: '400px' });
+  if (sentinelVid) observer.observe(sentinelVid);
+  if (sentinelGal) observer.observe(sentinelGal);
+
+  function setupHover(card) {
+    var video = card.querySelector('.thumb-preview');
+    var spinner = card.querySelector('.thumb-spinner');
+    if (!video) return;
+    card.addEventListener('mouseenter', function () {
+      video.currentTime = 0;
+      if (spinner) spinner.classList.add('active');
+      video.play().catch(function () {});
+    });
+    card.addEventListener('mouseleave', function () {
+      video.pause();
+      video.currentTime = 0;
+      if (spinner) spinner.classList.remove('active');
+    });
+    video.addEventListener('playing', function () {
+      if (spinner) spinner.classList.remove('active');
+    });
+  }
+})();
+</script>
+{% endblock %}

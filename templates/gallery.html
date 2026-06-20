@@ -16,8 +16,8 @@
       <a href="/@{{ uploader_username }}" class="gallery-uploader-name">{{ uploader_display_name }}</a>
       <span class="gallery-uploader-handle">@{{ uploader_username }} · {{ created_at }}</span>
     </div>
-    {% if is_uploader && is_paywalled %}
-    <span class="gallery-uploader-badge" title="This gallery is paid, but you own it and have full access.">
+    {% if is_paywalled && (is_uploader || has_purchased) %}
+    <span class="gallery-uploader-badge" title="This gallery is paid, but you have full access.">
       <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="152" r="12" fill="none"/><path d="M88,88V56a40,40,0,0,1,40-40c19.35,0,36.29,13.74,40,32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
     </span>
     {% endif %}
@@ -149,6 +149,27 @@
   });
   purchaseModal?.addEventListener('click', function (e) {
     if (e.target === purchaseModal) purchaseModal.classList.remove('open');
+  });
+  document.getElementById('confirmPurchase')?.addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    fetch('/api/content/{{ content_id }}/purchase', { method: 'POST' })
+      .then(function (r) { return r.json(); })
+      .then(function (resp) {
+        if (resp.ok) {
+          location.reload();
+        } else {
+          alert(resp.error || 'Purchase failed');
+          btn.disabled = false;
+          btn.textContent = 'Purchase';
+        }
+      })
+      .catch(function () {
+        alert('Network error');
+        btn.disabled = false;
+        btn.textContent = 'Purchase';
+      });
   });
   document.querySelectorAll('.img-lock-overlay[data-action="unlock"]').forEach(function (el) {
     el.addEventListener('click', function () {

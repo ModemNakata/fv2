@@ -19,6 +19,8 @@ mod gallery;
 mod home;
 mod pipeline;
 mod profile;
+mod purchase;
+mod purchases;
 mod s3;
 mod settings;
 mod upload;
@@ -137,6 +139,7 @@ async fn main() -> std::io::Result<()> {
             )
             .service(web::resource("/balance").route(web::get().to(balance::balance_page)))
             .service(web::resource("/favorites").route(web::get().to(favorites::favorites)))
+            .service(web::resource("/purchased").route(web::get().to(purchases::purchased)))
             .service(
                 web::scope("/auth")
                     .service(auth::auth_check)
@@ -181,6 +184,11 @@ async fn main() -> std::io::Result<()> {
                         web::post().to(favourite::toggle_favourite),
                     )
                     .route("/favorites", web::get().to(favorites::api_favorites))
+                    .route("/purchased", web::get().to(purchases::api_purchased))
+                    .route(
+                        "/content/{id}/purchase",
+                        web::post().to(purchase::purchase_content),
+                    )
                     // ── View counter ────────────────────────────────────────
                     .route(
                         "/content/{uuid}/view",

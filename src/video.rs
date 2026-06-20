@@ -73,7 +73,16 @@ pub async fn video(
             .ok_or_else(|| actix_web::error::ErrorNotFound("Uploader not found"))?;
 
         let is_paywalled = content.is_paywalled;
-        let is_free_preview = is_paywalled && !is_uploader;
+        let has_purchased = if let Some(uid) = session_user_id {
+            UserPurchases::find_by_id((uid, content_id))
+                .one(&state.conn)
+                .await
+                .map_err(actix_web::error::ErrorInternalServerError)?
+                .is_some()
+        } else {
+            false
+        };
+        let is_free_preview = is_paywalled && !is_uploader && !has_purchased;
 
         let sources_json = {
             // HLS mode (can be revived):
