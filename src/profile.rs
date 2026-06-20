@@ -128,7 +128,6 @@ struct ApiVideoItem {
     views: String,
     favourite_count: String,
     time_ago: String,
-    hue: u32,
 }
 
 #[derive(Serialize)]
@@ -210,14 +209,6 @@ pub async fn api_videos(
 
         let favourite_count = content.favorite_count.to_string();
 
-        let hue = (content
-            .id
-            .to_string()
-            .bytes()
-            .fold(0u32, |acc, b| acc.wrapping_add(b as u32))
-            * 37)
-            % 360;
-
         let thumbnail_url = state
             .s3
             .presigned_opt(content.thumbnail_url)
@@ -243,7 +234,6 @@ pub async fn api_videos(
             views: crate::components::format_view_count(content.view_count),
             favourite_count,
             time_ago: gallery::time_ago(&content.created_at, now),
-            hue,
         });
     }
 

@@ -466,7 +466,7 @@ input {
 .thumb-placeholder {
   width: 100%;
   height: 100%;
-  background: hsl(var(--hue, 120), 40%, 12%);
+  background: hsl(120, 40%, 12%);
   display: flex;
   align-items: center;
   justify-content: center;

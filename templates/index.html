@@ -23,7 +23,7 @@
       {% if v.thumbnail_url.is_some() %}
       <img src="{{ v.thumbnail_url.as_ref().unwrap() }}" alt="{{ v.title }}" class="thumb-img">
       {% else %}
-      <div class="thumb-placeholder" style="--hue: {{ v.hue }}">
+      <div class="thumb-placeholder">
         <span class="thumb-icon">
           <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
             <path

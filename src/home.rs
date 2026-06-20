@@ -41,7 +41,6 @@ struct VideoItem {
     uploader_avatar_url: Option<String>,
     uploader_display_name: String,
     uploader_username: String,
-    hue: u32,
 }
 
 struct PageButton {
@@ -187,14 +186,6 @@ pub async fn index(
             .cloned()
             .unwrap_or_else(|| ("?".to_string(), "?".to_string(), None));
 
-        let hue = (content
-            .id
-            .to_string()
-            .bytes()
-            .fold(0u32, |acc, b| acc.wrapping_add(b as u32))
-            * 37)
-            % 360;
-
         let time_ago_str = time_ago(&content.created_at, now);
 
         let thumbnail_url = state
@@ -228,7 +219,6 @@ pub async fn index(
             uploader_avatar_url,
             uploader_display_name: display_name,
             uploader_username: username,
-            hue,
         });
     }
 

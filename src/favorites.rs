@@ -54,7 +54,6 @@ struct FavVideoItem {
     uploader_avatar_url: Option<String>,
     uploader_display_name: String,
     uploader_username: String,
-    hue: u32,
 }
 
 struct FavGalleryItem {
@@ -329,13 +328,6 @@ async fn render_video_cards(
             .get(&content.uploader_id)
             .cloned()
             .unwrap_or_else(|| ("?".to_string(), "?".to_string(), None));
-        let hue = (content
-            .id
-            .to_string()
-            .bytes()
-            .fold(0u32, |acc, b| acc.wrapping_add(b as u32))
-            * 37)
-            % 360;
         let thumbnail_url = state
             .s3
             .presigned_opt(content.thumbnail_url.clone())
@@ -359,7 +351,6 @@ async fn render_video_cards(
             uploader_avatar_url,
             uploader_display_name: display_name,
             uploader_username: username,
-            hue,
         };
 
         html.push_str(&FavVideoCardTemplate { v: item }.render().unwrap());
