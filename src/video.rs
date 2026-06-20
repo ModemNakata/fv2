@@ -30,6 +30,11 @@ struct VideoPage {
     content_id: Uuid,
     is_paywalled: bool,
     is_free_preview: bool,
+    has_purchased: bool,
+    free_preview_duration_s: String,
+    duration_formatted: String,
+    duration_human: String,
+    source_quality: Option<String>,
     price_dollars: String,
     version: String,
     is_favourited: bool,
@@ -72,6 +77,43 @@ pub async fn video(
             .map_err(actix_web::error::ErrorInternalServerError)?
             .ok_or_else(|| actix_web::error::ErrorNotFound("Uploader not found"))?;
 
+        let video_opt = Videos::find_by_id(content_id)
+            .one(&state.conn)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+
+        let duration_secs = video_opt.as_ref().and_then(|v| v.duration_seconds).unwrap_or(0);
+        let hours = duration_secs / 3600;
+        let minutes = (duration_secs % 3600) / 60;
+        let secs = duration_secs % 60;
+        let duration_formatted = if hours > 0 {
+            format!("{}:{:02}:{:02}", hours, minutes, secs)
+        } else {
+            format!("{}:{:02}", minutes, secs)
+        };
+        let duration_human = if hours > 0 {
+            if minutes > 0 && secs > 0 {
+                format!("{hours} hours, {minutes} minutes and {secs} seconds")
+            } else if minutes > 0 {
+                format!("{hours} hours and {minutes} minutes")
+            } else if secs > 0 {
+                format!("{hours} hours and {secs} seconds")
+            } else {
+                format!("{hours} hours")
+            }
+        } else if minutes > 0 {
+            if secs > 0 {
+                format!("{minutes} minutes and {secs} seconds")
+            } else {
+                format!("{minutes} minutes")
+            }
+        } else {
+            format!("{secs} seconds")
+        };
+
+        let free_preview_duration_s = video_opt.as_ref().and_then(|v| v.free_preview_duration_s);
+        let source_quality = video_opt.and_then(|v| v.source_quality);
+
         let is_paywalled = content.is_paywalled;
         let has_purchased = if let Some(uid) = session_user_id {
             UserPurchases::find_by_id((uid, content_id))
@@ -96,7 +138,12 @@ pub async fn video(
 
             let mut sources = Vec::with_capacity(formats.len());
             for f in &formats {
-                let url = match f.storage_path.as_ref() {
+                let path = if is_free_preview {
+                    f.free_preview_path.as_ref().or(f.storage_path.as_ref())
+                } else {
+                    f.storage_path.as_ref()
+                };
+                let url = match path {
                     Some(p) => state
                         .s3
                         .presigned(p)
@@ -148,6 +195,11 @@ pub async fn video(
             content_id,
             is_paywalled,
             is_free_preview,
+            has_purchased,
+            free_preview_duration_s: free_preview_duration_s.map(|s| format!("{s}s")).unwrap_or_default(),
+            duration_formatted,
+            duration_human,
+            source_quality,
             price_dollars: format!("{:.2}", content.price_cents as f64 / 100.0),
             version: state.static_version.clone(),
             is_favourited,

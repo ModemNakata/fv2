@@ -7,20 +7,39 @@
 <link rel="stylesheet" href="/static/{{ version }}/css/video.css">
 {% endblock %}
 {% block content %}
-{% if is_paywalled && is_free_preview %}
-<div class="free-preview-banner">
-  <span class="free-preview-label">Free Preview</span>
-  <span class="free-preview-price">Full video · ${{ price_dollars }}</span>
-</div>
-{% endif %}
 <div class="video-player-wrapper">
   <div id="video-target"></div>
 </div>
+{% if is_paywalled && is_free_preview %}
+<div class="purchase-banner" id="purchaseBanner">
+  <div class="purchase-banner-icon">
+    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+      <rect width="256" height="256" fill="none" />
+      <rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round"
+        stroke-linejoin="round" stroke-width="16" />
+      <circle cx="128" cy="152" r="12" fill="none" />
+      <path d="M88,88V56a40,40,0,0,1,80,0V88" fill="none" stroke="currentColor" stroke-linecap="round"
+        stroke-linejoin="round" stroke-width="16" />
+    </svg>
+  </div>
+  <div class="purchase-banner-text">
+    <span class="purchase-banner-title">Unlock Full Video ({{ duration_human }})</span>
+    <span class="purchase-banner-sub">{{ free_preview_duration_s }} · free preview</span>
+  </div>
+  <div class="purchase-banner-action">
+    <button class="purchase-btn" id="showPurchaseModal">${{ price_dollars }}</button>
+  </div>
+</div>
+{% endif %}
 <div class="video-info-section">
   <h1 class="video-info-title">{{ video_title }}</h1>
   <p class="video-info-stats">
     <span class="stats-group">
       <span class="stat-item">{{ view_count }} <span class="stat-label">views</span></span>
+      <span class="stat-item">{{ duration_formatted }}</span>
+      {% if source_quality.is_some() %}
+      <span class="stat-item">{{ source_quality.as_ref().unwrap() }}</span>
+      {% endif %}
       <!-- <span class="stat-item"><svg class="stat-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"> -->
       <!-- <rect width="256" height="256" fill="none" /> -->
       <!-- <path -->
@@ -43,6 +62,18 @@
       <a href="/@{{ uploader_username }}" class="video-uploader-name">{{ uploader_display_name }}</a>
       <span class="video-uploader-handle">@{{ uploader_username }} · {{ created_at }}</span>
     </div>
+    {% if is_paywalled && (is_uploader || has_purchased) %}
+    <span class="video-uploader-badge" title="This video is paid, but you have full access.">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+        <rect width="256" height="256" fill="none" />
+        <rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round"
+          stroke-linejoin="round" stroke-width="16" />
+        <circle cx="128" cy="152" r="12" fill="none" />
+        <path d="M88,88V56a40,40,0,0,1,40-40c19.35,0,36.29,13.74,40,32" fill="none" stroke="currentColor"
+          stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
+      </svg>
+    </span>
+    {% endif %}
     {% if is_uploader %}
     <div class="kebab-menu">
       <button class="kebab-trigger icon-btn" aria-label="More actions">
@@ -65,15 +96,38 @@
   </div>
   {% endif %}
 </div>
+
+{% if is_paywalled && is_free_preview %}
+<div class="payment-modal-overlay" id="paymentModal">
+  <div class="payment-modal">
+    <div class="payment-modal-icon">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+        <rect width="256" height="256" fill="none" />
+        <rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round"
+          stroke-linejoin="round" stroke-width="16" />
+        <circle cx="128" cy="152" r="12" fill="none" />
+        <path d="M88,88V56a40,40,0,0,1,80,0V88" fill="none" stroke="currentColor" stroke-linecap="round"
+          stroke-linejoin="round" stroke-width="16" />
+      </svg>
+    </div>
+    <h2 class="payment-modal-title">Unlock this Video</h2>
+    <p class="payment-modal-desc">{{ duration_human }} &middot; lifetime access</p>
+    <div class="payment-modal-price">${{ price_dollars }}</div>
+    <button class="payment-modal-btn" id="confirmPurchase">Purchase</button>
+    <button class="payment-modal-cancel" id="closePaymentModal">Continue free preview</button>
+  </div>
+</div>
+{% endif %}
+
 <script src="/static/{{ version }}/js/vidstack.min.js"></script>
 <script type="module">
   window.addEventListener('load', async () => {
     const player = await VidstackPlayer.create({
       target: '#video-target',
       title: 'FeVid.Cloud',
-      src: {{ sources_json|safe }},
-      storage: 'fevid-player',
-      layout: new VidstackPlayerLayout(),
+      src: {{sources_json| safe }},
+    storage: 'fevid-player',
+    layout: new VidstackPlayerLayout(),
     });
 
     // HLS mode (can be revived): point hls.js to local copy instead of CDN
@@ -125,6 +179,44 @@
       });
   });
 </script>
+
+{% if is_paywalled && is_free_preview %}
+<script>
+  var purchaseModal = document.getElementById('paymentModal');
+  var purchaseBanner = document.getElementById('purchaseBanner');
+  function openPurchaseModal() {
+    purchaseModal.classList.add('open');
+  }
+  document.getElementById('showPurchaseModal')?.addEventListener('click', openPurchaseModal);
+  document.getElementById('closePaymentModal')?.addEventListener('click', function () {
+    purchaseModal.classList.remove('open');
+  });
+  purchaseModal?.addEventListener('click', function (e) {
+    if (e.target === purchaseModal) purchaseModal.classList.remove('open');
+  });
+  document.getElementById('confirmPurchase')?.addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    fetch('/api/content/{{ content_id }}/purchase', {method: 'POST'})
+      .then(function (r) {return r.json();})
+      .then(function (resp) {
+        if (resp.ok) {
+          location.reload();
+        } else {
+          alert(resp.error || 'Purchase failed');
+          btn.disabled = false;
+          btn.textContent = 'Purchase';
+        }
+      })
+      .catch(function () {
+        alert('Network error');
+        btn.disabled = false;
+        btn.textContent = 'Purchase';
+      });
+  });
+</script>
+{% endif %}
 
 <script>
   var username = '{{ username }}';
