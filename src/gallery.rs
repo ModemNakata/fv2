@@ -306,6 +306,7 @@ struct GalleryPage {
     is_paywalled: bool,
     is_free_preview: bool,
     price_dollars: String,
+    unblurred_count: i32,
     version: String,
     is_favourited: bool,
 }
@@ -313,6 +314,7 @@ struct GalleryPage {
 struct GalleryImage {
     url: String,
     alt: String,
+    is_blurred: bool,
 }
 
 pub async fn gallery(
@@ -381,6 +383,7 @@ pub async fn gallery(
             images.push(GalleryImage {
                 url,
                 alt: img.alt_text.unwrap_or(img.original_name),
+                is_blurred: is_free_preview && i >= unblurred_count,
             });
         }
 
@@ -414,6 +417,7 @@ pub async fn gallery(
             is_paywalled,
             is_free_preview,
             price_dollars: format!("{:.2}", content.price_cents as f64 / 100.0),
+            unblurred_count: image_set.unblurred_count.unwrap_or(0),
             version: state.static_version.clone(),
             is_favourited,
         }
