@@ -6,21 +6,6 @@
 {% block content %}
 <script>window.__CONTENT_ID__='{{ content_id }}';</script>
 <script defer src="/static/{{ version }}/js/view-tracker.js"></script>
-{% if is_paywalled && is_free_preview %}
-<div class="purchase-banner">
-  <div class="purchase-banner-icon">
-    <svg class="lock-icon lock-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="152" r="12"/><path d="M88,88V56a40,40,0,0,1,80,0V88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-    <svg class="lock-icon lock-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="152" r="12"/><path d="M88,88V56a40,40,0,0,1,40-40c19.35,0,36.29,13.74,40,32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-  </div>
-  <div class="purchase-banner-text">
-    <span class="purchase-banner-title">Unlock Full Gallery</span>
-    <span class="purchase-banner-sub">Free preview · first {{ unblurred_count }} images unblurred</span>
-  </div>
-  <div class="purchase-banner-action">
-    <button class="purchase-btn" id="showPurchaseModal">${{ price_dollars }}</button>
-  </div>
-</div>
-{% endif %}
 <div class="gallery-detail">
   <div class="gallery-uploader">
     {% if uploader_avatar_url.is_some() %}
@@ -31,6 +16,11 @@
       <a href="/@{{ uploader_username }}" class="gallery-uploader-name">{{ uploader_display_name }}</a>
       <span class="gallery-uploader-handle">@{{ uploader_username }} · {{ created_at }}</span>
     </div>
+    {% if is_uploader && is_paywalled %}
+    <span class="gallery-uploader-badge" title="This gallery is paid, but you own it and have full access.">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="152" r="12" fill="none"/><path d="M88,88V56a40,40,0,0,1,40-40c19.35,0,36.29,13.74,40,32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+    </span>
+    {% endif %}
     {% if is_uploader %}
     <div class="kebab-menu">
       <button class="kebab-trigger icon-btn" aria-label="More actions">
@@ -67,13 +57,27 @@
   <p class="gallery-detail-desc">{{ description.as_ref().unwrap() }}</p>
   {% endif %}
 </div>
+{% if is_paywalled && is_free_preview %}
+<div class="purchase-banner" id="purchaseBanner">
+  <div class="purchase-banner-icon">
+    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="152" r="12" fill="none"/><path d="M88,88V56a40,40,0,0,1,80,0V88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+  </div>
+  <div class="purchase-banner-text">
+    <span class="purchase-banner-title">Unlock Full Gallery</span>
+    <span class="purchase-banner-sub">Free preview · first {{ unblurred_count }} images unblurred</span>
+  </div>
+  <div class="purchase-banner-action">
+    <button class="purchase-btn" id="showPurchaseModal">${{ price_dollars }}</button>
+  </div>
+</div>
+{% endif %}
 <div class="gallery-images">
   {% for image in images %}
   <div class="gallery-image-wrap{% if image.is_blurred %} blurred{% endif %}">
     <img class="gallery-detail-img" src="{{ image.url }}" alt="{{ image.alt }}" loading="lazy">
     {% if image.is_blurred %}
-    <div class="img-lock-overlay">
-      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="152" r="12"/><path d="M88,88V56a40,40,0,0,1,80,0V88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+    <div class="img-lock-overlay" data-action="unlock">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="152" r="12" fill="none"/><path d="M88,88V56a40,40,0,0,1,80,0V88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
     </div>
     {% endif %}
   </div>
@@ -84,11 +88,10 @@
 <div class="payment-modal-overlay" id="paymentModal">
   <div class="payment-modal">
     <div class="payment-modal-icon">
-      <svg class="lock-icon lock-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="152" r="12"/><path d="M88,88V56a40,40,0,0,1,80,0V88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-      <svg class="lock-icon lock-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="152" r="12"/><path d="M88,88V56a40,40,0,0,1,40-40c19.35,0,36.29,13.74,40,32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="152" r="12" fill="none"/><path d="M88,88V56a40,40,0,0,1,80,0V88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
     </div>
     <h2 class="payment-modal-title">Unlock this Gallery</h2>
-    <p class="payment-modal-desc">Get full access to all images</p>
+    <p class="payment-modal-desc">{{ total_image_count }} images &middot; lifetime access</p>
     <div class="payment-modal-price">${{ price_dollars }}</div>
     <button class="payment-modal-btn" id="confirmPurchase">Purchase</button>
     <button class="payment-modal-cancel" id="closePaymentModal">Continue free preview</button>
@@ -136,14 +139,22 @@
 {% if is_paywalled && is_free_preview %}
 <script>
   var purchaseModal = document.getElementById('paymentModal');
-  document.getElementById('showPurchaseModal')?.addEventListener('click', function () {
+  var purchaseBanner = document.getElementById('purchaseBanner');
+  function openPurchaseModal() {
     purchaseModal.classList.add('open');
-  });
+  }
+  document.getElementById('showPurchaseModal')?.addEventListener('click', openPurchaseModal);
   document.getElementById('closePaymentModal')?.addEventListener('click', function () {
     purchaseModal.classList.remove('open');
   });
   purchaseModal?.addEventListener('click', function (e) {
     if (e.target === purchaseModal) purchaseModal.classList.remove('open');
+  });
+  document.querySelectorAll('.img-lock-overlay[data-action="unlock"]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      if (purchaseBanner) purchaseBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      openPurchaseModal();
+    });
   });
 </script>
 {% endif %}

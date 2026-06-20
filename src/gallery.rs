@@ -307,6 +307,7 @@ struct GalleryPage {
     is_free_preview: bool,
     price_dollars: String,
     unblurred_count: i32,
+    total_image_count: usize,
     version: String,
     is_favourited: bool,
 }
@@ -387,6 +388,8 @@ pub async fn gallery(
             });
         }
 
+        let total_image_count = images.len();
+
         let is_favourited = if let Some(uid) = session_user_id {
             UserFavorites::find_by_id((uid, content_id))
                 .one(&state.conn)
@@ -418,6 +421,7 @@ pub async fn gallery(
             is_free_preview,
             price_dollars: format!("{:.2}", content.price_cents as f64 / 100.0),
             unblurred_count: image_set.unblurred_count.unwrap_or(0),
+            total_image_count,
             version: state.static_version.clone(),
             is_favourited,
         }
