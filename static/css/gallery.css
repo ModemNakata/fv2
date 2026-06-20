@@ -127,6 +127,20 @@
 
 .gallery-image-wrap {
   width: 100%;
+  background: var(--bg-tertiary);
+}
+
+.gallery-image-wrap.loading {
+  min-height: 200px;
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-hover) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: thumb-shimmer 1.2s ease-in-out infinite;
+}
+
+.gallery-image-wrap.loaded {
+  background: none;
+  min-height: 0;
+  animation: none;
 }
 
 .gallery-image-wrap+.gallery-image-wrap {
@@ -280,12 +294,16 @@
 .img-lock-overlay {
   position: absolute;
   inset: 0;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.15);
   cursor: pointer;
   /* transition: background 0.15s; */
+}
+
+.gallery-image-wrap.loaded .img-lock-overlay {
+  display: flex;
 }
 
 .img-lock-overlay:hover {

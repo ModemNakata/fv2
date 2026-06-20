@@ -265,4 +265,28 @@
       });
     });
   }
+
+  /* ── Thumbnail & gallery image loading ── */
+  document.querySelectorAll('.thumb-img, .gallery-card-img, .gallery-detail-img').forEach(function(img) {
+    var parent = img.closest('.thumbnail') || img.closest('.gallery-card-thumb') || img.closest('.gallery-image-wrap');
+    if (parent) {
+      parent.classList.add('loading');
+      parent.classList.remove('loaded');
+    }
+
+    function onImgDone() {
+      img.classList.add('loaded');
+      if (parent) {
+        parent.classList.remove('loading');
+        parent.classList.add('loaded');
+      }
+    }
+
+    if (img.complete && img.naturalWidth > 0) {
+      onImgDone();
+    } else {
+      img.addEventListener('load', onImgDone);
+      img.addEventListener('error', onImgDone);
+    }
+  });
 })();

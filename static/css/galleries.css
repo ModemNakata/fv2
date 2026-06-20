@@ -35,6 +35,24 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  opacity: 0;
+  color: transparent;
+  transition: opacity 0.15s;
+}
+
+.gallery-card-img.loaded {
+  opacity: 1;
+}
+
+.gallery-card-thumb.loading {
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-hover) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: thumb-shimmer 1.2s ease-in-out infinite;
+}
+
+.gallery-card-thumb.loaded {
+  background: var(--bg-tertiary);
+  animation: none;
 }
 
 .gallery-card-placeholder {

@@ -922,3 +922,19 @@ body.sidebar-open {
   background: var(--bg-secondary);
   color: var(--text-primary);
 }
+
+@keyframes thumb-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.thumbnail.loading {
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-hover) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: thumb-shimmer 1.2s ease-in-out infinite;
+}
+
+.thumbnail.loaded {
+  background: var(--bg-tertiary);
+  animation: none;
+}
