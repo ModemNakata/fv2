@@ -146,7 +146,8 @@ async fn main() -> std::io::Result<()> {
                     .service(auth::sign_up)
                     .service(auth::sign_in)
                     .service(auth::sign_out)
-                    .service(auth::instant_register),
+                    .service(auth::instant_register)
+                    .service(auth::set_or_change_password),
             )
             .service(
                 web::scope("/api")

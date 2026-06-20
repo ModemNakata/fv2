@@ -3,7 +3,7 @@ use actix_web::{HttpResponse, get, post, web};
 use argon2::{Argon2, PasswordHasher, PasswordVerifier};
 use chrono::NaiveDateTime;
 use sea_orm::{
-    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
     sea_query::{Expr, Func},
 };
 use serde::{Deserialize, Serialize};
@@ -32,6 +32,12 @@ pub struct AuthCheckResponse {
 pub struct Credentials {
     pub username: String,
     pub password: String,
+}
+
+#[derive(Deserialize)]
+pub struct PasswordChange {
+    pub current_password: Option<String>,
+    pub new_password: String,
 }
 
 #[derive(Serialize)]
@@ -371,4 +377,74 @@ fn argon2_to_hash(password: &str) -> Result<String, argon2::password_hash::Error
     Argon2::default()
         .hash_password(password.as_bytes(), &salt)
         .map(|h| h.to_string())
+}
+
+#[post("/password")]
+pub async fn set_or_change_password(
+    session: Session,
+    state: web::Data<AppState>,
+    body: web::Json<PasswordChange>,
+) -> HttpResponse {
+    let user = match require_user(&session, &state.conn).await {
+        Ok(u) => u,
+        Err(resp) => return resp,
+    };
+
+    if body.new_password.len() < 8 {
+        return HttpResponse::BadRequest().json(AuthResponse {
+            ok: false,
+            error: Some("Password must be at least 8 characters".to_string()),
+        });
+    }
+
+    let has_password = user.password_hash != "__no_password__";
+
+    if has_password {
+        let current = body.current_password.as_deref().unwrap_or("");
+        let valid = Argon2::default()
+            .verify_password(
+                current.as_bytes(),
+                &argon2::PasswordHash::new(&user.password_hash).unwrap(),
+            )
+            .is_ok();
+
+        if !valid {
+            return HttpResponse::Unauthorized().json(AuthResponse {
+                ok: false,
+                error: Some("Current password is incorrect".to_string()),
+            });
+        }
+    }
+
+    let password_hash = match argon2_to_hash(&body.new_password) {
+        Ok(h) => h,
+        Err(_) => {
+            return HttpResponse::InternalServerError().json(AuthResponse {
+                ok: false,
+                error: Some("Something went wrong".to_string()),
+            });
+        }
+    };
+
+    let now = chrono::Utc::now().naive_utc();
+
+    let user_id = user.id;
+    let mut active: users::ActiveModel = user.into();
+    active.password_hash = Set(password_hash);
+    active.password_changed_at = Set(now);
+
+    if let Err(e) = active.update(&state.conn).await {
+        log::error!("DB error updating password: {e}");
+        return HttpResponse::InternalServerError().json(AuthResponse {
+            ok: false,
+            error: Some("Failed to update password".to_string()),
+        });
+    }
+
+    set_session_auth(&session, user_id, now);
+
+    HttpResponse::Ok().json(AuthResponse {
+        ok: true,
+        error: None,
+    })
 }

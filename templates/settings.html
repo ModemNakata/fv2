@@ -60,8 +60,36 @@
     <button type="submit" class="settings-save-btn" id="saveBtn">Save Changes</button>
     <p class="settings-status" id="settingsStatus"></p>
   </form>
+
+  <hr class="settings-divider">
+
+  <form id="passwordForm" class="password-form">
+    <h2 class="settings-subtitle">Password</h2>
+
+    {% if has_password %}
+    <div class="settings-section">
+      <label class="settings-label" for="currentPasswordInput">Current password</label>
+      <input type="password" id="currentPasswordInput" name="current_password" class="settings-input" required>
+    </div>
+    {% endif %}
+
+    <div class="settings-section">
+      <label class="settings-label" for="newPasswordInput">{% if has_password %}New{% else %}New{% endif %} password</label>
+      <input type="password" id="newPasswordInput" name="new_password" class="settings-input" minlength="8" required>
+      <p class="settings-hint">At least 8 characters.</p>
+    </div>
+
+    <div class="settings-section">
+      <label class="settings-label" for="confirmPasswordInput">Confirm password</label>
+      <input type="password" id="confirmPasswordInput" class="settings-input" minlength="8" required>
+    </div>
+
+    <button type="submit" class="settings-save-btn" id="passwordSaveBtn">{% if has_password %}Change Password{% else %}Set Password{% endif %}</button>
+    <p class="settings-status" id="passwordStatus"></p>
+  </form>
 </div>
 
+<script>{% if has_password %}let hasPassword = true;{% else %}let hasPassword = false;{% endif %}</script>
 <script>
   document.getElementById('avatarInput').addEventListener('change', function (e) {
     var file = e.target.files[0];
@@ -122,6 +150,62 @@
         status.className = 'settings-status settings-status--error';
         btn.disabled = false;
         btn.textContent = 'Save Changes';
+      });
+  });
+
+  document.getElementById('passwordForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = document.getElementById('passwordSaveBtn');
+    var status = document.getElementById('passwordStatus');
+    var newPw = document.getElementById('newPasswordInput').value;
+    var confirmPw = document.getElementById('confirmPasswordInput').value;
+
+    if (newPw !== confirmPw) {
+      status.textContent = 'Passwords do not match.';
+      status.className = 'settings-status settings-status--error';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    status.textContent = '';
+    status.className = 'settings-status';
+
+    var body = {new_password: newPw};
+    if (hasPassword) {
+      body.current_password = document.getElementById('currentPasswordInput').value;
+    }
+
+    fetch('/auth/password', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})
+      .then(function (r) {return r.json();})
+      .then(function (data) {
+        if (data.ok) {
+          if (!hasPassword) {
+            var currSection = document.createElement('div');
+            currSection.className = 'settings-section';
+            currSection.innerHTML = '<label class="settings-label" for="currentPasswordInput">Current password</label><input type="password" id="currentPasswordInput" name="current_password" class="settings-input" required>';
+            document.getElementById('newPasswordInput').closest('.settings-section').before(currSection);
+            hasPassword = true;
+          }
+          status.textContent = 'Password changed!';
+          status.className = 'settings-status settings-status--success';
+          if (hasPassword) document.getElementById('currentPasswordInput').value = '';
+          document.getElementById('newPasswordInput').value = '';
+          document.getElementById('confirmPasswordInput').value = '';
+          btn.disabled = false;
+          btn.textContent = 'Change Password';
+        } else {
+          status.textContent = data.error || 'Something went wrong.';
+          status.className = 'settings-status settings-status--error';
+          btn.disabled = false;
+          btn.textContent = hasPassword ? 'Change Password' : 'Set Password';
+        }
+      })
+      .catch(function () {
+        status.textContent = 'Network error. Please try again.';
+        status.className = 'settings-status settings-status--error';
+        btn.disabled = false;
+        btn.textContent = hasPassword ? 'Change Password' : 'Set Password';
       });
   });
 </script>

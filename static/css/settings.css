@@ -178,3 +178,21 @@
     height: 100px;
   }
 }
+
+.settings-divider {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 32px 0;
+}
+
+.settings-subtitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 20px;
+}
+
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}

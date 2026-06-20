@@ -24,6 +24,7 @@ struct SettingsPage {
     current_display_name: String,
     current_avatar_url: Option<String>,
     current_about_me: Option<String>,
+    has_password: bool,
     version: String,
 }
 
@@ -47,6 +48,7 @@ pub async fn settings_page(session: Session, state: web::Data<AppState>) -> Http
         current_display_name: user.display_name,
         current_avatar_url: user.avatar_url,
         current_about_me: user.about_me,
+        has_password: user.password_hash != "__no_password__",
         version: state.static_version.clone(),
     }
     .render()
