@@ -137,6 +137,12 @@
     //     provider.library = '/static/{{ version }}/js/hls.min.js';
     //   }
     // });
+
+{% if is_paywalled && is_free_preview %}
+    player.addEventListener('ended', () => {
+      document.getElementById('paymentModal').classList.add('open');
+    });
+{% endif %}
   });
 </script>
 
