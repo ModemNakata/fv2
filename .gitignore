@@ -3,3 +3,4 @@
 phosphor-icons/
 /static/node_modules
 static/avatars/
+node_modules/
