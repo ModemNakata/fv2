@@ -297,6 +297,7 @@ pub async fn upload_video(
         format: Set(file.ext.clone()),
         orig_storage_path: Set(s3_key("videos", file.id, &file.ext)),
         storage_path: Set(None),
+        free_preview_path: Set(None),
         original_name: Set(file.original_name.clone()),
         file_size_bytes: Set(Some(file.size as i64)),
         created_at: Set(now),

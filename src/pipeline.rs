@@ -290,6 +290,17 @@ pub async fn get_content(state: web::Data<AppState>, content_id: web::Path<Uuid>
 }
 
 #[derive(serde::Deserialize)]
+#[serde(untagged)]
+enum VideoFormatEntry {
+    Legacy(String),
+    New {
+        storage_path: String,
+        #[serde(default)]
+        free_preview_path: Option<String>,
+    },
+}
+
+#[derive(serde::Deserialize)]
 pub(crate) struct StatusUpdate {
     status: String,
     #[serde(default)]
@@ -297,19 +308,18 @@ pub(crate) struct StatusUpdate {
     #[serde(default)]
     preview_path: Option<String>,
     #[serde(default)]
-    free_preview_path: Option<String>,
-    #[serde(default)]
     duration: Option<f64>,
     // HLS mode (can be revived): processed_files was Vec<String>,
     // first entry stored as HLS master playlist path in video_formats.storage_path
     // Now used for image_sets only (index-based path mapping).
     #[serde(default)]
     processed_files: Option<Vec<String>>,
-    // Multi-resolution mode: map of resolution → S3 path.
+    // Multi-resolution mode: map of resolution → video format entry.
     // Pipeline generates one entry per resolution (e.g. "1920x1080", "1280x720", "854x480").
     // Each entry creates/updates a video_formats row for this video.
+    // Value can be a plain string (legacy) or an object with storage_path + optional free_preview_path.
     #[serde(default)]
-    video_formats: Option<HashMap<String, String>>,
+    video_formats: Option<HashMap<String, VideoFormatEntry>>,
     #[serde(default)]
     blurred_files: Option<Vec<String>>,
     #[serde(default)]
@@ -424,20 +434,6 @@ pub async fn update_status(
                 }
             }
 
-            if let Some(ref preview) = body.free_preview_path {
-                if let Ok(Some(video)) = Videos::find_by_id(content_id).one(&state.conn).await {
-                    let mut video: videos::ActiveModel = video.into();
-                    video.preview_path = Set(Some(preview.clone()));
-                    if let Err(e) = video.update(&state.conn).await {
-                        log::error!("DB error updating free preview_path: {e}");
-                    }
-                } else {
-                    log::warn!(
-                        "video record not found for content_id {content_id}, skipping free_preview_path"
-                    );
-                }
-            }
-
             if let Some(ref sq) = body.source_quality {
                 if let Ok(Some(video)) = Videos::find_by_id(content_id).one(&state.conn).await {
                     let mut video: videos::ActiveModel = video.into();
@@ -527,12 +523,19 @@ pub async fn update_status(
             //     }
             // }
 
-            // Multi-resolution mode: video_formats is a map of resolution → S3 path.
+            // Multi-resolution mode: video_formats is a map of resolution → VideoFormatEntry.
             if let Some(ref formats) = body.video_formats {
                 if content_type == ContentType::Video {
-                    for (resolution, path) in formats {
+                    for (resolution, entry) in formats {
+                        let (storage_path, free_preview_path) = match entry {
+                            VideoFormatEntry::Legacy(p) => (p.clone(), None),
+                            VideoFormatEntry::New {
+                                storage_path,
+                                free_preview_path,
+                            } => (storage_path.clone(), free_preview_path.clone()),
+                        };
                         // Derive format from path extension (e.g. "videos/u/1080p.webm" → "webm")
-                        let fmt_ext = path
+                        let fmt_ext = storage_path
                             .rsplit_once('.')
                             .map(|(_, ext)| ext.to_lowercase())
                             .unwrap_or_default();
@@ -544,7 +547,8 @@ pub async fn update_status(
                             .await
                         {
                             let mut fmt: video_formats::ActiveModel = fmt.into();
-                            fmt.storage_path = Set(Some(path.clone()));
+                            fmt.storage_path = Set(Some(storage_path));
+                            fmt.free_preview_path = Set(free_preview_path);
                             if let Err(e) = fmt.update(&state.conn).await {
                                 log::error!("DB error updating video_format {resolution}: {e}");
                             }
@@ -555,7 +559,8 @@ pub async fn update_status(
                                 resolution: Set(resolution.clone()),
                                 format: Set(fmt_ext),
                                 orig_storage_path: Set(String::new()),
-                                storage_path: Set(Some(path.clone())),
+                                storage_path: Set(Some(storage_path)),
+                                free_preview_path: Set(free_preview_path),
                                 original_name: Set(String::new()),
                                 file_size_bytes: Set(None),
                                 created_at: Set(chrono::Utc::now().naive_utc()),

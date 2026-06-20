@@ -107,7 +107,7 @@ impl MigrationTrait for Migration {
                     .col(string_len("source_resolution", 10).null()) // e.g. WxH (1920x1080) | actually shouldn't be null
                     // ^ can also include resolution_dimensions (?)
                     .col(integer_null("free_preview_duration_s"))
-                    .col(string_len("preview_path", 1024).null())
+                    .col(string_len("preview_path", 1024).null()) // this is not free preview - it's just animated preview
                     // .col(big_integer("view_count").default(0))
                     .foreign_key(
                         ForeignKey::create()
@@ -135,6 +135,7 @@ impl MigrationTrait for Migration {
                     .col(string_len("format", 50))
                     .col(string_len("orig_storage_path", 1024)) // original
                     .col(string_len("storage_path", 1024).null())
+                    .col(string_len("free_preview_path", 1024).null())
                     .col(string_len("original_name", 1024)) // should
                     .col(big_integer_null("file_size_bytes"))
                     .col(timestamp("created_at").default(Expr::current_timestamp()))

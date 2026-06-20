@@ -2,8 +2,6 @@
 
 Internal HTTP endpoints used by the AV1 + AVIF processing pipeline to discover and update unprocessed content.
 
-NOTE: it returns free preview duration secs but pipeline ignores it if paywalled isn't true
-
 ## Auth
 
 | Endpoint | Auth |
@@ -32,8 +30,8 @@ Pipeline encodes AV1 + AVIF at multiple resolutions, uploads to S3_BUCKET
          │
          └── Paywalled content
                  │
-                 ├── Video: trim free_preview_duration_s clip
-                 │         ► calls PATCH with free_preview_path
+                 ├── Video: trim free_preview_duration_s clip, encode same ABR ladder
+                 │         ► calls PATCH with free_preview_path per video_formats entry
                  │
                  └── Gallery: blur images at index ≥ unblurred_count
                            ► calls PATCH with blurred_files
@@ -117,11 +115,8 @@ Returns all content items with `status = processing` (upload complete, awaiting 
 - `path` values are relative to `S3_ORIG_BUCKET`
 - Videos always return exactly one file (the original upload)
 - Image sets return all images ordered by `sort_order`
-- After processing, the pipeline sends back the processed file paths:
-  - **Videos**: use `video_formats` (map of resolution → S3 path in `S3_BUCKET`)
-  - **Image sets**: use `processed_files` (array of paths, one per image in order)
 - For paywalled items (`is_paywalled=true`), the pipeline **must also**:
-  - **Video**: Trim the first `free_preview_duration_s` seconds from the source, encode as a lightweight `.webm` (AV1), and send the key back via `free_preview_path` in the PATCH call
+  - **Video**: Trim the first `free_preview_duration_s` seconds from the source, encode the full ABR ladder, and include `free_preview_path` in each `video_formats` entry
   - **Gallery**: For images at index ≥ `unblurred_count`, generate a **blurred `.avif`** version, and send all blurred keys back via `blurred_files` (same order as `files[]`)
 
 ---
@@ -179,11 +174,19 @@ Updates the processing status of a content item after the pipeline finishes.
   "thumbnail_url": "videos/550e8400-e29b-41d4-a716-446655440000/thumbnail.avif",
   "preview_path": "videos/550e8400-e29b-41d4-a716-446655440000/preview.webm",
   "duration": 13.2,
-  "free_preview_path": "videos/550e8400-e29b-41d4-a716-446655440000/free_preview.webm",
   "video_formats": {
-    "1920x1080": "videos/550e8400-e29b-41d4-a716-446655440000/1080p.webm",
-    "1280x720": "videos/550e8400-e29b-41d4-a716-446655440000/720p.webm",
-    "854x480": "videos/550e8400-e29b-41d4-a716-446655440000/480p.webm"
+    "1920x1080": {
+      "storage_path": "videos/550e8400-e29b-41d4-a716-446655440000/1080p.webm",
+      "free_preview_path": "videos/550e8400-e29b-41d4-a716-446655440000/free_preview/1080p.webm"
+    },
+    "1280x720": {
+      "storage_path": "videos/550e8400-e29b-41d4-a716-446655440000/720p.webm",
+      "free_preview_path": "videos/550e8400-e29b-41d4-a716-446655440000/free_preview/720p.webm"
+    },
+    "854x480": {
+      "storage_path": "videos/550e8400-e29b-41d4-a716-446655440000/480p.webm",
+      "free_preview_path": "videos/550e8400-e29b-41d4-a716-446655440000/free_preview/480p.webm"
+    }
   },
   "blurred_files": [
     "",
@@ -193,6 +196,26 @@ Updates the processing status of a content item after the pipeline finishes.
   ]
 }
 ```
+
+For non-paywalled content, `video_formats` entries omit `free_preview_path`:
+
+```json
+{
+  "video_formats": {
+    "1920x1080": {
+      "storage_path": "videos/550e8400-e29b-41d4-a716-446655440000/1080p.webm"
+    },
+    "1280x720": {
+      "storage_path": "videos/550e8400-e29b-41d4-a716-446655440000/720p.webm"
+    },
+    "854x480": {
+      "storage_path": "videos/550e8400-e29b-41d4-a716-446655440000/480p.webm"
+    }
+  }
+}
+```
+
+> **Note:** The old format (`video_formats` values as plain strings) is still accepted for backward compatibility. The pipeline now sends the object format only when `free_preview_path` entries are included.
 
 ### Fields
 
@@ -204,9 +227,8 @@ Updates the processing status of a content item after the pipeline finishes.
 | `thumbnail_url` | string | no | S3 key of the generated thumbnail image (`.avif`), stored in `S3_BUCKET`. Only applies to videos. |
 | `preview_path` | string | no | S3 key of the hover preview asset (stored in `S3_BUCKET`). For videos: 3–5 second clip (`.webm`). For image sets: typically the first image converted to a lightweight `.avif`. |
 | `duration` | float | no | Video duration in seconds (e.g. `13.2`). Rounded to integer and stored in `videos.duration_seconds`. Only applies to videos. |
-| `video_formats` | object (map) | no | **Videos only.** Map of resolution (in `"WxH"` format) → S3 path in **S3_BUCKET**. Each entry creates or updates a `video_formats` row, with the format derived from the path extension. The highest resolution (by height) is served to the player. Example: `{"1920x1080": "videos/u/1080p.webm", "1280x720": "videos/u/720p.webm"}`. |
+| `video_formats` | object (map) | no | **Videos only.** Map of resolution (in `"WxH"` format) → object with `storage_path` (S3 path in **S3_BUCKET**) and optionally `free_preview_path` (S3 path of the free preview clip, **paywalled videos only**). Each entry creates or updates a `video_formats` row. The highest resolution (by height) is served to the player. Example: `{"1920x1080": {"storage_path": "videos/u/1080p.webm", "free_preview_path": "videos/u/free_preview/1080p.webm"}}`. |
 | `processed_files` | array of strings | no | **Image sets only.** Processed file paths in **S3_BUCKET**, one per original image in the same order as `files[]`. For videos this field is ignored — use `video_formats` instead. |
-| `free_preview_path` | string | no | **Paywalled videos only.** S3 key of the free preview clip (trimmed to `free_preview_duration_s` seconds), stored in `S3_BUCKET`. The pipeline stores this in `videos.preview_path`. |
 | `blurred_files` | array of strings | no | **Paywalled galleries only.** S3 keys of blurred `.avif` versions, one per image in the same order as `files[]`. Images at index < `unblurred_count` may be empty strings (left unblurred). Stored in `images.blurred_storage_path`. |
 
 ### Valid Status Values
@@ -240,66 +262,4 @@ Updates the processing status of a content item after the pipeline finishes.
 
 ```json
 { "error": "Content not found" }
-```
-
----
-
-## Example Pipeline Loop (pseudo-code)
-
-```
-loop:
-  items = GET http://app:8080/api/pending-processing
-  
-  for item in items:
-    for file in item.files:
-      original = download from S3_ORIG_BUCKET / file.path
-      
-      if item.content_type == "video":
-        # Encode multiple resolution variants with AV1
-        encoded = av1_encode(original, resolutions=[1920x1080, 1280x720, 854x480])
-        upload to S3_BUCKET / videos/{content_id}/
-        
-        # Generate thumbnail + preview clip
-        thumbnail = ffmpeg_thumbnail(original, size=1280x720, seek=5s)
-        upload thumbnail to S3_BUCKET / videos/{content_id}/thumbnail.avif
-        
-        preview = ffmpeg_clip(original, start=0s, duration=3s, scale=640x360)
-        upload preview to S3_BUCKET / videos/{content_id}/preview.webm
-      
-      if item.content_type == "image_set":
-        # Encode all images to AVIF
-        avif = avif_encode(original, quality=80)
-        upload to S3_BUCKET / galleries/{content_id}/
-        
-        # Generate preview (first image, lower quality)
-        first = item.files[0]
-        preview = avif_encode(first, quality=60, max_dim=720)
-        upload preview to S3_BUCKET / galleries/{content_id}/preview.avif
-    
-    if item.content_type == "video":
-      video_formats = {
-        "1920x1080": "videos/{content_id}/1080p.webm",
-        "1280x720": "videos/{content_id}/720p.webm",
-        "854x480": "videos/{content_id}/480p.webm",
-      }
-      thumbnail_url = "videos/{content_id}/thumbnail.avif"
-      preview_path = "videos/{content_id}/preview.webm"
-    elif item.content_type == "image_set":
-      processed_files = [
-        "galleries/{content_id}/{image_id}.avif"
-        for each original in item.files
-      ]
-      thumbnail_url = "galleries/{content_id}/thumbnail.avif"     # optional
-      preview_path = "galleries/{content_id}/preview.avif"        # optional
-    
-    PATCH http://app:8080/api/content/{item.content_id}/status
-      X-Api-Key: {PIPELINE_RAND_HEX}
-      {
-        "status": "ready",
-        "source_resolution": "{detected WxH}",
-        "thumbnail_url": thumbnail_url,
-        "preview_path": preview_path,
-        "video_formats": video_formats,
-        "processed_files": processed_files
-      }
 ```

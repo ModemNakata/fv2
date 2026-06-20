@@ -15,6 +15,7 @@ pub struct Model {
     pub format: String,
     pub orig_storage_path: String,
     pub storage_path: Option<String>,
+    pub free_preview_path: Option<String>,
     pub original_name: String,
     pub file_size_bytes: Option<i64>,
     pub created_at: DateTime,
