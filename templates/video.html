@@ -9,6 +9,16 @@
 {% block content %}
 <div class="video-player-wrapper">
   <div id="video-target"></div>
+  <div class="player-error hidden" id="playerError">
+    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+      <rect width="256" height="256" fill="none" />
+      <circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="16" />
+      <line x1="128" y1="136" x2="128" y2="80" fill="none" stroke="currentColor" stroke-linecap="round"
+        stroke-linejoin="round" stroke-width="16" />
+      <circle cx="128" cy="172" r="12" fill="currentColor" />
+    </svg>
+    <span class="player-error-text">Something went wrong. <a href="javascript:location.reload()">Reload page</a></span>
+  </div>
 </div>
 {% if is_paywalled && is_free_preview %}
 <div class="purchase-banner" id="purchaseBanner">
@@ -129,6 +139,50 @@
     storage: 'fevid-player',
     layout: new VidstackPlayerLayout(),
     });
+
+  // ==========================================
+  // ERROR HANDLING — show UI banner + log
+  // ==========================================
+  player.addEventListener('error', (event) => {
+    const error = event.detail;
+
+    console.group('%c[FeVid Player Diagnostic]', 'color: #ff3333; font-weight: bold;');
+    console.error('Raw Event Object:', event);
+
+    if (error) {
+      const errorMap = {
+        1: 'MEDIA_ERR_ABORTED (Fetching process aborted by user choice)',
+        2: 'MEDIA_ERR_NETWORK (Network error / dropped connection / 408 timeout)',
+        3: 'MEDIA_ERR_DECODE (Corrupted file or decoding/hardware failure)',
+        4: 'MEDIA_ERR_SRC_NOT_SUPPORTED (Format/codec not supported by browser)'
+      };
+
+      const readableType = errorMap[error.code] || 'UNKNOWN_MEDIA_ERROR';
+
+      console.error(`Error Type: ${readableType}`);
+      console.error(`Numeric Code: ${error.code}`);
+      console.error(`Browser Message: ${error.message || 'None provided by browser (Check privacy.resistFingerprinting)'}`);
+    } else {
+      console.error('An error event fired, but no MediaError details were attached.');
+    }
+
+    console.log('Player State at time of crash:', {
+      currentTime: player.currentTime,
+      currentSrc: player.src,
+      paused: player.paused,
+      seeking: player.seeking
+    });
+
+    console.groupEnd();
+
+    // Show error banner to user
+    const banner = document.getElementById('playerError');
+    if (banner) {
+      banner.classList.remove('hidden');
+    }
+
+    // we can also report on critical errors to backend 
+  });
 
   // HLS mode (can be revived): point hls.js to local copy instead of CDN
   // player.addEventListener('media-provider-change', (event) => {
