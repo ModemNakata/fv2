@@ -130,19 +130,19 @@
     layout: new VidstackPlayerLayout(),
     });
 
-    // HLS mode (can be revived): point hls.js to local copy instead of CDN
-    // player.addEventListener('media-provider-change', (event) => {
-    //   const provider = event.detail;
-    //   if (provider.type === 'hls') {
-    //     provider.library = '/static/{{ version }}/js/hls.min.js';
-    //   }
-    // });
+  // HLS mode (can be revived): point hls.js to local copy instead of CDN
+  // player.addEventListener('media-provider-change', (event) => {
+  //   const provider = event.detail;
+  //   if (provider.type === 'hls') {
+  //     provider.library = '/static/{{ version }}/js/hls.min.js';
+  //   }
+  // });
 
-{% if is_paywalled && is_free_preview %}
-    player.addEventListener('ended', () => {
-      document.getElementById('paymentModal').classList.add('open');
-    });
-{% endif %}
+  {% if is_paywalled && is_free_preview %}
+  player.addEventListener('ended', () => {
+    document.getElementById('paymentModal').classList.add('open');
+  });
+  {% endif %}
   });
 </script>
 
