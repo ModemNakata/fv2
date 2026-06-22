@@ -32,6 +32,7 @@ pub struct AuthCheckResponse {
 pub struct Credentials {
     pub username: String,
     pub password: String,
+    pub redirect: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -44,6 +45,7 @@ pub struct PasswordChange {
 pub struct AuthResponse {
     pub ok: bool,
     pub error: Option<String>,
+    pub redirect: Option<String>,
 }
 
 pub(crate) fn validate_username(username: &str) -> Result<(), &'static str> {
@@ -179,6 +181,7 @@ pub async fn sign_up(
         return HttpResponse::BadRequest().json(AuthResponse {
             ok: false,
             error: Some(e.to_string()),
+            redirect: None,
         });
     }
 
@@ -186,6 +189,7 @@ pub async fn sign_up(
         return HttpResponse::BadRequest().json(AuthResponse {
             ok: false,
             error: Some("Password must be at least 8 characters".to_string()),
+            redirect: None,
         });
     }
 
@@ -201,6 +205,7 @@ pub async fn sign_up(
             return HttpResponse::Conflict().json(AuthResponse {
                 ok: false,
                 error: Some("Username unavailable".to_string()),
+                redirect: None,
             });
         }
         Err(e) => {
@@ -208,6 +213,7 @@ pub async fn sign_up(
             return HttpResponse::InternalServerError().json(AuthResponse {
                 ok: false,
                 error: Some("Something went wrong".to_string()),
+                redirect: None,
             });
         }
         Ok(None) => {}
@@ -219,6 +225,7 @@ pub async fn sign_up(
             return HttpResponse::InternalServerError().json(AuthResponse {
                 ok: false,
                 error: Some("Something went wrong".to_string()),
+                redirect: None,
             });
         }
     };
@@ -241,14 +248,18 @@ pub async fn sign_up(
         return HttpResponse::InternalServerError().json(AuthResponse {
             ok: false,
             error: Some("Something went wrong".to_string()),
+            redirect: None,
         });
     }
 
     set_session_auth(&session, user_id, now);
 
+    let redirect = body.redirect.as_ref().filter(|r| !r.is_empty()).cloned();
+
     HttpResponse::Created().json(AuthResponse {
         ok: true,
         error: None,
+        redirect,
     })
 }
 
@@ -274,6 +285,7 @@ pub async fn sign_in(
             return HttpResponse::Unauthorized().json(AuthResponse {
                 ok: false,
                 error: Some("Invalid credentials".to_string()),
+                redirect: None,
             });
         }
         Err(e) => {
@@ -281,6 +293,7 @@ pub async fn sign_in(
             return HttpResponse::InternalServerError().json(AuthResponse {
                 ok: false,
                 error: Some("Something went wrong".to_string()),
+                redirect: None,
             });
         }
     };
@@ -296,14 +309,18 @@ pub async fn sign_in(
         return HttpResponse::Unauthorized().json(AuthResponse {
             ok: false,
             error: Some("Invalid credentials".to_string()),
+            redirect: None,
         });
     }
 
     set_session_auth(&session, user.id, user.password_changed_at);
 
+    let redirect = body.redirect.as_ref().filter(|r| !r.is_empty()).cloned();
+
     HttpResponse::Ok().json(AuthResponse {
         ok: true,
         error: None,
+        redirect,
     })
 }
 
@@ -311,7 +328,9 @@ pub async fn sign_in(
 pub async fn instant_register(
     session: Session,
     state: web::Data<AppState>,
+    query: web::Query<std::collections::HashMap<String, String>>,
 ) -> HttpResponse {
+    let redirect = query.get("redirect").filter(|r| !r.is_empty()).cloned();
     let username = loop {
         let suffix: String = Uuid::new_v4().to_string()[..8].to_string();
         let username = format!("User_{}", suffix);
@@ -329,6 +348,7 @@ pub async fn instant_register(
                 return HttpResponse::InternalServerError().json(AuthResponse {
                     ok: false,
                     error: Some("Something went wrong".to_string()),
+                    redirect: None,
                 });
             }
         }
@@ -351,6 +371,7 @@ pub async fn instant_register(
         return HttpResponse::InternalServerError().json(AuthResponse {
             ok: false,
             error: Some("Something went wrong".to_string()),
+            redirect: None,
         });
     }
 
@@ -359,6 +380,7 @@ pub async fn instant_register(
     HttpResponse::Created().json(AuthResponse {
         ok: true,
         error: None,
+        redirect,
     })
 }
 
@@ -368,6 +390,7 @@ pub async fn sign_out(session: Session) -> HttpResponse {
     HttpResponse::Ok().json(AuthResponse {
         ok: true,
         error: None,
+        redirect: None,
     })
 }
 
@@ -394,6 +417,7 @@ pub async fn set_or_change_password(
         return HttpResponse::BadRequest().json(AuthResponse {
             ok: false,
             error: Some("Password must be at least 8 characters".to_string()),
+            redirect: None,
         });
     }
 
@@ -412,6 +436,7 @@ pub async fn set_or_change_password(
             return HttpResponse::Unauthorized().json(AuthResponse {
                 ok: false,
                 error: Some("Current password is incorrect".to_string()),
+                redirect: None,
             });
         }
     }
@@ -422,6 +447,7 @@ pub async fn set_or_change_password(
             return HttpResponse::InternalServerError().json(AuthResponse {
                 ok: false,
                 error: Some("Something went wrong".to_string()),
+                redirect: None,
             });
         }
     };
@@ -438,13 +464,15 @@ pub async fn set_or_change_password(
         return HttpResponse::InternalServerError().json(AuthResponse {
             ok: false,
             error: Some("Failed to update password".to_string()),
+            redirect: None,
         });
     }
 
     set_session_auth(&session, user_id, now);
 
-    HttpResponse::Ok().json(AuthResponse {
+    HttpResponse::Created().json(AuthResponse {
         ok: true,
         error: None,
+        redirect: None,
     })
 }

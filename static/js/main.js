@@ -127,10 +127,19 @@
 
   var dialog = document.getElementById('authDialog');
   var signInBtn = document.getElementById('signInBtn');
+  var authPurchaseMsg = document.getElementById('authPurchaseMsg');
 
   if (dialog && signInBtn) {
     signInBtn.addEventListener('click', function() {
+      if (window.__authForPurchase__ && authPurchaseMsg) {
+        authPurchaseMsg.hidden = false;
+      }
       dialog.showModal();
+    });
+
+    dialog.addEventListener('close', function() {
+      if (authPurchaseMsg) authPurchaseMsg.hidden = true;
+      window.__authForPurchase__ = false;
     });
 
     dialog.addEventListener('click', function(e) {
@@ -182,6 +191,8 @@
       var data = new URLSearchParams(new FormData(form));
       var body = {};
       data.forEach(function(value, key) { body[key] = value; });
+      var redirect = window.__authRedirect__;
+      if (redirect) body.redirect = redirect;
 
       fetch(form.action, {
         method: 'POST',
@@ -192,7 +203,8 @@
       .then(function(resp) {
         setLoading(btn, false);
         if (resp.ok) {
-          location.reload();
+          window.__authRedirect__ = null;
+          window.location.href = resp.redirect || window.location.href;
         } else {
           errorEl.textContent = resp.error || 'Something went wrong';
         }
@@ -213,11 +225,15 @@
   if (instantBtn) {
     instantBtn.addEventListener('click', function() {
       setLoading(instantBtn, true);
-      fetch('/auth/instant-register', { method: 'POST' })
+      var url = '/auth/instant-register';
+      var redirect = window.__authRedirect__;
+      if (redirect) url += '?redirect=' + encodeURIComponent(redirect);
+      fetch(url, { method: 'POST' })
         .then(function(r) { return r.json(); })
         .then(function(resp) {
           if (resp.ok) {
-            location.reload();
+            window.__authRedirect__ = null;
+            window.location.href = resp.redirect || window.location.href;
           } else {
             setLoading(instantBtn, false);
           }
@@ -244,6 +260,8 @@
       var data = new URLSearchParams(new FormData(signUpForm));
       var body = {};
       data.forEach(function(value, key) { if (key !== 'confirm_password') body[key] = value; });
+      var redirect = window.__authRedirect__;
+      if (redirect) body.redirect = redirect;
 
       fetch(signUpForm.action, {
         method: 'POST',
@@ -254,7 +272,8 @@
       .then(function(resp) {
         setLoading(btn, false);
         if (resp.ok) {
-          location.reload();
+          window.__authRedirect__ = null;
+          window.location.href = resp.redirect || window.location.href;
         } else {
           signUpError.textContent = resp.error || 'Something went wrong';
         }

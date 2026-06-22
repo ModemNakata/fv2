@@ -725,6 +725,17 @@ body.sidebar-open {
   padding: 24px;
 }
 
+.auth-purchase-msg {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .auth-tabs {
   display: flex;
   border-bottom: 1px solid var(--border-color);

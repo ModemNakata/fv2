@@ -168,10 +168,27 @@
 <script>
   var purchaseModal = document.getElementById('paymentModal');
   var purchaseBanner = document.getElementById('purchaseBanner');
+
+  function requireAuthThen(fn) {
+    if (username) {
+      fn();
+    } else {
+      window.__authRedirect__ = window.location.pathname + '?purchase=1';
+      window.__authForPurchase__ = true;
+      document.getElementById('signInBtn').click();
+    }
+  }
+
   function openPurchaseModal() {
     purchaseModal.classList.add('open');
+    if (window.location.search.includes('purchase=1')) {
+      var url = window.location.pathname + window.location.hash;
+      history.replaceState(null, '', url);
+    }
   }
-  document.getElementById('showPurchaseModal')?.addEventListener('click', openPurchaseModal);
+  document.getElementById('showPurchaseModal')?.addEventListener('click', function () {
+    requireAuthThen(openPurchaseModal);
+  });
   document.getElementById('closePaymentModal')?.addEventListener('click', function () {
     purchaseModal.classList.remove('open');
   });
@@ -201,10 +218,13 @@
   });
   document.querySelectorAll('.img-lock-overlay[data-action="unlock"]').forEach(function (el) {
     el.addEventListener('click', function () {
-      if (purchaseBanner) purchaseBanner.scrollIntoView({behavior: 'smooth', block: 'center'});
-      openPurchaseModal();
+      requireAuthThen(openPurchaseModal);
     });
   });
+
+  if (window.location.search.includes('purchase=1')) {
+    openPurchaseModal();
+  }
 </script>
 {% endif %}
 
