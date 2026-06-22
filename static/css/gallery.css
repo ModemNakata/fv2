@@ -320,26 +320,31 @@
 
 /* ── Payment Modal ── */
 
-.payment-modal-overlay {
+.payment-modal:not([open]) {
   display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  z-index: 500;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
 }
 
-.payment-modal-overlay.open {
-  display: flex;
+.payment-modal[open] {
+  display: block;
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  height: fit-content;
 }
 
 .payment-modal {
+  max-width: 360px;
+  width: 92vw;
+  outline: none;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  max-width: 360px;
-  width: 100%;
+}
+
+.payment-modal::backdrop {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.payment-modal-inner {
   padding: 32px 24px 24px;
   display: flex;
   flex-direction: column;

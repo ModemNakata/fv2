@@ -108,8 +108,8 @@
 </div>
 
 {% if is_paywalled && is_free_preview %}
-<div class="payment-modal-overlay" id="paymentModal">
-  <div class="payment-modal">
+<dialog class="payment-modal" id="paymentModal">
+  <div class="payment-modal-inner">
     <div class="payment-modal-icon">
       <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
         <rect width="256" height="256" fill="none" />
@@ -126,7 +126,7 @@
     <button class="payment-modal-btn" id="confirmPurchase">Purchase</button>
     <button class="payment-modal-cancel" id="closePaymentModal">Continue free preview</button>
   </div>
-</div>
+</dialog>
 {% endif %}
 
 <script src="/static/{{ version }}/js/vidstack.min.js"></script>
@@ -194,7 +194,7 @@
 
   {% if is_paywalled && is_free_preview %}
   player.addEventListener('ended', () => {
-    document.getElementById('paymentModal').classList.add('open');
+    document.getElementById('paymentModal').showModal();
   });
   {% endif %}
   });
@@ -244,15 +244,35 @@
 <script>
   var purchaseModal = document.getElementById('paymentModal');
   var purchaseBanner = document.getElementById('purchaseBanner');
-  function openPurchaseModal() {
-    purchaseModal.classList.add('open');
+
+  function requireAuthThen(fn) {
+    if (username) {
+      fn();
+    } else {
+      window.__authRedirect__ = window.location.pathname + '?purchase=1';
+      window.__authForPurchase__ = true;
+      document.getElementById('signInBtn').click();
+    }
   }
-  document.getElementById('showPurchaseModal')?.addEventListener('click', openPurchaseModal);
+
+  function openPurchaseModal() {
+    purchaseModal.showModal();
+    if (window.location.search.includes('purchase=1')) {
+      var url = window.location.pathname + window.location.hash;
+      history.replaceState(null, '', url);
+    }
+  }
+  document.getElementById('showPurchaseModal')?.addEventListener('click', function () {
+    requireAuthThen(openPurchaseModal);
+  });
   document.getElementById('closePaymentModal')?.addEventListener('click', function () {
-    purchaseModal.classList.remove('open');
+    purchaseModal.close();
   });
   purchaseModal?.addEventListener('click', function (e) {
-    if (e.target === purchaseModal) purchaseModal.classList.remove('open');
+    var rect = purchaseModal.getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+      purchaseModal.close();
+    }
   });
   document.getElementById('confirmPurchase')?.addEventListener('click', function () {
     var btn = this;
@@ -275,6 +295,10 @@
         btn.textContent = 'Purchase';
       });
   });
+
+  if (window.location.search.includes('purchase=1')) {
+    openPurchaseModal();
+  }
 </script>
 {% endif %}
 
