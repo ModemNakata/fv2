@@ -20,6 +20,18 @@ struct UploadResponse {
     content_id: Option<Uuid>,
 }
 
+fn parse_price_cents(val: &str) -> i32 {
+    let val = val.trim();
+    let truncated = if let Some(dot) = val.find('.') {
+        let limit = (dot + 3).min(val.len());
+        &val[..limit]
+    } else {
+        val
+    };
+    let dollars: f64 = truncated.parse().unwrap_or(0.0);
+    (dollars.max(0.0) * 100.0 + 0.5) as i32
+}
+
 fn s3_key(prefix: &str, id: Uuid, ext: &str) -> String {
     format!("{prefix}/{id}.{ext}")
 }
@@ -159,8 +171,7 @@ pub async fn upload_video(
                     data.extend_from_slice(&chunk);
                 }
                 let val = String::from_utf8(data).unwrap_or_default();
-                let dollars: f64 = val.parse().unwrap_or(0.0);
-                price_cents = (dollars * 100.0).round() as i32;
+                price_cents = parse_price_cents(&val);
             }
             "preview_length" => {
                 let mut data = Vec::new();
@@ -373,8 +384,7 @@ pub async fn upload_gallery(
                     data.extend_from_slice(&chunk);
                 }
                 let val = String::from_utf8(data).unwrap_or_default();
-                let dollars: f64 = val.parse().unwrap_or(0.0);
-                price_cents = (dollars * 100.0).round() as i32;
+                price_cents = parse_price_cents(&val);
             }
             "unblurred_count" => {
                 let mut data = Vec::new();
