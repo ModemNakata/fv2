@@ -1,1 +1,624 @@
-{"openapi":"3.1.0","info":{"title":"CryptoWrap","description":"","license":{"name":""},"version":"0.1.3"},"paths":{"/api/v1/auth/token":{"get":{"tags":["Authentication"],"summary":"Generate a secure bearer token","description":"Returns a newly generated cryptographically secure random bearer token.","operationId":"generate_token","responses":{"200":{"description":"Token generated successfully","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TokenResponse"}}}}}}},"/api/v1/deposit/check":{"get":{"tags":["Payments"],"summary":"Check deposit status","description":"Returns deposit status.","operationId":"check","parameters":[{"name":"deposit_uuid","in":"query","description":"UUID of the deposit to check","required":true,"schema":{"type":"string"}},{"name":"price_to","in":"query","description":"Optional fiat currency for conversion (usd, eur, rub)","required":false,"schema":{"type":"string"}}],"responses":{"200":{"description":"Deposit request information","content":{"application/json":{"schema":{"$ref":"#/components/schemas/CheckDepositResponse"}}}},"404":{"description":"Deposit request not found"},"500":{"description":"Internal server error","content":{"text/plain":{"schema":{"type":"string"}}}}}}},"/api/v1/deposit/create":{"post":{"tags":["Payments"],"summary":"Create a deposit address for selected coin and (optionally) network","description":"Returns assigned wallet address with UUID for internal tracking.","operationId":"create","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CreateDepositRequest"}}},"required":true},"responses":{"200":{"description":"Deposit address generated successfully","content":{"application/json":{"schema":{"$ref":"#/components/schemas/CreateDepositResponse"}}}},"401":{"description":"Token is missing or invalid"},"500":{"description":"Internal server error","content":{"text/plain":{"schema":{"type":"string"}}}}},"security":[{"api_key":[]}]}}},"components":{"schemas":{"CheckDepositResponse":{"type":"object","required":["deposit_uuid","wallet_address","amount_received","payment_status","is_finalized"],"properties":{"amount_received":{"type":"string"},"confirmations":{"type":["integer","null"],"format":"int32","minimum":0},"deposit_uuid":{"type":"string"},"fiat_amount":{"type":["string","null"]},"fiat_currency":{"oneOf":[{"type":"null"},{"$ref":"#/components/schemas/FiatCurrency"}]},"is_finalized":{"type":"boolean"},"payment_status":{"$ref":"#/components/schemas/DepositStatus"},"txids":{"type":["array","null"],"items":{"type":"string"}},"wallet_address":{"type":"string"}},"example":{"amount_received":"0","confirmations":null,"deposit_uuid":"3f270a5a-50be-4ad7-9f01-fffc2c5144b3","is_finalized":false,"payment_status":"waiting","txids":"[]","wallet_address":"46QYvqx4Z8JKk26DVyNbFjMgFqXyrXgAb3W8kEHBiSN78XrcoPRHk4ATjoCJ9eia5MVQMxDdQ6nAaa2D9MgLgZV31V2bCRS"}},"CreateDepositRequest":{"type":"object","required":["currency"],"properties":{"currency":{"$ref":"#/components/schemas/Currency"},"network":{"oneOf":[{"type":"null"},{"$ref":"#/components/schemas/Network"}]},"notify_url":{"type":["string","null"]}},"example":{"currency":"XMR"}},"CreateDepositResponse":{"type":"object","required":["deposit_uuid","wallet_address","currency","checkout_page"],"properties":{"checkout_page":{"type":"string"},"currency":{"$ref":"#/components/schemas/Currency"},"deposit_uuid":{"type":"string"},"wallet_address":{"type":"string"}},"example":{"currency":"XMR","deposit_uuid":"3f270a5a-50be-4ad7-9f01-fffc2c5144b3","wallet_address":"46QYvqx4Z8JKk26DVyNbFjMgFqXyrXgAb3W8kEHBiSN78XrcoPRHk4ATjoCJ9eia5MVQMxDdQ6nAaa2D9MgLgZV31V2bCRS"}},"Currency":{"type":"string","enum":["XMR","LTC"]},"DepositStatus":{"type":"string","enum":["waiting","detected","confirmed","expired","error"]},"FiatCurrency":{"type":"string","enum":["usd","eur","rub"]},"Network":{"type":"string","enum":["MONERO","LITECOIN"]},"TokenResponse":{"type":"object","required":["token"],"properties":{"token":{"type":"string"}},"example":{"token":"cwrp_live_*"}}},"securitySchemes":{"api_key":{"type":"apiKey","in":"header","name":"X-API-Key"}}},"tags":[{"name":"Authentication"},{"name":"Payments"}]}
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CryptoWrap",
+    "description": "",
+    "license": {
+      "name": ""
+    },
+    "version": "0.1.3"
+  },
+  "paths": {
+    "/api/v1/auth/token": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Generate a secure bearer token",
+        "description": "Returns a newly generated cryptographically secure random bearer token.",
+        "operationId": "generate_token",
+        "responses": {
+          "200": {
+            "description": "Token generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/deposit/check": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Check deposit status",
+        "description": "Returns deposit status.",
+        "operationId": "check",
+        "parameters": [
+          {
+            "name": "deposit_uuid",
+            "in": "query",
+            "description": "UUID of the deposit to check",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "price_to",
+            "in": "query",
+            "description": "Optional fiat currency for conversion (usd, eur, rub)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deposit request information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckDepositResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deposit request not found"
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/deposit/create": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Create a deposit address for selected coin and (optionally) network",
+        "description": "Returns assigned wallet address with UUID for internal tracking.",
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDepositRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Deposit address generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateDepositResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing or invalid"
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/api/v1/payment/check_invoice": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Check invoice",
+        "description": "Returns invoice payment status.",
+        "operationId": "check_invoice",
+        "parameters": [
+          {
+            "name": "invoice_uuid",
+            "in": "query",
+            "description": "UUID of the invoice to check",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "price_to",
+            "in": "query",
+            "description": "Optional fiat currency for conversion (usd, eur, rub)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInvoiceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invoice not found"
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payment/create_invoice": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Create an invoice",
+        "description": "Returns an invoice UUID to check the specified payment amount.\nProvide either `amount` (crypto) or `fiat_amount` + `fiat_currency` (fiat), not both.",
+        "operationId": "create_invoice",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvoiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Invoice created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateInvoiceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing amount, or ambiguous request"
+          },
+          "401": {
+            "description": "Token is missing or invalid"
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CheckDepositResponse": {
+        "type": "object",
+        "required": [
+          "deposit_uuid",
+          "wallet_address",
+          "amount_received",
+          "currency",
+          "payment_status",
+          "is_finalized"
+        ],
+        "properties": {
+          "amount_received": {
+            "type": "string"
+          },
+          "confirmations": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "currency": {
+            "type": "string"
+          },
+          "deposit_uuid": {
+            "type": "string"
+          },
+          "fiat_amount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fiat_currency": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FiatCurrency"
+              }
+            ]
+          },
+          "is_finalized": {
+            "type": "boolean"
+          },
+          "payment_status": {
+            "$ref": "#/components/schemas/DepositStatus"
+          },
+          "txids": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "wallet_address": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "amount_received": "0",
+          "confirmations": null,
+          "currency": "XMR",
+          "deposit_uuid": "3f270a5a-50be-4ad7-9f01-fffc2c5144b3",
+          "is_finalized": false,
+          "payment_status": "waiting",
+          "txids": "[]",
+          "wallet_address": "46QYvqx4Z8JKk26DVyNbFjMgFqXyrXgAb3W8kEHBiSN78XrcoPRHk4ATjoCJ9eia5MVQMxDdQ6nAaa2D9MgLgZV31V2bCRS"
+        }
+      },
+      "CheckInvoiceResponse": {
+        "type": "object",
+        "required": [
+          "invoice_uuid",
+          "wallet_address",
+          "amount_requested",
+          "amount_received",
+          "currency",
+          "payment_status",
+          "is_finalized"
+        ],
+        "properties": {
+          "amount_received": {
+            "type": "string"
+          },
+          "amount_requested": {
+            "type": "string"
+          },
+          "confirmations": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "currency": {
+            "type": "string"
+          },
+          "fiat_amount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fiat_currency": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FiatCurrency"
+              }
+            ]
+          },
+          "invoice_uuid": {
+            "type": "string"
+          },
+          "is_finalized": {
+            "type": "boolean"
+          },
+          "payment_status": {
+            "$ref": "#/components/schemas/PaymentStatus"
+          },
+          "transactions": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "wallet_address": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "amount_received": "0",
+          "amount_requested": "1.5",
+          "confirmations": null,
+          "currency": "XMR",
+          "invoice_uuid": "3f270a5a-50be-4ad7-9f01-fffc2c5144b3",
+          "is_finalized": false,
+          "payment_status": "waiting",
+          "transactions": [],
+          "wallet_address": "46QYvqx4Z8JKk26DVyNbFjMgFqXyrXgAb3W8kEHBiSN78XrcoPRHk4ATjoCJ9eia5MVQMxDdQ6nAaa2D9MgLgZV31V2bCRS"
+        }
+      },
+      "CreateDepositRequest": {
+        "type": "object",
+        "required": [
+          "currency"
+        ],
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "network": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Network"
+              }
+            ]
+          },
+          "notify_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "example": {
+          "currency": "XMR"
+        }
+      },
+      "CreateDepositResponse": {
+        "type": "object",
+        "required": [
+          "deposit_uuid",
+          "wallet_address",
+          "currency",
+          "checkout_page"
+        ],
+        "properties": {
+          "checkout_page": {
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "deposit_uuid": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "currency": "XMR",
+          "deposit_uuid": "3f270a5a-50be-4ad7-9f01-fffc2c5144b3",
+          "wallet_address": "46QYvqx4Z8JKk26DVyNbFjMgFqXyrXgAb3W8kEHBiSN78XrcoPRHk4ATjoCJ9eia5MVQMxDdQ6nAaa2D9MgLgZV31V2bCRS"
+        }
+      },
+      "CreateInvoiceRequest": {
+        "type": "object",
+        "required": [
+          "currency"
+        ],
+        "properties": {
+          "amount": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Exact crypto amount requested (e.g., \"0.15\"). Mutually exclusive with fiat_amount."
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "fiat_amount": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Target fiat value to convert (e.g., \"50.00\"). Requires fiat_currency."
+          },
+          "fiat_currency": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FiatCurrency",
+                "description": "The fiat currency for input valuation (e.g., \"usd\", \"eur\", \"rub\")."
+              }
+            ]
+          },
+          "network": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Network"
+              }
+            ]
+          },
+          "notify_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "example": {
+          "currency": "XMR",
+          "fiat_amount": "50.00",
+          "fiat_currency": "usd"
+        }
+      },
+      "CreateInvoiceResponse": {
+        "type": "object",
+        "required": [
+          "invoice_uuid",
+          "wallet_address",
+          "amount_requested",
+          "currency",
+          "iframe_url"
+        ],
+        "properties": {
+          "amount_requested": {
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "iframe_url": {
+            "type": "string"
+          },
+          "invoice_uuid": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "amount_requested": "1.5",
+          "currency": "XMR",
+          "iframe_url": "https://example.com/iframe/v1?invoice_uuid=3f270a5a-50be-4ad7-9f01-fffc2c5144b3",
+          "invoice_uuid": "3f270a5a-50be-4ad7-9f01-fffc2c5144b3",
+          "wallet_address": "46QYvqx4Z8JKk26DVyNbFjMgFqXyrXgAb3W8kEHBiSN78XrcoPRHk4ATjoCJ9eia5MVQMxDdQ6nAaa2D9MgLgZV31V2bCRS"
+        }
+      },
+      "Currency": {
+        "type": "string",
+        "enum": [
+          "XMR",
+          "LTC"
+        ]
+      },
+      "DepositStatus": {
+        "type": "string",
+        "enum": [
+          "waiting",
+          "detected",
+          "confirmed",
+          "expired",
+          "error"
+        ]
+      },
+      "FiatCurrency": {
+        "type": "string",
+        "enum": [
+          "usd",
+          "eur",
+          "rub"
+        ]
+      },
+      "Network": {
+        "type": "string",
+        "enum": [
+          "MONERO",
+          "LITECOIN"
+        ]
+      },
+      "PaymentStatus": {
+        "type": "string",
+        "enum": [
+          "waiting",
+          "detected",
+          "confirmed",
+          "expired"
+        ]
+      },
+      "TokenResponse": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "token": "cwrp_live_*"
+        }
+      }
+    },
+    "securitySchemes": {
+      "api_key": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Authentication"
+    },
+    {
+      "name": "Payments"
+    }
+  ]
+}
