@@ -26,8 +26,11 @@
 .notif-dropdown {
   width: 340px;
   max-height: 420px;
-  display: flex;
   flex-direction: column;
+}
+
+.notif-dropdown.open {
+  display: flex;
 }
 
 .notif-dropdown-header {

@@ -207,7 +207,6 @@
 
   var notifBell = document.getElementById('notifBell');
   if (notifBell) {
-    var origClick = notifBell._listeners;
     notifBell.addEventListener('click', function(e) {
       // Reload recent notifications each time the dropdown opens
       updateBadge();
