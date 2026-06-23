@@ -12,11 +12,13 @@ use tracing_subscriber::fmt;
 mod auth;
 mod balance;
 mod components;
+mod currency;
 mod entity;
 mod favorites;
 mod favourite;
 mod gallery;
 mod home;
+mod notifications;
 mod pipeline;
 mod profile;
 mod purchase;
@@ -138,6 +140,7 @@ async fn main() -> std::io::Result<()> {
                     .route(web::post().to(settings::update_settings)),
             )
             .service(web::resource("/balance").route(web::get().to(balance::balance_page)))
+            .service(web::resource("/notifications").route(web::get().to(notifications::notifications_page)))
             .service(web::resource("/favorites").route(web::get().to(favorites::favorites)))
             .service(web::resource("/purchased").route(web::get().to(purchases::purchased)))
             .service(
@@ -198,6 +201,27 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/profile/{uuid}/view",
                         web::post().to(view_counter::track_profile_view),
+                    )
+                    // ── Notifications ────────────────────────────────────────
+                    .route(
+                        "/notifications",
+                        web::get().to(notifications::api_notifications),
+                    )
+                    .route(
+                        "/notifications/unread",
+                        web::get().to(notifications::api_unread_count),
+                    )
+                    .route(
+                        "/notifications/recent",
+                        web::get().to(notifications::api_recent),
+                    )
+                    .route(
+                        "/notifications/{id}/read",
+                        web::post().to(notifications::api_mark_read),
+                    )
+                    .route(
+                        "/notifications/read-all",
+                        web::post().to(notifications::api_mark_all_read),
                     ),
             )
     })

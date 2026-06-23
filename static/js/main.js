@@ -114,6 +114,116 @@
     });
   }
 
+  // ── Notifications ──────────────────────────────────────────────────────
+
+  var notifDropdownPanel = document.getElementById('notifDropdownPanel');
+  if (notifDropdownPanel) {
+    notifDropdownPanel.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+  }
+
+  function updateBadge() {
+    fetch('/api/notifications/unread')
+      .then(function(r) { return r.json(); })
+      .then(function(resp) {
+        var badge = document.getElementById('notifBadge');
+        if (badge) {
+          if (resp.count > 0) {
+            badge.hidden = false;
+            badge.textContent = resp.count > 99 ? '99+' : resp.count;
+          } else {
+            badge.hidden = true;
+          }
+        }
+      });
+  }
+
+  function loadRecentNotifications() {
+    var list = document.getElementById('notifDropdownList');
+    if (!list) return;
+    fetch('/api/notifications/recent')
+      .then(function(r) { return r.json(); })
+      .then(function(resp) {
+        if (!resp.ok || resp.notifications.length === 0) {
+          list.innerHTML = '<div class="notif-dropdown-empty">No notifications yet</div>';
+          return;
+        }
+        list.innerHTML = '';
+        resp.notifications.forEach(function(n) {
+          var item = document.createElement('div');
+          item.className = 'notif-item' + (n.is_read ? '' : ' notif-item--unread');
+          item.dataset.id = n.id;
+
+          var meta = n.metadata || {};
+          var msg = '';
+          if (n.type === 'purchase') {
+            msg = 'Purchased <strong>' + escHtml(meta.content_title || 'your content') + '</strong>';
+          } else {
+            msg = n.type;
+          }
+
+          item.innerHTML =
+            '<div class="notif-item-body">' +
+              '<div class="notif-item-msg">' + msg + '</div>' +
+              '<div class="notif-item-time">' + n.time_ago + '</div>' +
+            '</div>';
+
+          if (!n.is_read) {
+            item.addEventListener('click', function(e) {
+              e.stopPropagation();
+              fetch('/api/notifications/' + n.id + '/read', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(resp) {
+                  if (resp.ok) {
+                    item.classList.remove('notif-item--unread');
+                    updateBadge();
+                  }
+                });
+            });
+          }
+
+          list.appendChild(item);
+        });
+      });
+  }
+
+  var notifMarkAll = document.getElementById('notifMarkAllRead');
+  if (notifMarkAll) {
+    notifMarkAll.addEventListener('click', function(e) {
+      e.stopPropagation();
+      fetch('/api/notifications/read-all', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+          if (resp.ok) {
+            document.querySelectorAll('#notifDropdownList .notif-item--unread').forEach(function(el) {
+              el.classList.remove('notif-item--unread');
+            });
+            updateBadge();
+          }
+        });
+    });
+  }
+
+  var notifBell = document.getElementById('notifBell');
+  if (notifBell) {
+    var origClick = notifBell._listeners;
+    notifBell.addEventListener('click', function(e) {
+      // Reload recent notifications each time the dropdown opens
+      updateBadge();
+      loadRecentNotifications();
+    });
+  }
+
+  function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // Initial badge load
+  updateBadge();
+
   var signOutBtn = document.getElementById('signOutBtn');
   if (signOutBtn) {
     signOutBtn.addEventListener('click', function() {

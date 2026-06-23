@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Notifications - FeVid{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/{{ version }}/css/notifications.css">
+{% endblock %}
+{% block content %}
+<div class="notif-page-container">
+  <div class="notif-page-header">
+    <h1 class="notif-page-title">Notifications</h1>
+    <button class="notif-page-mark-read" id="notifPageMarkAllRead">Mark all read</button>
+  </div>
+  <div class="notif-page-list" id="notifPageList">
+    <div class="notif-loading">Loading...</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var list = document.getElementById('notifPageList');
+  var loading = false;
+  var hasMore = true;
+  var offset = 0;
+  var pageSize = 20;
+
+  function fetchNotifications() {
+    if (loading || !hasMore) return;
+    loading = true;
+
+    var el = document.createElement('div');
+    el.className = 'notif-loading';
+    el.textContent = 'Loading...';
+    list.appendChild(el);
+
+    fetch('/api/notifications?offset=' + offset)
+      .then(function(r) { return r.json(); })
+      .then(function(resp) {
+        el.remove();
+        if (!resp.ok) return;
+        hasMore = resp.has_more;
+        resp.notifications.forEach(function(n) {
+          var item = document.createElement('div');
+          item.className = 'notif-item' + (n.is_read ? '' : ' notif-item--unread');
+          item.dataset.id = n.id;
+
+          var meta = n.metadata || {};
+          var msg = '';
+          if (n.type === 'purchase') {
+            msg = 'Purchased <strong>' + escHtml(meta.content_title || 'your content') + '</strong>';
+          } else {
+            msg = n.type;
+          }
+
+          item.innerHTML =
+            '<div class="notif-item-body">' +
+              '<div class="notif-item-msg">' + msg + '</div>' +
+              '<div class="notif-item-time">' + n.time_ago + '</div>' +
+            '</div>';
+
+          if (!n.is_read) {
+            item.addEventListener('click', function() {
+              markRead(n.id, item);
+            });
+          }
+
+          list.appendChild(item);
+        });
+        offset += resp.notifications.length;
+        loading = false;
+      })
+      .catch(function() {
+        el.remove();
+        loading = false;
+      });
+  }
+
+  function markRead(id, el) {
+    fetch('/api/notifications/' + id + '/read', { method: 'POST' })
+      .then(function(r) { return r.json(); })
+      .then(function(resp) {
+        if (resp.ok) {
+          el.classList.remove('notif-item--unread');
+          updateBadge();
+        }
+      });
+  }
+
+  function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // Infinite scroll
+  window.addEventListener('scroll', function() {
+    if (loading || !hasMore) return;
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 600) {
+      fetchNotifications();
+    }
+  });
+
+  // Mark all read
+  document.getElementById('notifPageMarkAllRead').addEventListener('click', function() {
+    fetch('/api/notifications/read-all', { method: 'POST' })
+      .then(function(r) { return r.json(); })
+      .then(function(resp) {
+        if (resp.ok) {
+          document.querySelectorAll('.notif-item--unread').forEach(function(el) {
+            el.classList.remove('notif-item--unread');
+          });
+          updateBadge();
+        }
+      });
+  });
+
+  // Initial load
+  fetchNotifications();
+})();
+</script>
+{% endblock %}
