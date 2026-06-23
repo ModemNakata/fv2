@@ -83,7 +83,8 @@ pub async fn create_invoice(
     let client = build_client();
     let resp = client
         .post(&url)
-        .header("Authorization", format!("Bearer {}", config.api_token))
+        // .header("Authorization", format!("Bearer {}", config.api_token))
+        .header("X-API-Key", format!("{}", config.api_token))
         .json(&body)
         .send()
         .await
@@ -92,7 +93,9 @@ pub async fn create_invoice(
     if !resp.status().is_success() {
         let status = resp.status();
         let text = resp.text().await.unwrap_or_default();
-        return Err(format!("cryptowrap create_invoice returned {status}: {text}"));
+        return Err(format!(
+            "cryptowrap create_invoice returned {status}: {text}"
+        ));
     }
 
     resp.json::<CreateInvoiceResponse>()
@@ -121,7 +124,9 @@ pub async fn check_invoice(
     if !resp.status().is_success() {
         let status = resp.status();
         let text = resp.text().await.unwrap_or_default();
-        return Err(format!("cryptowrap check_invoice returned {status}: {text}"));
+        return Err(format!(
+            "cryptowrap check_invoice returned {status}: {text}"
+        ));
     }
 
     resp.json::<CheckInvoiceResponse>()
