@@ -333,8 +333,8 @@
 }
 
 .payment-modal {
-  max-width: 360px;
-  width: 92vw;
+  max-width: 480px;
+  width: 94vw;
   outline: none;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
@@ -351,6 +351,7 @@
   align-items: center;
   gap: 12px;
   text-align: center;
+  min-height: 200px;
 }
 
 .payment-modal-icon {

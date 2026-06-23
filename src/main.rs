@@ -12,6 +12,7 @@ use tracing_subscriber::fmt;
 mod auth;
 mod balance;
 mod components;
+mod cryptowrap;
 mod currency;
 mod entity;
 mod favorites;
@@ -19,6 +20,7 @@ mod favourite;
 mod gallery;
 mod home;
 mod notifications;
+mod payments;
 mod pipeline;
 mod profile;
 mod purchase;
@@ -37,6 +39,7 @@ pub struct AppState {
     pub s3: S3UrlProvider,
     pub static_version: String,
     pub redis_conn: redis::aio::ConnectionManager,
+    pub cryptowrap: cryptowrap::CryptowrapConfig,
 }
 
 #[actix_web::main]
@@ -89,6 +92,7 @@ async fn main() -> std::io::Result<()> {
         .expect("failed to connect to Redis");
 
     let static_version = env!("CARGO_PKG_VERSION").to_string();
+    let cryptowrap = cryptowrap::CryptowrapConfig::from_env();
     let state = AppState {
         conn,
         s3_processed,
@@ -96,6 +100,7 @@ async fn main() -> std::io::Result<()> {
         s3,
         static_version,
         redis_conn,
+        cryptowrap,
     };
 
     // ── Background worker: flush view counters to Postgres every 5 min ──────
@@ -192,6 +197,18 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/content/{id}/purchase",
                         web::post().to(purchase::purchase_content),
+                    )
+                    .route(
+                        "/content/{id}/purchase/crypto",
+                        web::post().to(payments::create_crypto_invoice),
+                    )
+                    .route(
+                        "/payments/{invoice_uuid}/status",
+                        web::get().to(payments::check_payment_status),
+                    )
+                    .route(
+                        "/webhooks/cryptowrap",
+                        web::post().to(payments::cryptowrap_webhook),
                     )
                     // ── View counter ────────────────────────────────────────
                     .route(

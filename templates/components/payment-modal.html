@@ -1,84 +1,313 @@
 <dialog class="payment-modal" id="paymentModal">
-  <div class="payment-modal-inner">
-    <div class="payment-modal-icon">
-      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-        <rect width="256" height="256" fill="none" />
-        <rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round"
-          stroke-linejoin="round" stroke-width="16" />
-        <circle cx="128" cy="152" r="12" fill="none" />
-        <path d="M88,88V56a40,40,0,0,1,80,0V88" fill="none" stroke="currentColor" stroke-linecap="round"
-          stroke-linejoin="round" stroke-width="16" />
-      </svg>
+  <div class="payment-modal-inner" id="paymentModalInner">
+
+    <!-- State: initial — coin selection -->
+    <div id="paymentStateInitial">
+      <div class="payment-modal-icon">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+          <rect width="256" height="256" fill="none" />
+          <rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+          <circle cx="128" cy="152" r="12" fill="none" />
+          <path d="M88,88V56a40,40,0,0,1,80,0V88" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16" />
+        </svg>
+      </div>
+      <h2 class="payment-modal-title">{{ payment_modal_title }}</h2>
+      <p class="payment-modal-desc">{{ payment_modal_desc }} &middot; lifetime access</p>
+      <div class="payment-modal-price">${{ price_dollars }}</div>
+      <p style="font-size:0.82rem;color:var(--text-tertiary);margin:0;">Pay with crypto</p>
+      <div class="payment-coins">
+        <button class="payment-coin" data-currency="LTC" aria-label="Pay with Litecoin">
+          <img class="payment-coin-img" src="/static/coin/ltc.png" alt="LTC" loading="lazy">
+          <span class="payment-coin-name">Litecoin</span>
+          <span class="payment-coin-ticker">LTC</span>
+        </button>
+        <button class="payment-coin" data-currency="XMR" aria-label="Pay with Monero">
+          <img class="payment-coin-img" src="/static/coin/xmr.png" alt="XMR" loading="lazy">
+          <span class="payment-coin-name">Monero</span>
+          <span class="payment-coin-ticker">XMR</span>
+        </button>
+      </div>
+      <button class="payment-modal-cancel" id="closePaymentModal">Continue free preview</button>
     </div>
-    <h2 class="payment-modal-title">{{ payment_modal_title }}</h2>
-    <p class="payment-modal-desc">{{ payment_modal_desc }} &middot; lifetime access</p>
-    <div class="payment-modal-price">${{ price_dollars }}</div>
-    <button class="payment-modal-btn" id="confirmPurchase">Purchase</button>
-    <button class="payment-modal-cancel" id="closePaymentModal">Continue free preview</button>
+
+    <!-- State: iframe — cryptowrap checkout -->
+    <div id="paymentStateIframe" style="display:none;width:100%;">
+      <div class="payment-modal-price" id="paymentIframeAmount" style="font-size:1.3rem;"></div>
+      <p class="payment-modal-desc" style="margin-bottom:4px;">Send the exact amount to the address shown</p>
+      <div class="payment-iframe-wrap">
+        <iframe id="paymentIframe" sandbox="allow-scripts allow-same-origin allow-forms" loading="lazy"></iframe>
+      </div>
+      <button class="payment-manual-btn" id="paymentPaidBtn">I've sent the payment</button>
+      <button class="payment-back-btn" id="paymentIframeBack">Choose different coin</button>
+    </div>
+
+    <!-- State: polling / confirmed / error -->
+    <div id="paymentStatePolling" style="display:none;">
+      <div class="payment-status-msg" id="paymentPollingView">
+        <div class="payment-spinner"></div>
+        <div class="payment-status-text">
+          <strong>Payment detected!</strong><br>
+          Waiting for blockchain confirmation...
+        </div>
+        <p style="font-size:0.78rem;color:var(--text-tertiary);margin:0;">
+          This usually takes a few minutes
+        </p>
+      </div>
+      <div class="payment-status-msg" id="paymentConfirmedView" style="display:none;">
+        <svg class="payment-checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+          <rect width="256" height="256" fill="none"/>
+          <polyline points="216 72 104 184 40 120" fill="none" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="16"/>
+        </svg>
+        <div class="payment-status-text"><strong>Purchase complete!</strong></div>
+        <p style="font-size:0.85rem;color:var(--text-tertiary);margin:0;">Reloading...</p>
+      </div>
+      <div class="payment-status-msg" id="paymentErrorView" style="display:none;">
+        <div class="payment-error" id="paymentErrorText"></div>
+        <button class="payment-back-btn" id="paymentErrorRetry">Try again</button>
+      </div>
+    </div>
+
+    <!-- State: creating — loading between coin click and iframe -->
+    <div id="paymentStateCreating" style="display:none;">
+      <div class="payment-status-msg">
+        <div class="payment-spinner"></div>
+        <div class="payment-status-text">Creating invoice...</div>
+      </div>
+    </div>
+
   </div>
 </dialog>
 
 <script>
-  var purchaseModal = document.getElementById('paymentModal');
-  var purchaseBanner = document.getElementById('purchaseBanner');
+  (function () {
+    var modal = document.getElementById('paymentModal');
+    var stateInitial = document.getElementById('paymentStateInitial');
+    var stateCreating = document.getElementById('paymentStateCreating');
+    var stateIframe = document.getElementById('paymentStateIframe');
+    var statePolling = document.getElementById('paymentStatePolling');
+    var pollingView = document.getElementById('paymentPollingView');
+    var confirmedView = document.getElementById('paymentConfirmedView');
+    var errorView = document.getElementById('paymentErrorView');
+    var errorText = document.getElementById('paymentErrorText');
+    var iframeEl = document.getElementById('paymentIframe');
+    var iframeAmount = document.getElementById('paymentIframeAmount');
 
-  function requireAuthThen(fn) {
-    if (username) {
-      fn();
-    } else {
-      window.__authRedirect__ = window.location.pathname + '?purchase=1';
-      window.__authForPurchase__ = true;
-      document.getElementById('signInBtn').click();
-    }
-  }
+    var invoiceUuid = null;
+    var pollTimer = null;
+    var contentId = '{{ content_id }}';
 
-  function openPurchaseModal() {
-    purchaseModal.showModal();
-    if (window.location.search.includes('purchase=1')) {
-      var url = window.location.pathname + window.location.hash;
-      history.replaceState(null, '', url);
+    function showState(el) {
+      [stateInitial, stateCreating, stateIframe, statePolling].forEach(function (s) { s.style.display = 'none'; });
+      el.style.display = '';
     }
-  }
-  document.getElementById('showPurchaseModal')?.addEventListener('click', function () {
-    requireAuthThen(openPurchaseModal);
-  });
-  document.getElementById('closePaymentModal')?.addEventListener('click', function () {
-    purchaseModal.close();
-  });
-  purchaseModal?.addEventListener('click', function (e) {
-    var rect = purchaseModal.getBoundingClientRect();
-    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
-      purchaseModal.close();
+
+    function showPollingSub(view) {
+      [pollingView, confirmedView, errorView].forEach(function (v) { v.style.display = 'none'; });
+      view.style.display = '';
     }
-  });
-  document.getElementById('confirmPurchase')?.addEventListener('click', function () {
-    var btn = this;
-    btn.disabled = true;
-    btn.textContent = 'Processing...';
-    fetch('/api/content/{{ content_id }}/purchase', {method: 'POST'})
-      .then(function (r) {return r.json();})
-      .then(function (resp) {
-        if (resp.ok) {
-          location.reload();
-        } else {
-          alert(resp.error || 'Purchase failed');
-          btn.disabled = false;
-          btn.textContent = 'Purchase';
-        }
-      })
-      .catch(function () {
-        alert('Network error');
-        btn.disabled = false;
-        btn.textContent = 'Purchase';
+
+    // Coin selection
+    document.querySelectorAll('.payment-coin').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var currency = this.getAttribute('data-currency');
+        showState(stateCreating);
+        createInvoice(currency);
       });
-  });
-  document.querySelectorAll('.img-lock-overlay[data-action="unlock"]').forEach(function (el) {
-    el.addEventListener('click', function () {
+    });
+
+    function createInvoice(currency) {
+      fetch('/api/content/' + contentId + '/purchase/crypto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currency: currency }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (resp) {
+          if (resp.ok && resp.invoice_uuid) {
+            invoiceUuid = resp.invoice_uuid;
+            iframeEl.src = resp.iframe_url;
+            iframeAmount.textContent = resp.amount_requested + ' ' + resp.currency;
+            showState(stateIframe);
+          } else if (resp.already_purchased) {
+            location.reload();
+          } else {
+            showError(resp.error || 'Failed to create invoice');
+          }
+        })
+        .catch(function () {
+          showError('Network error');
+        });
+    }
+
+    // Iframe → parent postMessage listener
+    window.addEventListener('message', function (event) {
+      // Cryptowrap may send a message when payment is detected
+      // We accept messages from any origin as a trigger to start polling
+      if (invoiceUuid && event.data) {
+        var data = event.data;
+        if (typeof data === 'string') {
+          try { data = JSON.parse(data); } catch (e) { /* ignore non-json */ }
+        }
+        // If the message looks like a payment signal, start polling
+        if (data && (data.payment_detected === true || data.status === 'detected' || data.status === 'confirmed' ||
+            (typeof data === 'string' && (data.indexOf('detected') !== -1 || data.indexOf('confirmed') !== -1)))) {
+          startPolling();
+        }
+      }
+    });
+
+    // Manual "I've paid" button (fallback if postMessage doesn't fire)
+    document.getElementById('paymentPaidBtn').addEventListener('click', function () {
+      startPolling();
+    });
+
+    // Back button from iframe view
+    document.getElementById('paymentIframeBack').addEventListener('click', function () {
+      stopPolling();
+      iframeEl.src = '';
+      invoiceUuid = null;
+      showState(stateInitial);
+    });
+
+    // Error retry
+    document.getElementById('paymentErrorRetry').addEventListener('click', function () {
+      invoiceUuid = null;
+      showState(stateInitial);
+    });
+
+    function startPolling() {
+      if (!invoiceUuid) return;
+      showState(statePolling);
+      showPollingSub(pollingView);
+      // Close the iframe to clean up
+      iframeEl.src = '';
+      pollStatus();
+    }
+
+    function pollStatus() {
+      if (!invoiceUuid) return;
+      fetch('/api/payments/' + invoiceUuid + '/status')
+        .then(function (r) { return r.json(); })
+        .then(function (resp) {
+          if (!resp.ok) {
+            showError(resp.error || 'Status check failed');
+            return;
+          }
+          switch (resp.status) {
+            case 'confirmed':
+              showPollingSub(confirmedView);
+              setTimeout(function () { location.reload(); }, 1500);
+              break;
+            case 'detected':
+            case 'waiting':
+              pollTimer = setTimeout(pollStatus, 3000);
+              break;
+            case 'expired':
+            case 'failed':
+              showError('Payment ' + resp.status + '. Please try again.');
+              break;
+            default:
+              pollTimer = setTimeout(pollStatus, 3000);
+          }
+        })
+        .catch(function () {
+          pollTimer = setTimeout(pollStatus, 3000);
+        });
+    }
+
+    function stopPolling() {
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+      }
+      invoiceUuid = null;
+    }
+
+    function showError(msg) {
+      showState(statePolling);
+      showPollingSub(errorView);
+      errorText.textContent = msg || 'An error occurred';
+    }
+
+    // ── Existing modal logic ──────────────────────────────────────
+
+    var purchaseBanner = document.getElementById('purchaseBanner');
+
+    function requireAuthThen(fn) {
+      if (username) {
+        fn();
+      } else {
+        window.__authRedirect__ = window.location.pathname + '?purchase=1';
+        window.__authForPurchase__ = true;
+        document.getElementById('signInBtn').click();
+      }
+    }
+
+    function openPurchaseModal() {
+      // Reset to initial state each time modal opens
+      stopPolling();
+      iframeEl.src = '';
+      showState(stateInitial);
+      modal.showModal();
+      if (window.location.search.includes('purchase=1')) {
+        var url = window.location.pathname + window.location.hash;
+        history.replaceState(null, '', url);
+      }
+    }
+
+    document.getElementById('showPurchaseModal')?.addEventListener('click', function () {
       requireAuthThen(openPurchaseModal);
     });
-  });
 
-  if (window.location.search.includes('purchase=1')) {
-    openPurchaseModal();
-  }
+    document.getElementById('closePaymentModal')?.addEventListener('click', function () {
+      modal.close();
+      stopPolling();
+      iframeEl.src = '';
+    });
+
+    modal?.addEventListener('click', function (e) {
+      var rect = modal.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+        modal.close();
+        stopPolling();
+        iframeEl.src = '';
+      }
+    });
+
+    // Original purchase confirmation button (internal credit path — kept for admin/internal use)
+    document.getElementById('confirmPurchase')?.addEventListener('click', function () {
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+      fetch('/api/content/' + contentId + '/purchase', { method: 'POST' })
+        .then(function (r) { return r.json(); })
+        .then(function (resp) {
+          if (resp.ok) {
+            location.reload();
+          } else {
+            alert(resp.error || 'Purchase failed');
+            btn.disabled = false;
+            btn.textContent = 'Purchase';
+          }
+        })
+        .catch(function () {
+          alert('Network error');
+          btn.disabled = false;
+          btn.textContent = 'Purchase';
+        });
+    });
+
+    document.querySelectorAll('.img-lock-overlay[data-action="unlock"]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        requireAuthThen(openPurchaseModal);
+      });
+    });
+
+    if (window.location.search.includes('purchase=1')) {
+      openPurchaseModal();
+    }
+  })();
 </script>
