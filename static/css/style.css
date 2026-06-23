@@ -621,6 +621,8 @@ input {
   min-width: 0;
 }
 
+/* compact sidebar: height auto, positioned below top-bar */
+/* to restore full-height sidebar, replace the block below with:
 .sidebar {
   display: none;
   position: fixed;
@@ -633,6 +635,18 @@ input {
   border-right: 1px solid var(--border-color);
   padding: 64px 8px 8px;
   overflow-y: auto;
+}
+*/
+.sidebar {
+  display: none;
+  position: fixed;
+  top: 56px;
+  left: 0;
+  width: min(280px, 85vw);
+  background: var(--bg-secondary);
+  z-index: 200;
+  border-right: 1px solid var(--border-color);
+  padding: 8px;
 }
 
 .sidebar.open {
