@@ -358,13 +358,14 @@
   position: relative;
   width: 48px;
   height: 48px;
-  margin-bottom: 4px;
+  margin: 0 auto 4px;
 }
 
 .payment-modal-icon .icon {
   width: 100%;
   height: 100%;
   color: var(--accent);
+  display: block;
 }
 
 .payment-modal-title {

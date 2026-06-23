@@ -57,6 +57,14 @@ pub struct CheckInvoiceResponse {
 
 // ── API client ───────────────────────────────────────────────────────────────
 
+/// Build a reqwest Client that skips TLS verification (for cryptowrap's self-signed certs).
+fn build_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("Failed to build reqwest client with unsafe TLS")
+}
+
 /// Create a new invoice for a given fiat amount and cryptocurrency.
 pub async fn create_invoice(
     config: &CryptowrapConfig,
@@ -72,7 +80,7 @@ pub async fn create_invoice(
         notify_url: Some(config.notify_url.clone()),
     };
 
-    let client = reqwest::Client::new();
+    let client = build_client();
     let resp = client
         .post(&url)
         .header("Authorization", format!("Bearer {}", config.api_token))
@@ -102,7 +110,7 @@ pub async fn check_invoice(
         config.base_url, invoice_uuid
     );
 
-    let client = reqwest::Client::new();
+    let client = build_client();
     let resp = client
         .get(&url)
         .header("Authorization", format!("Bearer {}", config.api_token))
