@@ -46,8 +46,8 @@
       <div class="payment-status-msg" id="paymentPollingView">
         <div class="payment-spinner"></div>
         <div class="payment-status-text">
-          <strong>Payment detected!</strong><br>
-          Waiting for blockchain confirmation...
+          Please wait while we check for your payment.<br>
+          Don't close this page.
         </div>
         <p style="font-size:0.78rem;color:var(--text-tertiary);margin:0;">
           This usually takes a few minutes
@@ -59,8 +59,8 @@
           <polyline points="216 72 104 184 40 120" fill="none" stroke="currentColor" stroke-linecap="round"
             stroke-linejoin="round" stroke-width="16"/>
         </svg>
-        <div class="payment-status-text"><strong>Purchase complete!</strong></div>
-        <p style="font-size:0.85rem;color:var(--text-tertiary);margin:0;">Reloading...</p>
+        <div class="payment-status-text"><strong>Thank you for your payment!</strong></div>
+        <p style="font-size:0.85rem;color:var(--text-tertiary);margin:0;">You now have full access. Reloading...</p>
       </div>
       <div class="payment-status-msg" id="paymentErrorView" style="display:none;">
         <div class="payment-error" id="paymentErrorText"></div>
@@ -171,7 +171,8 @@
     });
 
     // Manual "I've paid" button (fallback if postMessage doesn't fire)
-    document.getElementById('paymentPaidBtn').addEventListener('click', function () {
+    document.getElementById('paymentPaidBtn').addEventListener('click', function (e) {
+      e.stopPropagation();
       startPolling();
     });
 
