@@ -38,6 +38,8 @@ struct VideoPage {
     price_dollars: String,
     version: String,
     is_favourited: bool,
+    payment_modal_title: String,
+    payment_modal_desc: String,
 }
 
 pub async fn redirect_to_home() -> Result<impl Responder> {
@@ -198,6 +200,8 @@ pub async fn video(
             has_purchased,
             free_preview_duration_s: free_preview_duration_s.map(|s| format!("{s}s")).unwrap_or_default(),
             duration_formatted,
+            payment_modal_title: "Unlock this Video".to_string(),
+            payment_modal_desc: duration_human.clone(),
             duration_human,
             source_quality,
             price_dollars: format!("{:.2}", content.price_cents as f64 / 100.0),

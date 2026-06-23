@@ -106,25 +106,7 @@
 </div>
 
 {% if is_paywalled && is_free_preview %}
-<dialog class="payment-modal" id="paymentModal">
-  <div class="payment-modal-inner">
-    <div class="payment-modal-icon">
-      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-        <rect width="256" height="256" fill="none" />
-        <rect x="40" y="90" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round"
-          stroke-linejoin="round" stroke-width="16" />
-        <circle cx="128" cy="152" r="12" fill="none" />
-        <path d="M88,88V56a40,40,0,0,1,80,0V88" fill="none" stroke="currentColor" stroke-linecap="round"
-          stroke-linejoin="round" stroke-width="16" />
-      </svg>
-    </div>
-    <h2 class="payment-modal-title">Unlock this Gallery</h2>
-    <p class="payment-modal-desc">{{ total_image_count }} images &middot; lifetime access</p>
-    <div class="payment-modal-price">${{ price_dollars }}</div>
-    <button class="payment-modal-btn" id="confirmPurchase">Purchase</button>
-    <button class="payment-modal-cancel" id="closePaymentModal">Continue free preview</button>
-  </div>
-</dialog>
+{% include "components/payment-modal.html" %}
 {% endif %}
 
 <script>
@@ -163,73 +145,6 @@
       });
   });
 </script>
-
-{% if is_paywalled && is_free_preview %}
-<script>
-  var purchaseModal = document.getElementById('paymentModal');
-  var purchaseBanner = document.getElementById('purchaseBanner');
-
-  function requireAuthThen(fn) {
-    if (username) {
-      fn();
-    } else {
-      window.__authRedirect__ = window.location.pathname + '?purchase=1';
-      window.__authForPurchase__ = true;
-      document.getElementById('signInBtn').click();
-    }
-  }
-
-  function openPurchaseModal() {
-    purchaseModal.showModal();
-    if (window.location.search.includes('purchase=1')) {
-      var url = window.location.pathname + window.location.hash;
-      history.replaceState(null, '', url);
-    }
-  }
-  document.getElementById('showPurchaseModal')?.addEventListener('click', function () {
-    requireAuthThen(openPurchaseModal);
-  });
-  document.getElementById('closePaymentModal')?.addEventListener('click', function () {
-    purchaseModal.close();
-  });
-  purchaseModal?.addEventListener('click', function (e) {
-    var rect = purchaseModal.getBoundingClientRect();
-    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
-      purchaseModal.close();
-    }
-  });
-  document.getElementById('confirmPurchase')?.addEventListener('click', function () {
-    var btn = this;
-    btn.disabled = true;
-    btn.textContent = 'Processing...';
-    fetch('/api/content/{{ content_id }}/purchase', {method: 'POST'})
-      .then(function (r) {return r.json();})
-      .then(function (resp) {
-        if (resp.ok) {
-          location.reload();
-        } else {
-          alert(resp.error || 'Purchase failed');
-          btn.disabled = false;
-          btn.textContent = 'Purchase';
-        }
-      })
-      .catch(function () {
-        alert('Network error');
-        btn.disabled = false;
-        btn.textContent = 'Purchase';
-      });
-  });
-  document.querySelectorAll('.img-lock-overlay[data-action="unlock"]').forEach(function (el) {
-    el.addEventListener('click', function () {
-      requireAuthThen(openPurchaseModal);
-    });
-  });
-
-  if (window.location.search.includes('purchase=1')) {
-    openPurchaseModal();
-  }
-</script>
-{% endif %}
 
 <script>
   var username = '{{ username }}';

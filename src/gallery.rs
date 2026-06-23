@@ -311,6 +311,8 @@ struct GalleryPage {
     total_image_count: usize,
     version: String,
     is_favourited: bool,
+    payment_modal_title: String,
+    payment_modal_desc: String,
 }
 
 struct GalleryImage {
@@ -433,6 +435,8 @@ pub async fn gallery(
             price_dollars: format!("{:.2}", content.price_cents as f64 / 100.0),
             unblurred_count: image_set.unblurred_count.unwrap_or(0),
             total_image_count,
+            payment_modal_title: "Unlock this Gallery".to_string(),
+            payment_modal_desc: format!("{} images", total_image_count),
             version: state.static_version.clone(),
             is_favourited,
         }
