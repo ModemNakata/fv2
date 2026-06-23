@@ -9,33 +9,32 @@
     <h1 class="notif-page-title">Notifications</h1>
     <button class="notif-page-mark-read" id="notifPageMarkAllRead">Mark all read</button>
   </div>
-  <div class="notif-page-list" id="notifPageList">
-    <div class="notif-loading">Loading...</div>
-  </div>
+  <div class="notif-page-list" id="notifPageList"></div>
+  <div class="notif-status" id="notifStatus">Loading...</div>
 </div>
 
 <script>
 (function() {
   var list = document.getElementById('notifPageList');
+  var status = document.getElementById('notifStatus');
   var loading = false;
   var hasMore = true;
   var offset = 0;
-  var pageSize = 20;
 
   function fetchNotifications() {
     if (loading || !hasMore) return;
     loading = true;
-
-    var el = document.createElement('div');
-    el.className = 'notif-loading';
-    el.textContent = 'Loading...';
-    list.appendChild(el);
+    status.textContent = 'Loading...';
+    status.hidden = false;
 
     fetch('/api/notifications?offset=' + offset)
       .then(function(r) { return r.json(); })
       .then(function(resp) {
-        el.remove();
-        if (!resp.ok) return;
+        if (!resp.ok) {
+          loading = false;
+          status.textContent = 'Failed to load';
+          return;
+        }
         hasMore = resp.has_more;
         resp.notifications.forEach(function(n) {
           var item = document.createElement('div');
@@ -66,10 +65,19 @@
         });
         offset += resp.notifications.length;
         loading = false;
+
+        if (hasMore) {
+          status.textContent = '';
+          status.hidden = true;
+        } else {
+          status.textContent = 'No more notifications';
+          status.hidden = false;
+        }
       })
       .catch(function() {
-        el.remove();
         loading = false;
+        status.textContent = 'Failed to load';
+        status.hidden = false;
       });
   }
 

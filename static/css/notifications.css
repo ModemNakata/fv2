@@ -175,3 +175,10 @@
   color: var(--text-tertiary);
   font-size: 0.85rem;
 }
+
+.notif-status {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+}
