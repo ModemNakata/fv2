@@ -34,8 +34,6 @@
 
     <!-- State: iframe — cryptowrap checkout -->
     <div id="paymentStateIframe" style="display:none;width:100%;">
-      <div class="payment-modal-price" id="paymentIframeAmount" style="font-size:1.3rem;"></div>
-      <p class="payment-modal-desc" style="margin-bottom:4px;">Send the exact amount to the address shown</p>
       <div class="payment-iframe-wrap">
         <iframe id="paymentIframe" sandbox="allow-scripts allow-same-origin allow-forms" loading="lazy"></iframe>
       </div>
@@ -119,17 +117,29 @@
     });
 
     function createInvoice(currency) {
-      fetch('/api/content/' + contentId + '/purchase/crypto', {
+      console.log('[payment] createInvoice:', currency, 'contentId:', contentId);
+      var url = '/api/content/' + contentId + '/purchase/crypto';
+      fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currency: currency }),
       })
-        .then(function (r) { return r.json(); })
+        .then(function (r) {
+          console.log('[payment] response status:', r.status, r.statusText);
+          console.log('[payment] content-type:', r.headers.get('content-type'));
+          return r.text().then(function (text) {
+            console.log('[payment] raw body:', text);
+            try { return JSON.parse(text); } catch (e) {
+              console.log('[payment] JSON parse error:', e);
+              throw new Error('Invalid JSON response: ' + text.slice(0, 200));
+            }
+          });
+        })
         .then(function (resp) {
+          console.log('[payment] parsed response:', resp);
           if (resp.ok && resp.invoice_uuid) {
             invoiceUuid = resp.invoice_uuid;
             iframeEl.src = resp.iframe_url;
-            iframeAmount.textContent = resp.amount_requested + ' ' + resp.currency;
             showState(stateIframe);
           } else if (resp.already_purchased) {
             location.reload();
@@ -137,7 +147,8 @@
             showError(resp.error || 'Failed to create invoice');
           }
         })
-        .catch(function () {
+        .catch(function (err) {
+          console.log('[payment] fetch/parse error:', err);
           showError('Network error');
         });
     }
@@ -189,9 +200,20 @@
 
     function pollStatus() {
       if (!invoiceUuid) return;
+      console.log('[payment] polling status for:', invoiceUuid);
       fetch('/api/payments/' + invoiceUuid + '/status')
-        .then(function (r) { return r.json(); })
+        .then(function (r) {
+          console.log('[payment] poll status:', r.status);
+          return r.text().then(function (text) {
+            console.log('[payment] poll body:', text);
+            try { return JSON.parse(text); } catch (e) {
+              console.log('[payment] poll JSON error:', e);
+              throw new Error('Invalid JSON');
+            }
+          });
+        })
         .then(function (resp) {
+          console.log('[payment] poll parsed:', resp);
           if (!resp.ok) {
             showError(resp.error || 'Status check failed');
             return;
@@ -213,7 +235,8 @@
               pollTimer = setTimeout(pollStatus, 3000);
           }
         })
-        .catch(function () {
+        .catch(function (err) {
+          console.log('[payment] poll error:', err);
           pollTimer = setTimeout(pollStatus, 3000);
         });
     }

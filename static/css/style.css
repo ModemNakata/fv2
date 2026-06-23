@@ -996,7 +996,7 @@ body.sidebar-open {
 
 .payment-iframe-wrap {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1 / 1;
   border: 1px solid var(--border-color);
   overflow: hidden;
   margin: 8px 0;
