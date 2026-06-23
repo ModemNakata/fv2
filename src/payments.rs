@@ -211,20 +211,21 @@ pub async fn check_payment_status(
     match cryptowrap::check_invoice(&state.cryptowrap, &invoice_uuid).await {
         Ok(inv) => {
             // Map cryptowrap status to our flow
-            let (our_status, finalized) = match inv.payment_status.as_str() {
-                "confirmed" => {
-                    // Complete the purchase
-                    complete_purchase(&state, &tx, &invoice_uuid).await;
-                    ("confirmed", true)
+            let (our_status, finalized) = if cryptowrap::is_payment_successful(&inv.payment_status)
+            {
+                // Complete the purchase
+                complete_purchase(&state, &tx, &invoice_uuid).await;
+                ("confirmed", true)
+            } else {
+                match inv.payment_status.as_str() {
+                    "detected" => ("detected", false),
+                    "expired" => {
+                        mark_transaction_failed(&state, tx.id).await;
+                        ("expired", true)
+                    }
+                    "waiting" => ("waiting", false),
+                    _ => ("unknown", inv.is_finalized),
                 }
-                "detected" => ("detected", false),
-                "expired" => {
-                    // Mark as failed
-                    mark_transaction_failed(&state, tx.id).await;
-                    ("expired", true)
-                }
-                "waiting" => ("waiting", false),
-                _ => ("unknown", inv.is_finalized),
             };
 
             HttpResponse::Ok().json(serde_json::json!({
@@ -274,7 +275,7 @@ pub async fn cryptowrap_webhook(
     // Verify status by calling cryptowrap ourselves
     match cryptowrap::check_invoice(&state.cryptowrap, invoice_uuid).await {
         Ok(inv) => {
-            if inv.payment_status == "confirmed" {
+            if cryptowrap::is_payment_successful(&inv.payment_status) {
                 // Find the pending transaction
                 match transactions::Entity::find()
                     .filter(transactions::Column::PaymentProviderId.eq(invoice_uuid))

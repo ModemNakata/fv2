@@ -55,6 +55,31 @@ pub struct CheckInvoiceResponse {
     pub is_finalized: bool,
 }
 
+// ── Status thresholds ─────────────────────────────────────────────────────────
+
+/// Minimum payment status to consider a purchase successful.
+/// Statuses are ordered: waiting < detected < confirmed < expired.
+/// Setting to "detected" means the purchase completes as soon as
+/// the blockchain transaction is first seen (0 confirmations).
+pub const MIN_SUCCESS_STATUS: &str = "detected";
+
+/// Returns true if the given cryptowrap payment_status meets or exceeds
+/// the minimum success threshold.
+pub fn is_payment_successful(status: &str) -> bool {
+    let threshold = match MIN_SUCCESS_STATUS {
+        "detected" => 1,
+        "confirmed" => 2,
+        _ => 2, // default to confirmed
+    };
+    let current = match status {
+        "waiting" => 0,
+        "detected" => 1,
+        "confirmed" => 2,
+        _ => 0,
+    };
+    current >= threshold
+}
+
 // ── API client ───────────────────────────────────────────────────────────────
 
 /// Build a reqwest Client that skips TLS verification (for cryptowrap's self-signed certs).
