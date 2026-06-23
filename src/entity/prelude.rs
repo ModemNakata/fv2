@@ -3,6 +3,8 @@
 pub use super::content_items::Entity as ContentItems;
 pub use super::image_sets::Entity as ImageSets;
 pub use super::images::Entity as Images;
+pub use super::notifications::Entity as Notifications;
+pub use super::transactions::Entity as Transactions;
 pub use super::user_favorites::Entity as UserFavorites;
 pub use super::user_purchases::Entity as UserPurchases;
 pub use super::users::Entity as Users;

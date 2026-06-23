@@ -32,3 +32,15 @@ pub enum ContentVisibility {
     #[sea_orm(string_value = "private")]
     Private,
 }
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "transaction_status")]
+pub enum TransactionStatus {
+    #[sea_orm(string_value = "pending")]
+    Pending,
+    #[sea_orm(string_value = "completed")]
+    Completed,
+    #[sea_orm(string_value = "failed")]
+    Failed,
+    #[sea_orm(string_value = "refunded")]
+    Refunded,
+}
