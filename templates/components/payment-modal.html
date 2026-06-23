@@ -176,7 +176,8 @@
     });
 
     // Back button from iframe view
-    document.getElementById('paymentIframeBack').addEventListener('click', function () {
+    document.getElementById('paymentIframeBack').addEventListener('click', function (e) {
+      e.stopPropagation();
       stopPolling();
       iframeEl.src = '';
       invoiceUuid = null;
