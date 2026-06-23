@@ -97,6 +97,36 @@
     var pollTimer = null;
     var contentId = '{{ content_id }}';
 
+    // ── Invoice query param helpers ──────────────────────────────
+
+    function setInvoiceParam(uuid, iframeUrl) {
+      var url = new URL(window.location);
+      url.searchParams.set('invoice', uuid);
+      history.replaceState(null, '', url);
+      try {
+        sessionStorage.setItem('fevid_invoice_' + uuid, JSON.stringify({
+          uuid: uuid,
+          iframe_url: iframeUrl,
+          content_id: contentId,
+        }));
+      } catch (e) {}
+    }
+
+    function clearInvoiceParam() {
+      var cur = getUrlInvoiceUuid();
+      if (cur) {
+        try { sessionStorage.removeItem('fevid_invoice_' + cur); } catch (e) {}
+      }
+      var url = new URL(window.location);
+      url.searchParams.delete('invoice');
+      history.replaceState(null, '', url);
+    }
+
+    function getUrlInvoiceUuid() {
+      var p = new URL(window.location).searchParams.get('invoice');
+      return p || null;
+    }
+
     function showState(el) {
       [stateInitial, stateCreating, stateIframe, statePolling].forEach(function (s) { s.style.display = 'none'; });
       el.style.display = '';
@@ -140,6 +170,7 @@
           if (resp.ok && resp.invoice_uuid) {
             invoiceUuid = resp.invoice_uuid;
             iframeEl.src = resp.iframe_url;
+            setInvoiceParam(resp.invoice_uuid, resp.iframe_url);
             showState(stateIframe);
           } else if (resp.already_purchased) {
             location.reload();
@@ -182,12 +213,14 @@
       stopPolling();
       iframeEl.src = '';
       invoiceUuid = null;
+      clearInvoiceParam();
       showState(stateInitial);
     });
 
     // Error retry
     document.getElementById('paymentErrorRetry').addEventListener('click', function () {
       invoiceUuid = null;
+      clearInvoiceParam();
       showState(stateInitial);
     });
 
@@ -291,6 +324,7 @@
       modal.close();
       stopPolling();
       iframeEl.src = '';
+      clearInvoiceParam();
     });
 
     modal?.addEventListener('click', function (e) {
@@ -299,6 +333,7 @@
         modal.close();
         stopPolling();
         iframeEl.src = '';
+        clearInvoiceParam();
       }
     });
 
@@ -333,6 +368,40 @@
 
     if (window.location.search.includes('purchase=1')) {
       openPurchaseModal();
+    }
+
+    // ── Resume invoice from query param ──────────────────────────
+
+    var resumeUuid = getUrlInvoiceUuid();
+    if (resumeUuid) {
+      invoiceUuid = resumeUuid;
+      var stored;
+      try { stored = JSON.parse(sessionStorage.getItem('fevid_invoice_' + resumeUuid)); } catch (e) {}
+      if (stored && stored.iframe_url) {
+        fetch('/api/payments/' + resumeUuid + '/status')
+          .then(function (r) { return r.json(); })
+          .then(function (resp) {
+            if (resp.ok && (resp.status === 'waiting' || resp.status === 'detected')) {
+              iframeEl.src = stored.iframe_url;
+              showState(stateIframe);
+              modal.showModal();
+              if (resp.status === 'detected') {
+                startPolling();
+              }
+            } else if (resp.ok && resp.status === 'confirmed') {
+              clearInvoiceParam();
+            } else {
+              clearInvoiceParam();
+            }
+          })
+          .catch(function () {
+            iframeEl.src = stored.iframe_url;
+            showState(stateIframe);
+            modal.showModal();
+          });
+      } else {
+        clearInvoiceParam();
+      }
     }
   })();
 </script>
