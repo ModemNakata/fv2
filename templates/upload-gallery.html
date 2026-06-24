@@ -354,68 +354,114 @@
       if (getPricingError()) {return;}
       var btn = document.getElementById('uploadBtn');
       var dropzone = document.getElementById('galleryDropzone');
+      var fileListEl = document.getElementById('fileList');
       var progressContainer = document.getElementById('progressContainer');
       var progressFill = document.getElementById('progressFill');
       var progressText = document.getElementById('progressText');
 
       dropzone.style.display = 'none';
-      fileList.style.display = 'none';
+      fileListEl.style.display = 'none';
       progressContainer.hidden = false;
       btn.disabled = true;
-      btn.textContent = 'Uploading...';
+      btn.textContent = 'Initializing...';
       this.querySelector('[name="title"]').disabled = true;
       this.querySelector('[name="description"]').disabled = true;
 
-      var fd = new FormData();
-      fd.append('title', this.querySelector('[name="title"]').value);
-      var desc = this.querySelector('[name="description"]').value;
-      if (desc) fd.append('description', desc);
-      fd.append('price', document.getElementById('galleryPrice').value);
-      var unblurred = document.getElementById('unblurredCount').value;
-      if (unblurred) fd.append('unblurred_count', unblurred);
-      files.forEach(function (f) {fd.append('files', f, f.name);});
-
-      var xhr = new XMLHttpRequest();
-
-      xhr.upload.addEventListener('progress', function (e) {
-        if (e.lengthComputable) {
-          var pct = Math.round((e.loaded / e.total) * 100);
-          progressFill.style.width = pct + '%';
-          btn.textContent = 'Uploading ' + pct + '%';
-        }
+      // Build file entries for the init request
+      var fileEntries = files.map(function (f) {
+        var ext = f.name.split('.').pop().toLowerCase();
+        return { name: f.name, ext: ext, size: f.size };
       });
 
-      xhr.addEventListener('load', function () {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            var data = JSON.parse(xhr.responseText);
-            if (data.ok && data.content_id) {
-              window.location.href = '/gallery/' + data.content_id;
+      // Step 1: Ask backend for presigned URLs
+      fetch('/api/upload/gallery/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: document.querySelector('[name="title"]').value,
+          description: document.querySelector('[name="description"]').value || null,
+          price_cents: Math.round((parseFloat(document.getElementById('galleryPrice').value) || 0) * 100),
+          unblurred_count: parseInt(document.getElementById('unblurredCount').value) || null,
+          files: fileEntries,
+        })
+      })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
+      .then(function (res) {
+        if (res.status < 200 || res.status >= 300 || !res.data.files || !res.data.files.length) {
+          alert(res.data.error || 'Failed to initialize upload');
+          resetUploadUI();
+          return;
+        }
+        var contentId = res.data.content_id;
+        var uploadFiles = res.data.files;
+        var totalFiles = uploadFiles.length;
+        var completedFiles = 0;
+
+        // Step 2: Upload each file sequentially to S3
+        function uploadNext(index) {
+          if (index >= totalFiles) {
+            // All done — mark as complete
+            fetch('/api/upload/' + contentId + '/complete', { method: 'POST' })
+              .then(function (r) { return r.json(); })
+              .then(function (d) {
+                if (d.ok) {
+                  window.location.href = '/gallery/' + contentId;
+                } else {
+                  alert(d.error || 'Failed to finalize');
+                  resetUploadUI();
+                }
+              })
+              .catch(function () {
+                alert('Failed to finalize upload');
+                resetUploadUI();
+              });
+            return;
+          }
+
+          var entry = uploadFiles[index];
+          var localFile = files[index];
+          var xhr = new XMLHttpRequest();
+
+          xhr.upload.addEventListener('progress', function (e) {
+            if (e.lengthComputable) {
+              var filePct = e.loaded / e.total;
+              var overall = (completedFiles + filePct) / totalFiles;
+              var pct = Math.round(overall * 100);
+              progressFill.style.width = pct + '%';
+              btn.textContent = 'Uploading ' + (index + 1) + '/' + totalFiles + ' (' + pct + '%)';
+            }
+          });
+
+          xhr.addEventListener('load', function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              completedFiles++;
+              uploadNext(index + 1);
             } else {
-              alert(data.error || 'Upload failed');
+              alert('Upload failed for ' + entry.file_name + ' (HTTP ' + xhr.status + ')');
               resetUploadUI();
             }
-          } catch (_) {
-            alert('Upload failed');
-            resetUploadUI();
-          }
-        } else {
-          alert('Upload failed');
-          resetUploadUI();
-        }
-      });
+          });
 
-      xhr.addEventListener('error', function () {
-        alert('Network error');
+          xhr.addEventListener('error', function () {
+            alert('Network error uploading ' + entry.file_name);
+            resetUploadUI();
+          });
+
+          xhr.open('PUT', entry.upload_url, true);
+          xhr.setRequestHeader('Content-Type', localFile.type || 'application/octet-stream');
+          xhr.send(localFile);
+        }
+
+        uploadNext(0);
+      })
+      .catch(function (err) {
+        alert('Failed to initialize upload');
         resetUploadUI();
       });
 
-      xhr.open('POST', this.action, true);
-      xhr.send(fd);
-
       function resetUploadUI() {
         dropzone.style.display = '';
-        fileList.style.display = '';
+        fileListEl.style.display = '';
         progressContainer.hidden = true;
         progressFill.style.width = '0%';
         btn.disabled = false;

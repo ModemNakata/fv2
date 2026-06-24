@@ -28,6 +28,7 @@ mod purchases;
 mod s3;
 mod settings;
 mod upload;
+mod upload_direct;
 mod video;
 mod view_counter;
 
@@ -239,6 +240,19 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/notifications/read-all",
                         web::post().to(notifications::api_mark_all_read),
+                    )
+                    // ── Direct S3 upload ─────────────────────────────────────
+                    .route(
+                        "/upload/video/init",
+                        web::post().to(upload_direct::init_video_upload),
+                    )
+                    .route(
+                        "/upload/gallery/init",
+                        web::post().to(upload_direct::init_gallery_upload),
+                    )
+                    .route(
+                        "/upload/{id}/complete",
+                        web::post().to(upload_direct::complete_upload),
                     ),
             )
     })

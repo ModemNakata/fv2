@@ -1,0 +1,22 @@
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": [
+        "https://fevid.cloud"
+      ],
+      "AllowedMethods": [
+        "PUT",
+        "POST",
+        "GET",
+        "HEAD"
+      ],
+      "AllowedHeaders": [
+        "*"
+      ],
+      "ExposeHeaders": [
+        "ETag"
+      ],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}

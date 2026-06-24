@@ -1,0 +1,4 @@
+aws s3api put-bucket-cors \
+  --endpoint-url https://s3.adman.com \
+  --bucket fevid \
+  --cors-configuration file://cors.json

@@ -207,53 +207,89 @@
         var progressFill = document.getElementById('progressFill');
         var progressText = document.getElementById('progressText');
 
-        var fd = new FormData(form);
+        var file = fileInput.files[0];
+        var ext = file.name.split('.').pop().toLowerCase();
 
         dropzone.style.display = 'none';
         progressContainer.hidden = false;
         btn.disabled = true;
-        btn.textContent = 'Uploading...';
+        btn.textContent = 'Initializing...';
         form.querySelector('[name="title"]').disabled = true;
         form.querySelector('[name="description"]').disabled = true;
         priceInput.disabled = true;
         previewLength.disabled = true;
-        var xhr = new XMLHttpRequest();
 
-        xhr.upload.addEventListener('progress', function (e) {
-          if (e.lengthComputable) {
-            var pct = Math.round((e.loaded / e.total) * 100);
-            progressFill.style.width = pct + '%';
-            btn.textContent = 'Uploading ' + pct + '%';
+        // Step 1: Ask backend for a presigned upload URL
+        fetch('/api/upload/video/init', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: form.querySelector('[name="title"]').value,
+            description: form.querySelector('[name="description"]').value || null,
+            price_cents: Math.round((parseFloat(priceInput.value) || 0) * 100),
+            extension: ext,
+            original_name: file.name,
+            preview_length: parseInt(previewLength.value) || null,
+            file_size: file.size,
+          })
+        })
+        .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
+        .then(function (res) {
+          if (res.status < 200 || res.status >= 300 || !res.data.files || !res.data.files.length) {
+            alert(res.data.error || 'Failed to initialize upload');
+            resetUploadUI();
+            return;
           }
-        });
+          var contentId = res.data.content_id;
+          var uploadUrl = res.data.files[0].upload_url;
 
-        xhr.addEventListener('load', function () {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              var data = JSON.parse(xhr.responseText);
-              if (data.ok && data.content_id) {
-                window.location.href = '/video/' + data.content_id;
-              } else {
-                alert(data.error || 'Upload failed');
-                resetUploadUI();
-              }
-            } catch (_) {
-              alert('Upload failed');
+          // Step 2: Upload file directly to S3
+          var xhr = new XMLHttpRequest();
+
+          xhr.upload.addEventListener('progress', function (e) {
+            if (e.lengthComputable) {
+              var pct = Math.round((e.loaded / e.total) * 100);
+              progressFill.style.width = pct + '%';
+              btn.textContent = 'Uploading ' + pct + '%';
+            }
+          });
+
+          xhr.addEventListener('load', function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              // Step 3: Mark upload as complete
+              fetch('/api/upload/' + contentId + '/complete', { method: 'POST' })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                  if (d.ok) {
+                    window.location.href = '/video/' + contentId;
+                  } else {
+                    alert(d.error || 'Failed to finalize');
+                    resetUploadUI();
+                  }
+                })
+                .catch(function () {
+                  alert('Failed to finalize upload');
+                  resetUploadUI();
+                });
+            } else {
+              alert('S3 upload failed (HTTP ' + xhr.status + ')');
               resetUploadUI();
             }
-          } else {
-            alert('Upload failed');
-            resetUploadUI();
-          }
-        });
+          });
 
-        xhr.addEventListener('error', function () {
-          alert('Network error');
+          xhr.addEventListener('error', function () {
+            alert('Network error during S3 upload');
+            resetUploadUI();
+          });
+
+          xhr.open('PUT', uploadUrl, true);
+          xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+          xhr.send(file);
+        })
+        .catch(function (err) {
+          alert('Failed to initialize upload');
           resetUploadUI();
         });
-
-        xhr.open('POST', form.action, true);
-        xhr.send(fd);
 
         function resetUploadUI() {
           dropzone.style.display = '';

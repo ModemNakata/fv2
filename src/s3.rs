@@ -69,3 +69,16 @@ impl S3UrlProvider {
             .map_err(|e| format!("failed to create presigned url: {e}"))
     }
 }
+
+/// Generate a presigned PUT URL for direct browser-to-S3 uploads.
+/// Used by the direct upload flow (the browser PUTs the file directly to S3).
+pub async fn presign_put_url(
+    bucket: &Bucket,
+    key: &str,
+    expires_in_secs: u32,
+) -> Result<String, String> {
+    bucket
+        .presign_put(key, expires_in_secs, None, None)
+        .await
+        .map_err(|e| format!("failed to create presigned put url: {e}"))
+}
