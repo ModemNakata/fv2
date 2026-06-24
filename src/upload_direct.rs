@@ -31,6 +31,7 @@ pub struct GalleryFileEntry {
     pub name: String,
     pub ext: String,
     #[serde(default)]
+    #[allow(dead_code)]
     pub size: Option<i64>,
 }
 
