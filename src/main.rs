@@ -27,7 +27,6 @@ mod purchase;
 mod purchases;
 mod s3;
 mod settings;
-mod upload;
 mod upload_direct;
 mod video;
 mod view_counter;
@@ -127,13 +126,11 @@ async fn main() -> std::io::Result<()> {
             .service(web::resource("/").route(web::get().to(home::index)))
             .service(
                 web::resource("/upload/video")
-                    .route(web::get().to(home::upload_video))
-                    .route(web::post().to(upload::upload_video)),
+                    .route(web::get().to(home::upload_video)),
             )
             .service(
                 web::resource("/upload/gallery")
-                    .route(web::get().to(home::upload_gallery))
-                    .route(web::post().to(upload::upload_gallery)),
+                    .route(web::get().to(home::upload_gallery)),
             )
             .service(web::resource("/video").route(web::get().to(video::redirect_to_home)))
             .service(web::resource("/video/{uuid}").route(web::get().to(video::video)))
