@@ -88,14 +88,17 @@ async fn s3_put_stream(
     }
 
     let last = std::mem::replace(&mut buf, Vec::new());
-    match bucket
-        .put_multipart_chunk(last, key, part_num, &upload_id, "")
-        .await
-    {
-        Ok(p) => parts.push(p),
-        Err(e) => {
-            let _ = bucket.abort_upload(key, &upload_id).await;
-            return Err(format!("final part: {e}"));
+
+    if !last.is_empty() || parts.is_empty() {
+        match bucket
+            .put_multipart_chunk(last, key, part_num, &upload_id, "")
+            .await
+        {
+            Ok(p) => parts.push(p),
+            Err(e) => {
+                let _ = bucket.abort_upload(key, &upload_id).await;
+                return Err(format!("final part: {e}"));
+            }
         }
     }
 
@@ -220,7 +223,9 @@ pub async fn upload_video(
                     }
                 }
             }
-            _ => {}
+            _ => {
+                while let Some(_) = field.next().await {}
+            }
         }
     }
 
@@ -435,7 +440,9 @@ pub async fn upload_gallery(
                     }
                 }
             }
-            _ => {}
+            _ => {
+                while let Some(_) = field.next().await {}
+            }
         }
     }
 
