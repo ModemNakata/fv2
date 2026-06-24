@@ -143,7 +143,28 @@ pub async fn init_video_upload(
         log::error!("DB error inserting video_format: {e}");
     }
 
-    let upload_url = match crate::s3::presign_put_url(&state.s3_orig, &key, 3600).await {
+    // Reject if reported size exceeds limit
+    if let Some(size) = req.file_size {
+        if size as u64 > state.max_upload_size_video {
+            return HttpResponse::BadRequest().json(ActionResponse {
+                ok: false,
+                error: Some(format!(
+                    "File exceeds max upload size of {} bytes",
+                    state.max_upload_size_video
+                )),
+            });
+        }
+    }
+
+    let upload_url = match crate::s3::presign_put_with_conditions(
+        &state.s3_orig,
+        &key,
+        3600,
+        1024,
+        state.max_upload_size_video,
+    )
+    .await
+    {
         Ok(url) => url,
         Err(e) => {
             log::error!("Failed to generate presigned URL: {e}");
@@ -173,6 +194,16 @@ pub async fn init_gallery_upload(
         Ok(u) => u,
         Err(resp) => return resp,
     };
+
+    if req.files.len() > state.max_upload_images_count as usize {
+        return HttpResponse::BadRequest().json(ActionResponse {
+            ok: false,
+            error: Some(format!(
+                "Too many files: max {} images per gallery",
+                state.max_upload_images_count
+            )),
+        });
+    }
 
     let content_id = Uuid::new_v4();
     let now = chrono::Utc::now().naive_utc();
@@ -218,6 +249,21 @@ pub async fn init_gallery_upload(
         });
     }
 
+    // Reject if any file exceeds per-file size limit
+    for f in &req.files {
+        if let Some(size) = f.size {
+            if size as u64 > state.max_upload_size_gallery {
+                return HttpResponse::BadRequest().json(ActionResponse {
+                    ok: false,
+                    error: Some(format!(
+                        "File '{}' exceeds max upload size of {} bytes",
+                        f.name, state.max_upload_size_gallery
+                    )),
+                });
+            }
+        }
+    }
+
     let prefix = format!("galleries/{}", content_id);
     let mut file_urls = Vec::with_capacity(req.files.len());
 
@@ -241,7 +287,15 @@ pub async fn init_gallery_upload(
             log::error!("DB error inserting image: {e}");
         }
 
-        let upload_url = match crate::s3::presign_put_url(&state.s3_orig, &key, 3600).await {
+        let upload_url = match crate::s3::presign_put_with_conditions(
+            &state.s3_orig,
+            &key,
+            3600,
+            1024,
+            state.max_upload_size_gallery,
+        )
+        .await
+        {
             Ok(url) => url,
             Err(e) => {
                 log::error!("Failed to generate presigned URL for {}: {e}", f.name);

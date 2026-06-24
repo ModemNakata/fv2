@@ -21,7 +21,7 @@
           stroke-linejoin="round" stroke-width="16" />
       </svg>
       <p class="upload-text">Drag & drop images or <span class="upload-link">browse</span></p>
-      <p class="upload-hint">Converted to Avif — up to 100 images, 5GB total</p>
+      <p class="upload-hint" id="uploadHint">Converted to AVIF — up to {{ max_upload_images_count }} images, {{ max_upload_size_gallery_display }} total</p>
       <input type="file" id="galleryFileInput" accept="image/*" hidden multiple>
     </div>
     <div class="file-list" id="fileList"></div>
@@ -31,7 +31,8 @@
       <div class="upload-field-row">
         <label class="upload-label" for="galleryPrice">Price (USD)</label>
         <span class="price-prefix">$</span>
-        <input type="number" id="galleryPrice" name="price" class="upload-input price-input" value="0" min="0" step="0.01">
+        <input type="number" id="galleryPrice" name="price" class="upload-input price-input" value="0" min="0"
+          step="0.01">
       </div>
       <div class="conditional-fields" id="galleryConditionalFields" hidden>
         <div class="upload-field-row">
@@ -55,10 +56,10 @@
     </div>
   </form>
 </div>
-<script>
-  (function () {
-    var MAX_FILES = 100;
-    var MAX_SIZE = 5 * 1024 * 1024 * 1024;
+  <script>
+    (function () {
+      var MAX_FILES = {{ max_upload_images_count }};
+      var MAX_SIZE = {{ max_upload_size_gallery }};
 
     var dropzone = document.getElementById('galleryDropzone');
     var fileInput = document.getElementById('galleryFileInput');
@@ -272,22 +273,26 @@
       render();
     }
 
-    function addFiles(newFiles) {
-      var remaining = MAX_FILES - files.length;
-      if (newFiles.length > remaining) {
-        alert('Maximum ' + MAX_FILES + ' files allowed. Adding ' + remaining + ' file' + (remaining === 1 ? '' : 's') + '.');
-      }
-      var toAdd = Array.from(newFiles).slice(0, remaining);
-
-      toAdd.forEach(function (f) {
-        if (f.type && f.type.startsWith('image/')) {
-          f._preview = URL.createObjectURL(f);
+      function addFiles(newFiles) {
+        var remaining = MAX_FILES - files.length;
+        if (newFiles.length > remaining) {
+          alert('Maximum ' + MAX_FILES + ' files allowed. Adding ' + remaining + ' file' + (remaining === 1 ? '' : 's') + '.');
         }
-        files.push(f);
-      });
+        var toAdd = Array.from(newFiles).slice(0, remaining);
 
-      render();
-    }
+        toAdd.forEach(function (f) {
+          if (f.size > MAX_SIZE) {
+            alert('File "' + f.name + '" exceeds the ' + formatSize(MAX_SIZE) + ' limit and will be skipped.');
+            return;
+          }
+          if (f.type && f.type.startsWith('image/')) {
+            f._preview = URL.createObjectURL(f);
+          }
+          files.push(f);
+        });
+
+        render();
+      }
 
     function getPricingError() {
       var price = parseFloat(document.getElementById('galleryPrice').value) || 0;
@@ -370,13 +375,13 @@
       // Build file entries for the init request
       var fileEntries = files.map(function (f) {
         var ext = f.name.split('.').pop().toLowerCase();
-        return { name: f.name, ext: ext, size: f.size };
+        return {name: f.name, ext: ext, size: f.size};
       });
 
       // Step 1: Ask backend for presigned URLs
       fetch('/api/upload/gallery/init', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           title: document.querySelector('[name="title"]').value,
           description: document.querySelector('[name="description"]').value || null,
@@ -385,79 +390,79 @@
           files: fileEntries,
         })
       })
-      .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
-      .then(function (res) {
-        if (res.status < 200 || res.status >= 300 || !res.data.files || !res.data.files.length) {
-          alert(res.data.error || 'Failed to initialize upload');
-          resetUploadUI();
-          return;
-        }
-        var contentId = res.data.content_id;
-        var uploadFiles = res.data.files;
-        var totalFiles = uploadFiles.length;
-        var completedFiles = 0;
-
-        // Step 2: Upload each file sequentially to S3
-        function uploadNext(index) {
-          if (index >= totalFiles) {
-            // All done — mark as complete
-            fetch('/api/upload/' + contentId + '/complete', { method: 'POST' })
-              .then(function (r) { return r.json(); })
-              .then(function (d) {
-                if (d.ok) {
-                  window.location.href = '/gallery/' + contentId;
-                } else {
-                  alert(d.error || 'Failed to finalize');
-                  resetUploadUI();
-                }
-              })
-              .catch(function () {
-                alert('Failed to finalize upload');
-                resetUploadUI();
-              });
+        .then(function (r) {return r.json().then(function (d) {return {status: r.status, data: d};});})
+        .then(function (res) {
+          if (res.status < 200 || res.status >= 300 || !res.data.files || !res.data.files.length) {
+            alert(res.data.error || 'Failed to initialize upload');
+            resetUploadUI();
             return;
           }
+          var contentId = res.data.content_id;
+          var uploadFiles = res.data.files;
+          var totalFiles = uploadFiles.length;
+          var completedFiles = 0;
 
-          var entry = uploadFiles[index];
-          var localFile = files[index];
-          var xhr = new XMLHttpRequest();
-
-          xhr.upload.addEventListener('progress', function (e) {
-            if (e.lengthComputable) {
-              var filePct = e.loaded / e.total;
-              var overall = (completedFiles + filePct) / totalFiles;
-              var pct = Math.round(overall * 100);
-              progressFill.style.width = pct + '%';
-              btn.textContent = 'Uploading ' + (index + 1) + '/' + totalFiles + ' (' + pct + '%)';
+          // Step 2: Upload each file sequentially to S3
+          function uploadNext(index) {
+            if (index >= totalFiles) {
+              // All done — mark as complete
+              fetch('/api/upload/' + contentId + '/complete', {method: 'POST'})
+                .then(function (r) {return r.json();})
+                .then(function (d) {
+                  if (d.ok) {
+                    window.location.href = '/gallery/' + contentId;
+                  } else {
+                    alert(d.error || 'Failed to finalize');
+                    resetUploadUI();
+                  }
+                })
+                .catch(function () {
+                  alert('Failed to finalize upload');
+                  resetUploadUI();
+                });
+              return;
             }
-          });
 
-          xhr.addEventListener('load', function () {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              completedFiles++;
-              uploadNext(index + 1);
-            } else {
-              alert('Upload failed for ' + entry.file_name + ' (HTTP ' + xhr.status + ')');
+            var entry = uploadFiles[index];
+            var localFile = files[index];
+            var xhr = new XMLHttpRequest();
+
+            xhr.upload.addEventListener('progress', function (e) {
+              if (e.lengthComputable) {
+                var filePct = e.loaded / e.total;
+                var overall = (completedFiles + filePct) / totalFiles;
+                var pct = Math.round(overall * 100);
+                progressFill.style.width = pct + '%';
+                btn.textContent = 'Uploading ' + (index + 1) + '/' + totalFiles + ' (' + pct + '%)';
+              }
+            });
+
+            xhr.addEventListener('load', function () {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                completedFiles++;
+                uploadNext(index + 1);
+              } else {
+                alert('Upload failed for ' + entry.file_name + ' (HTTP ' + xhr.status + ')');
+                resetUploadUI();
+              }
+            });
+
+            xhr.addEventListener('error', function () {
+              alert('Network error uploading ' + entry.file_name);
               resetUploadUI();
-            }
-          });
+            });
 
-          xhr.addEventListener('error', function () {
-            alert('Network error uploading ' + entry.file_name);
-            resetUploadUI();
-          });
+            xhr.open('PUT', entry.upload_url, true);
+            xhr.setRequestHeader('Content-Type', localFile.type || 'application/octet-stream');
+            xhr.send(localFile);
+          }
 
-          xhr.open('PUT', entry.upload_url, true);
-          xhr.setRequestHeader('Content-Type', localFile.type || 'application/octet-stream');
-          xhr.send(localFile);
-        }
-
-        uploadNext(0);
-      })
-      .catch(function (err) {
-        alert('Failed to initialize upload');
-        resetUploadUI();
-      });
+          uploadNext(0);
+        })
+        .catch(function (err) {
+          alert('Failed to initialize upload');
+          resetUploadUI();
+        });
 
       function resetUploadUI() {
         dropzone.style.display = '';

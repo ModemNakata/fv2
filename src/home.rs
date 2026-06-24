@@ -305,6 +305,26 @@ fn time_ago(created_at: &sea_orm::prelude::DateTime, now: ChronoDateTime<Utc>) -
 
 // ---- upload handlers ----
 
+fn format_upload_size(bytes: u64) -> String {
+    if bytes >= 1_073_741_824 {
+        let gib = bytes as f64 / 1_073_741_824.0;
+        if gib.fract() == 0.0 {
+            format!("{}GB", gib as u64)
+        } else {
+            format!("{:.1}GB", gib)
+        }
+    } else {
+        let mib = bytes as f64 / 1_048_576.0;
+        if mib < 10.0 {
+            format!("{:.1}MB", mib)
+        } else if mib.fract() == 0.0 {
+            format!("{}MB", mib as u64)
+        } else {
+            format!("{:.0}MB", mib)
+        }
+    }
+}
+
 #[derive(Template)]
 #[template(path = "upload-video.html")]
 struct UploadVideoPage {
@@ -312,6 +332,8 @@ struct UploadVideoPage {
     logged_in: bool,
     session_avatar_url: Option<String>,
     version: String,
+    max_upload_size_video: u64,
+    max_upload_size_video_display: String,
 }
 
 #[derive(Template)]
@@ -321,6 +343,9 @@ struct UploadGalleryPage {
     logged_in: bool,
     session_avatar_url: Option<String>,
     version: String,
+    max_upload_size_gallery: u64,
+    max_upload_size_gallery_display: String,
+    max_upload_images_count: u32,
 }
 
 pub async fn upload_video(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
@@ -331,6 +356,8 @@ pub async fn upload_video(session: Session, state: web::Data<AppState>) -> Resul
         logged_in,
         session_avatar_url: session_user.and_then(|u| u.avatar_url),
         version: state.static_version.clone(),
+        max_upload_size_video: state.max_upload_size_video,
+        max_upload_size_video_display: format_upload_size(state.max_upload_size_video),
     }
     .render()
     .expect("upload-video.html should be valid");
@@ -348,6 +375,9 @@ pub async fn upload_gallery(
         logged_in,
         session_avatar_url: session_user.and_then(|u| u.avatar_url),
         version: state.static_version.clone(),
+        max_upload_size_gallery: state.max_upload_size_gallery,
+        max_upload_size_gallery_display: format_upload_size(state.max_upload_size_gallery),
+        max_upload_images_count: state.max_upload_images_count,
     }
     .render()
     .expect("upload-gallery.html should be valid");

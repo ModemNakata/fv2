@@ -40,6 +40,9 @@ pub struct AppState {
     pub static_version: String,
     pub redis_conn: redis::aio::ConnectionManager,
     pub cryptowrap: cryptowrap::CryptowrapConfig,
+    pub max_upload_size_video: u64,
+    pub max_upload_size_gallery: u64,
+    pub max_upload_images_count: u32,
 }
 
 #[actix_web::main]
@@ -93,6 +96,18 @@ async fn main() -> std::io::Result<()> {
 
     let static_version = env!("CARGO_PKG_VERSION").to_string();
     let cryptowrap = cryptowrap::CryptowrapConfig::from_env();
+    let max_upload_size_video: u64 = env::var("MAX_UPLOAD_SIZE_VIDEO")
+        .unwrap_or_else(|_| "10737418240".to_string())
+        .parse()
+        .expect("MAX_UPLOAD_SIZE_VIDEO must be a valid u64");
+    let max_upload_size_gallery: u64 = env::var("MAX_UPLOAD_SIZE_GALLERY")
+        .unwrap_or_else(|_| "5368709120".to_string())
+        .parse()
+        .expect("MAX_UPLOAD_SIZE_GALLERY must be a valid u64");
+    let max_upload_images_count: u32 = env::var("MAX_UPLOAD_IMAGES_COUNT")
+        .unwrap_or_else(|_| "100".to_string())
+        .parse()
+        .expect("MAX_UPLOAD_IMAGES_COUNT must be a valid u32");
     let state = AppState {
         conn,
         s3_processed,
@@ -101,6 +116,9 @@ async fn main() -> std::io::Result<()> {
         static_version,
         redis_conn,
         cryptowrap,
+        max_upload_size_video,
+        max_upload_size_gallery,
+        max_upload_images_count,
     };
 
     // ── Background worker: flush view counters to Postgres every 5 min ──────

@@ -1,6 +1,7 @@
 use s3::Bucket;
 use s3::creds::Credentials;
 use s3::region::Region;
+use std::collections::HashMap;
 use std::env;
 
 fn build_bucket(bucket_name: &str) -> Bucket {
@@ -70,15 +71,23 @@ impl S3UrlProvider {
     }
 }
 
-/// Generate a presigned PUT URL for direct browser-to-S3 uploads.
-/// Used by the direct upload flow (the browser PUTs the file directly to S3).
-pub async fn presign_put_url(
+/// Generate a presigned PUT URL with content-length-range conditions.
+/// The conditions are embedded as signed query params so the client
+/// cannot modify the size constraints. S3 enforces the range on upload.
+pub async fn presign_put_with_conditions(
     bucket: &Bucket,
     key: &str,
     expires_in_secs: u32,
+    min_size: u64,
+    max_size: u64,
 ) -> Result<String, String> {
+    let mut custom_queries = HashMap::new();
+    custom_queries.insert(
+        "x-amz-content-length-range".to_string(),
+        format!("{min_size}-{max_size}"),
+    );
     bucket
-        .presign_put(key, expires_in_secs, None, None)
+        .presign_put(key, expires_in_secs, None, Some(custom_queries))
         .await
-        .map_err(|e| format!("failed to create presigned put url: {e}"))
+        .map_err(|e| format!("failed to create presigned put url with conditions: {e}"))
 }

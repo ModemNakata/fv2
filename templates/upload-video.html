@@ -22,7 +22,7 @@
             stroke-linejoin="round" stroke-width="16" />
         </svg>
         <p class="upload-text">Drag & drop a video or <span class="upload-link">browse</span></p>
-        <p class="upload-hint">Encoded to WebM (AV1) — up to 10GB</p>
+        <p class="upload-hint" id="uploadHint">Encoded to WebM (AV1) — up to {{ max_upload_size_video_display }}</p>
       </div>
       <div class="dropzone-file" id="dropzoneFile" hidden>
         <svg class="icon file-selected-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
@@ -69,6 +69,7 @@
   </form>
   <script>
     (function () {
+      var MAX_SIZE = {{ max_upload_size_video }};
       var dropzone = document.getElementById('videoDropzone');
       var fileInput = document.getElementById('videoFileInput');
       var form = document.getElementById('uploadForm');
@@ -77,6 +78,7 @@
       var fileView = document.getElementById('dropzoneFile');
       var fileName = document.getElementById('fileName');
       var fileSize = document.getElementById('fileSize');
+      var uploadHint = document.getElementById('uploadHint');
 
       function formatSize(bytes) {
         if (bytes === 0) return '0 Bytes';
@@ -87,6 +89,15 @@
       }
 
       function showFile(file) {
+        if (file.size > MAX_SIZE) {
+          fileName.textContent = '';
+          fileSize.textContent = 'File too large (' + formatSize(file.size) + ') — max ' + formatSize(MAX_SIZE);
+          defaultView.hidden = true;
+          fileView.hidden = false;
+          btn.textContent = 'File exceeds upload limit';
+          btn.disabled = true;
+          return;
+        }
         fileName.textContent = file.name;
         fileSize.textContent = formatSize(file.size);
         defaultView.hidden = true;
