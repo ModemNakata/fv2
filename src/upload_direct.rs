@@ -143,7 +143,7 @@ pub async fn init_video_upload(
         log::error!("DB error inserting video_format: {e}");
     }
 
-    // Reject if reported size exceeds limit
+    Reject if reported size exceeds limit
     if let Some(size) = req.file_size {
         if size as u64 > state.max_upload_size_video {
             return HttpResponse::BadRequest().json(ActionResponse {
@@ -155,6 +155,20 @@ pub async fn init_video_upload(
             });
         }
     }
+
+    // !!! THIS still can allow uploading larger files to S3
+    // but we can send exact content-length bytes with the URL signature :
+    // 
+    // // Pseudocode depending on your exact `crate::s3::presign_put_with_conditions` implementation
+    // // You need to inject the "content-length" header into the signing context:
+    // let mut headers = reqwest::header::HeaderMap::new();
+    // headers.insert("content-length", req.file_size.unwrap_or(0).to_string().parse().unwrap());
+    // 
+    // // Then pass these signed headers to your S3 SDK presigner
+    //
+    // Step 2: Make the Browser Send the Header
+    // Because the size constraint is now part of the cryptographic signature, your frontend XHR upload must send that exact header, or S3 will reject it with a signature mismatch error.
+    // Fortunately, browsers send the Content-Length header automatically when you do xhr.send(file).
 
     let upload_url = match crate::s3::presign_put_with_conditions(
         &state.s3_orig,
