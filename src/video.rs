@@ -131,12 +131,18 @@ pub async fn video(
         let sources_json = {
             // HLS mode (can be revived):
             // format!("{}/videos/{}/master.m3u8", s3_base, content_id)
-            let formats = VideoFormats::find()
+            let mut formats = VideoFormats::find()
                 .filter(video_formats::Column::VideoId.eq(content_id))
                 .filter(video_formats::Column::StoragePath.is_not_null())
                 .all(&state.conn)
                 .await
                 .map_err(actix_web::error::ErrorInternalServerError)?;
+
+            formats.sort_by(|a, b| {
+                let (_, ha) = parse_resolution(&a.resolution);
+                let (_, hb) = parse_resolution(&b.resolution);
+                hb.cmp(&ha)
+            });
 
             let mut sources = Vec::with_capacity(formats.len());
             for f in &formats {

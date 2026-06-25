@@ -526,6 +526,17 @@ pub async fn update_status(
             // Multi-resolution mode: video_formats is a map of resolution → VideoFormatEntry.
             if let Some(ref formats) = body.video_formats {
                 if content_type == ContentType::Video {
+                    // Delete stale formats (e.g. a removed 480p profile) before inserting new ones.
+                    // The "original" upload row is preserved for cleanup references.
+                    if let Err(e) = VideoFormats::delete_many()
+                        .filter(video_formats::Column::VideoId.eq(content_id))
+                        .filter(video_formats::Column::Resolution.ne("original"))
+                        .exec(&state.conn)
+                        .await
+                    {
+                        log::error!("DB error deleting stale video_formats: {e}");
+                    }
+
                     for (resolution, entry) in formats {
                         let (storage_path, free_preview_path) = match entry {
                             VideoFormatEntry::Legacy(p) => (p.clone(), None),
@@ -539,35 +550,20 @@ pub async fn update_status(
                             .rsplit_once('.')
                             .map(|(_, ext)| ext.to_lowercase())
                             .unwrap_or_default();
-                        if let Ok(Some(fmt)) = VideoFormats::find()
-                            .filter(video_formats::Column::VideoId.eq(content_id))
-                            .filter(video_formats::Column::Resolution.eq(resolution.as_str()))
-                            .filter(video_formats::Column::Format.eq(&fmt_ext))
-                            .one(&state.conn)
-                            .await
-                        {
-                            let mut fmt: video_formats::ActiveModel = fmt.into();
-                            fmt.storage_path = Set(Some(storage_path));
-                            fmt.free_preview_path = Set(free_preview_path);
-                            if let Err(e) = fmt.update(&state.conn).await {
-                                log::error!("DB error updating video_format {resolution}: {e}");
-                            }
-                        } else {
-                            let fmt = video_formats::ActiveModel {
-                                id: Set(Uuid::new_v4()),
-                                video_id: Set(content_id),
-                                resolution: Set(resolution.clone()),
-                                format: Set(fmt_ext),
-                                orig_storage_path: Set(String::new()),
-                                storage_path: Set(Some(storage_path)),
-                                free_preview_path: Set(free_preview_path),
-                                original_name: Set(String::new()),
-                                file_size_bytes: Set(None),
-                                created_at: Set(chrono::Utc::now().naive_utc()),
-                            };
-                            if let Err(e) = fmt.insert(&state.conn).await {
-                                log::error!("DB error inserting video_format {resolution}: {e}");
-                            }
+                        let fmt = video_formats::ActiveModel {
+                            id: Set(Uuid::new_v4()),
+                            video_id: Set(content_id),
+                            resolution: Set(resolution.clone()),
+                            format: Set(fmt_ext),
+                            orig_storage_path: Set(String::new()),
+                            storage_path: Set(Some(storage_path)),
+                            free_preview_path: Set(free_preview_path),
+                            original_name: Set(String::new()),
+                            file_size_bytes: Set(None),
+                            created_at: Set(chrono::Utc::now().naive_utc()),
+                        };
+                        if let Err(e) = fmt.insert(&state.conn).await {
+                            log::error!("DB error inserting video_format {resolution}: {e}");
                         }
                     }
                 }
