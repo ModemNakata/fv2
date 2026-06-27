@@ -1182,7 +1182,9 @@ body.sidebar-open {
 
 .site-footer {
   margin-top: 48px;
-  padding: 24px 16px;
+  margin-left: calc(clamp(8px, 2vw, 24px) * -1);
+  margin-right: calc(clamp(8px, 2vw, 24px) * -1);
+  padding: 24px clamp(8px, 2vw, 24px);
   border-top: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;

@@ -116,7 +116,7 @@
   justify-content: center;
   align-items: center;
   gap: 6px;
-  padding-top: clamp(24px, 3vh, 32px);
+  padding-top: clamp(40px, 5vh, 56px);
   padding-bottom: clamp(16px, 2vh, 24px);
   flex-wrap: wrap;
 }
