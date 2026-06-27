@@ -55,6 +55,7 @@ struct GalleryPagination {
     limit: u32,
     pages: Vec<GalleryPageButton>,
     query_params: String,
+    base_path: String,
 }
 
 fn url_encode(s: &str) -> String {
@@ -261,6 +262,7 @@ pub async fn index(
         limit,
         pages,
         query_params,
+        base_path: "/gallery".to_string(),
     };
 
     let sort_options = build_sort_options(&sort, &order);

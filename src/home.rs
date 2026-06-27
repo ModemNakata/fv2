@@ -54,6 +54,7 @@ struct Pagination {
     limit: u32,
     pages: Vec<PageButton>,
     query_params: String,
+    base_path: String,
 }
 
 fn url_encode(s: &str) -> String {
@@ -245,6 +246,7 @@ pub async fn index(
         limit,
         pages,
         query_params,
+        base_path: "/".to_string(),
     };
 
     let sort_options = build_sort_options(&sort, &order);

@@ -102,27 +102,7 @@
 </div>
 {% endif %}
 
-{% if pagination.total_pages > 1 %}
-<div class="pagination">
-  {% if pagination.current_page > 1 %}
-  <a href="/?page={{ pagination.current_page - 1 }}&limit={{ pagination.limit }}{{ pagination.query_params }}"
-    class="page-btn" data-page="prev">Prev</a>
-  {% endif %}
-  {% for p in pagination.pages %}
-  {% if p.is_active %}
-  <span class="page-btn active">{{ p.num }}</span>
-  {% else %}
-  <a href="/?page={{ p.num }}&limit={{ pagination.limit }}{{ pagination.query_params }}" class="page-btn">{{ p.num
-    }}</a>
-  {% endif %}
-  {% endfor %}
-  {% if pagination.current_page < pagination.total_pages %} <a
-    href="/?page={{ pagination.current_page + 1 }}&limit={{ pagination.limit }}{{ pagination.query_params }}"
-    class="page-btn" data-page="next">
-    Next</a>
-    {% endif %}
-</div>
-{% endif %}
+{% include "components/pagination.html" %}
 
 <script>
   document.addEventListener('keydown', function (e) {

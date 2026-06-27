@@ -61,10 +61,18 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     padding-top: clamp(40px, 5vh, 56px);
     padding-bottom: clamp(16px, 2vh, 24px);
-    flex-wrap: wrap;
+}
+
+.page-btns-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
 .page-btn {
@@ -78,7 +86,7 @@
     font-weight: 500;
     color: var(--text-primary);
     background: var(--bg-tertiary);
-    border-radius: 4px;
+    flex-shrink: 0;
 }
 
 .page-btn:hover {
@@ -89,6 +97,60 @@
     background: var(--accent);
     color: var(--bg-primary);
     font-weight: 700;
+}
+
+.page-jump {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.page-jump-input {
+    width: 52px;
+    height: 36px;
+    padding: 0 6px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    font-family: inherit;
+    text-align: center;
+    outline: none;
+}
+
+.page-jump-input:focus {
+    border-color: var(--accent);
+}
+
+.page-jump-input::placeholder {
+    color: var(--text-tertiary);
+    font-size: 0.7rem;
+}
+
+.page-jump-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+
+.page-jump-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* Hide spinner on number input */
+.page-jump-input::-webkit-inner-spin-button,
+.page-jump-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.page-jump-input[type=number] {
+    -moz-appearance: textfield;
 }
 
 .thumb-preview {
