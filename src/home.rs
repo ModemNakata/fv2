@@ -383,3 +383,47 @@ pub async fn upload_gallery(
     .expect("upload-gallery.html should be valid");
     Ok(web::Html::new(html))
 }
+
+#[derive(Template)]
+#[template(path = "privacy.html")]
+struct PrivacyPage {
+    username: String,
+    logged_in: bool,
+    session_avatar_url: Option<String>,
+    version: String,
+}
+
+#[derive(Template)]
+#[template(path = "terms.html")]
+struct TermsPage {
+    username: String,
+    logged_in: bool,
+    session_avatar_url: Option<String>,
+    version: String,
+}
+
+pub async fn privacy(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
+    let session_user = auth::get_session_user(&session, &state.conn).await;
+    let html = PrivacyPage {
+        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
+        logged_in: session_user.is_some(),
+        session_avatar_url: session_user.and_then(|u| u.avatar_url),
+        version: state.static_version.clone(),
+    }
+    .render()
+    .expect("privacy.html should be valid");
+    Ok(web::Html::new(html))
+}
+
+pub async fn terms(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
+    let session_user = auth::get_session_user(&session, &state.conn).await;
+    let html = TermsPage {
+        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
+        logged_in: session_user.is_some(),
+        session_avatar_url: session_user.and_then(|u| u.avatar_url),
+        version: state.static_version.clone(),
+    }
+    .render()
+    .expect("terms.html should be valid");
+    Ok(web::Html::new(html))
+}

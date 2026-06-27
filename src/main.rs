@@ -154,6 +154,8 @@ async fn main() -> std::io::Result<()> {
             .service(web::resource("/video/{uuid}").route(web::get().to(video::video)))
             .service(web::resource("/gallery").route(web::get().to(gallery::index)))
             .service(web::resource("/gallery/{uuid}").route(web::get().to(gallery::gallery)))
+            .service(web::resource("/privacy").route(web::get().to(home::privacy)))
+            .service(web::resource("/terms").route(web::get().to(home::terms)))
             .service(web::resource("/@{username}").route(web::get().to(profile::user_profile)))
             .service(
                 web::resource("/settings")

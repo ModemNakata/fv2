@@ -410,6 +410,26 @@
     }
   }
 
+  /* ── Age verification overlay ───────────────────────────────────────────── */
+
+  var ageOverlay = document.getElementById('ageOverlay');
+  var ageEnter = document.getElementById('ageEnter');
+  var ageExit = document.getElementById('ageExit');
+
+  if (ageOverlay && ageEnter && ageExit) {
+    if (localStorage.getItem('ageVerified') === 'true') {
+      ageOverlay.classList.add('hidden');
+    } else {
+      ageEnter.addEventListener('click', function() {
+        ageOverlay.classList.add('hidden');
+        localStorage.setItem('ageVerified', 'true');
+      });
+      ageExit.addEventListener('click', function() {
+        window.location.href = 'about:blank';
+      });
+    }
+  }
+
   /* ── Thumbnail & gallery image loading ── */
   document.querySelectorAll('.thumb-img, .gallery-card-img, .gallery-detail-img').forEach(function(img) {
     var parent = img.closest('.thumbnail') || img.closest('.gallery-card-thumb') || img.closest('.gallery-image-wrap');

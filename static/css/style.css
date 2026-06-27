@@ -1101,6 +1101,83 @@ body.sidebar-open {
   color: var(--accent);
 }
 
+/* ── Age verification overlay ───────────────────────────────── */
+
+.age-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.age-overlay.hidden {
+  display: none;
+}
+
+.age-modal {
+  max-width: 480px;
+  width: 90vw;
+  padding: 40px 32px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.age-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.age-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.age-text:last-of-type {
+  margin-bottom: 28px;
+}
+
+.age-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.age-enter {
+  height: 48px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.age-enter:hover {
+  opacity: 0.9;
+}
+
+.age-exit {
+  height: 44px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+}
+
+.age-exit:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 /* ── Cookie notice ──────────────────────────────────────────── */
 
 .cookie-notice {
