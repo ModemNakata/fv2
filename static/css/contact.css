@@ -1,0 +1,35 @@
+.legal-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+.legal-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.legal-body {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.legal-body p {
+  margin-bottom: 12px;
+}
+
+.contact-email {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.contact-email a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.contact-email a:hover {
+  color: var(--accent-dim);
+}

@@ -427,3 +427,25 @@ pub async fn terms(session: Session, state: web::Data<AppState>) -> Result<impl 
     .expect("terms.html should be valid");
     Ok(web::Html::new(html))
 }
+
+#[derive(Template)]
+#[template(path = "contact.html")]
+struct ContactPage {
+    username: String,
+    logged_in: bool,
+    session_avatar_url: Option<String>,
+    version: String,
+}
+
+pub async fn contact(session: Session, state: web::Data<AppState>) -> Result<impl Responder> {
+    let session_user = auth::get_session_user(&session, &state.conn).await;
+    let html = ContactPage {
+        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
+        logged_in: session_user.is_some(),
+        session_avatar_url: session_user.and_then(|u| u.avatar_url),
+        version: state.static_version.clone(),
+    }
+    .render()
+    .expect("contact.html should be valid");
+    Ok(web::Html::new(html))
+}
