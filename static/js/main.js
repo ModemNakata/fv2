@@ -394,6 +394,22 @@
     });
   }
 
+  /* ── Cookie notice ─────────────────────────────────────────────────────── */
+
+  var cookieNotice = document.getElementById('cookieNotice');
+  var cookieClose = document.getElementById('cookieNoticeClose');
+
+  if (cookieNotice && cookieClose) {
+    if (localStorage.getItem('cookieNoticeDismissed') === 'true') {
+      cookieNotice.classList.add('hidden');
+    } else {
+      cookieClose.addEventListener('click', function() {
+        cookieNotice.classList.add('hidden');
+        localStorage.setItem('cookieNoticeDismissed', 'true');
+      });
+    }
+  }
+
   /* ── Thumbnail & gallery image loading ── */
   document.querySelectorAll('.thumb-img, .gallery-card-img, .gallery-detail-img').forEach(function(img) {
     var parent = img.closest('.thumbnail') || img.closest('.gallery-card-thumb') || img.closest('.gallery-image-wrap');

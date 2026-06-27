@@ -301,6 +301,20 @@
     </div>
   </main>
 
+  <div class="cookie-notice" id="cookieNotice">
+    <p class="cookie-notice-text">
+      FeVid.cloud uses no tracking cookies. We only use essential cookies required for
+      the platform to function. By using FeVid.cloud, you agree to our
+      <a href="/privacy" class="cookie-notice-link">Privacy Policy</a>.
+    </p>
+    <button class="cookie-notice-close" id="cookieNoticeClose" aria-label="Dismiss">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+        <rect width="256" height="256" fill="none"/>
+        <line x1="40" y1="40" x2="216" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+        <line x1="216" y1="40" x2="40" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+      </svg>
+    </button>
+  </div>
   {% if !logged_in %}
   <dialog class="auth-dialog" id="authDialog">
     <div class="auth-dialog-inner">
