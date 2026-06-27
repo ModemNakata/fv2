@@ -159,6 +159,8 @@ async fn main() -> std::io::Result<()> {
             .service(web::resource("/terms").route(web::get().to(pages::page)))
             .service(web::resource("/contact").route(web::get().to(pages::page)))
             .service(web::resource("/dmca").route(web::get().to(pages::page)))
+            .service(web::resource("/aup").route(web::get().to(pages::page)))
+            .service(web::resource("/refund").route(web::get().to(pages::page)))
             .service(web::resource("/@{username}").route(web::get().to(profile::user_profile)))
             .service(
                 web::resource("/settings")
