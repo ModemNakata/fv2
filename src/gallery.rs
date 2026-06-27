@@ -244,10 +244,12 @@ pub async fn index(
         query_params.push_str("&q=");
         query_params.push_str(&url_encode(&search_query));
     }
-    query_params.push_str("&sort=");
-    query_params.push_str(&sort);
-    query_params.push_str("&order=");
-    query_params.push_str(&order);
+    if sort != "date" || order != "desc" {
+        query_params.push_str("&sort=");
+        query_params.push_str(&sort);
+        query_params.push_str("&order=");
+        query_params.push_str(&order);
+    }
 
     let pages: Vec<GalleryPageButton> = (1..=total_pages)
         .map(|num| GalleryPageButton {
