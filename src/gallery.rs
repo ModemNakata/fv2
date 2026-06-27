@@ -251,7 +251,10 @@ pub async fn index(
         query_params.push_str(&order);
     }
 
-    let pages: Vec<GalleryPageButton> = (1..=total_pages)
+    let window: u32 = 10;
+    let start = page.saturating_sub(window).max(1);
+    let end = (page + window).min(total_pages);
+    let pages: Vec<GalleryPageButton> = (start..=end)
         .map(|num| GalleryPageButton {
             num,
             is_active: num == page,

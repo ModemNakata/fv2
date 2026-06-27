@@ -64,15 +64,15 @@
     gap: 8px;
     padding-top: clamp(40px, 5vh, 56px);
     padding-bottom: clamp(16px, 2vh, 24px);
+    flex-wrap: wrap;
 }
 
 .page-btns-wrap {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    overflow: hidden;
-    flex-shrink: 1;
-    min-width: 0;
+    flex-wrap: wrap;
 }
 
 .page-btn {
