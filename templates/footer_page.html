@@ -12,6 +12,8 @@ DMCA & Copyright Policy - FeVid
 Acceptable Use Policy - FeVid
 {%- elif slug == "refund" -%}
 Refund Policy - FeVid
+{%- elif slug == "compliance" -%}
+Legal & Compliance Center - FeVid
 {%- endif -%}
 {% endblock %}
 {% block head %}
@@ -32,6 +34,8 @@ Refund Policy - FeVid
     Acceptable Use Policy
     {%- elif slug == "refund" -%}
     Refund Policy
+    {%- elif slug == "compliance" -%}
+    Legal & Compliance Center
     {%- endif -%}
   </h1>
   <div class="legal-body">
@@ -47,6 +51,8 @@ Refund Policy - FeVid
 {% include "legal/aup.html" %}
 {% elif slug == "refund" %}
 {% include "legal/refund.html" %}
+{% elif slug == "compliance" %}
+{% include "legal/compliance.html" %}
 {% endif %}
   </div>
 </div>
