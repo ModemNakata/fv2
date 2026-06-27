@@ -400,9 +400,8 @@
   var cookieClose = document.getElementById('cookieNoticeClose');
 
   if (cookieNotice && cookieClose) {
-    if (localStorage.getItem('cookieNoticeDismissed') === 'true') {
-      cookieNotice.classList.add('hidden');
-    } else {
+    if (localStorage.getItem('cookieNoticeDismissed') !== 'true') {
+      cookieNotice.classList.remove('hidden');
       cookieClose.addEventListener('click', function() {
         cookieNotice.classList.add('hidden');
         localStorage.setItem('cookieNoticeDismissed', 'true');
@@ -417,9 +416,8 @@
   var ageExit = document.getElementById('ageExit');
 
   if (ageOverlay && ageEnter && ageExit) {
-    if (localStorage.getItem('ageVerified') === 'true') {
-      ageOverlay.classList.add('hidden');
-    } else {
+    if (localStorage.getItem('ageVerified') !== 'true') {
+      ageOverlay.classList.remove('hidden');
       ageEnter.addEventListener('click', function() {
         ageOverlay.classList.add('hidden');
         localStorage.setItem('ageVerified', 'true');
