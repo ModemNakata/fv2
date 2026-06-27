@@ -52,7 +52,7 @@ pub(crate) fn validate_username(username: &str) -> Result<(), &'static str> {
     if username.len() < 3 {
         return Err("Username must be at least 3 characters");
     }
-    if username.len() > 16 {
+    if username.len() > 30 {
         return Err("Username must be 16 characters or fewer");
     }
 
@@ -135,14 +135,12 @@ pub async fn require_user(
     session: &Session,
     db: &DatabaseConnection,
 ) -> Result<users::Model, HttpResponse> {
-    let session_user = get_session_user(session, db)
-        .await
-        .ok_or_else(|| {
-            HttpResponse::Unauthorized().json(serde_json::json!({
-                "ok": false,
-                "error": "Not signed in",
-            }))
-        })?;
+    let session_user = get_session_user(session, db).await.ok_or_else(|| {
+        HttpResponse::Unauthorized().json(serde_json::json!({
+            "ok": false,
+            "error": "Not signed in",
+        }))
+    })?;
 
     Users::find()
         .filter(users::Column::Username.eq(&session_user.username))

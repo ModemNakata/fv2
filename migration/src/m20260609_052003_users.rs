@@ -17,7 +17,7 @@ impl MigrationTrait for Migration {
                             .default(Expr::cust("gen_random_uuid()")),
                     )
                     // RFC 1035 + 1123 | is checked on uniqueness by lower-case
-                    .col(string_len("username", 16).unique_key()) // 30
+                    .col(string_len("username", 30).unique_key()) // 16
                     // | copied from username on initial registration, can be changed later in settings
                     .col(string_len("display_name", 32)) // 50
                     .col(string_len("password_hash", 255))
