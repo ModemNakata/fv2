@@ -53,7 +53,7 @@ pub(crate) fn validate_username(username: &str) -> Result<(), &'static str> {
         return Err("Username must be at least 3 characters");
     }
     if username.len() > 30 {
-        return Err("Username must be 16 characters or fewer");
+        return Err("Username must be 30 characters or fewer");
     }
 
     let bytes = username.as_bytes();
