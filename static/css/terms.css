@@ -15,3 +15,33 @@
   color: var(--text-secondary);
   line-height: 1.7;
 }
+
+.legal-body h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 28px;
+  margin-bottom: 12px;
+}
+
+.legal-body p {
+  margin-bottom: 12px;
+}
+
+.legal-body ul {
+  margin-bottom: 12px;
+  padding-left: 20px;
+}
+
+.legal-body li {
+  margin-bottom: 6px;
+}
+
+.legal-body a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.legal-body a:hover {
+  color: var(--accent-dim);
+}
