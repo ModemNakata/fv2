@@ -54,6 +54,8 @@ struct PurchVideoItem {
     uploader_avatar_url: Option<String>,
     uploader_display_name: String,
     uploader_username: String,
+    // is_paywalled: bool,
+    // price_dollars: String,
 }
 
 struct PurchGalleryItem {
@@ -67,6 +69,8 @@ struct PurchGalleryItem {
     uploader_avatar_url: Option<String>,
     uploader_display_name: String,
     uploader_username: String,
+    // is_paywalled: bool,
+    // price_dollars: String,
 }
 
 // ---- Page handler ----
@@ -132,7 +136,10 @@ pub async fn purchased(
     };
 
     let html = PurchasedPage {
-        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
+        username: session_user
+            .as_ref()
+            .map(|u| u.username.clone())
+            .unwrap_or_default(),
         logged_in,
         session_avatar_url: session_user.and_then(|u| u.avatar_url),
         video_count,
@@ -337,6 +344,8 @@ async fn render_video_cards(
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?;
 
+        // let price_dollars = format!("{:.2}", content.price_cents as f64 / 100.0);
+
         let item = PurchVideoItem {
             id: content.id,
             title: content.title.clone(),
@@ -349,6 +358,8 @@ async fn render_video_cards(
             uploader_avatar_url,
             uploader_display_name: display_name,
             uploader_username: username,
+            // is_paywalled: content.is_paywalled,
+            // price_dollars,
         };
 
         html.push_str(&PurchVideoCardTemplate { v: item }.render().unwrap());
@@ -408,8 +419,11 @@ async fn render_gallery_cards(
         let thumb_key = image_set
             .and_then(|is| is.preview_path.clone())
             .or_else(|| {
-                imgs.and_then(|imgs| imgs.first())
-                    .map(|img| img.storage_path.clone().unwrap_or(img.orig_storage_path.clone()))
+                imgs.and_then(|imgs| imgs.first()).map(|img| {
+                    img.storage_path
+                        .clone()
+                        .unwrap_or(img.orig_storage_path.clone())
+                })
             });
         let thumbnail_url = state
             .s3
@@ -422,6 +436,8 @@ async fn render_gallery_cards(
             .cloned()
             .unwrap_or_else(|| ("?".to_string(), "?".to_string(), None));
 
+        // let price_dollars = format!("{:.2}", content.price_cents as f64 / 100.0);
+
         let item = PurchGalleryItem {
             id: content.id,
             title: content.title.clone(),
@@ -433,6 +449,8 @@ async fn render_gallery_cards(
             uploader_avatar_url,
             uploader_display_name: display_name,
             uploader_username: username,
+            // is_paywalled: content.is_paywalled,
+            // price_dollars,
         };
 
         html.push_str(&PurchGalleryCardTemplate { g: item }.render().unwrap());

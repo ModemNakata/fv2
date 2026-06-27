@@ -42,6 +42,10 @@
       {% if !v.resolution.is_empty() %}
       <span class="resolution">{{ v.resolution }}</span>
       {% endif %}
+      {% if v.is_paywalled %}
+      <span class="price-badge{% if v.is_paywalled %} price-badge--paid{% endif %}">{% if v.is_paywalled %}${{
+        v.price_dollars }}{% else %}FREE{% endif %}</span>
+      {% endif %}
     </a>
     <div class="video-info">
       {% if v.uploader_avatar_url.is_some() %}

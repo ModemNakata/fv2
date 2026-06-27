@@ -42,6 +42,8 @@ struct GalleryCard {
     uploader_avatar_url: Option<String>,
     uploader_display_name: String,
     uploader_username: String,
+    is_paywalled: bool,
+    price_dollars: String,
 }
 
 struct GalleryPageButton {
@@ -225,6 +227,8 @@ pub async fn index(
             .cloned()
             .unwrap_or_else(|| ("?".to_string(), "?".to_string(), None));
 
+        let price_dollars = format!("{:.2}", content.price_cents as f64 / 100.0);
+
         galleries.push(GalleryCard {
             id: content.id,
             title: content.title,
@@ -236,6 +240,8 @@ pub async fn index(
             uploader_avatar_url: avatar_url,
             uploader_display_name: display_name,
             uploader_username: username,
+            is_paywalled: content.is_paywalled,
+            price_dollars,
         });
     }
 

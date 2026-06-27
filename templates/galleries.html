@@ -38,6 +38,10 @@
       </div>
       {% endif %}
       <span class="gallery-card-pictures">{{ g.image_count }} pictures</span>
+      {% if g.is_paywalled %}
+      <span class="price-badge{% if g.is_paywalled %} price-badge--paid{% endif %}">{% if g.is_paywalled %}${{
+        g.price_dollars }}{% else %}FREE{% endif %}</span>
+      {% endif %}
     </a>
     <div class="gallery-card-info">
       {% if g.uploader_avatar_url.is_some() %}

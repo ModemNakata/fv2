@@ -6,13 +6,16 @@
     <div class="thumb-placeholder">
       <span class="thumb-icon">
         <svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-          <path d="M72,39.88V216.12a8,8,0,0,0,12.15,6.69l144.08-88.12a7.82,7.82,0,0,0,0-13.38L84.15,33.19A8,8,0,0,0,72,39.88Z" fill="currentColor" />
+          <path
+            d="M72,39.88V216.12a8,8,0,0,0,12.15,6.69l144.08-88.12a7.82,7.82,0,0,0,0-13.38L84.15,33.19A8,8,0,0,0,72,39.88Z"
+            fill="currentColor" />
         </svg>
       </span>
     </div>
     {% endif %}
     {% if v.preview_url.is_some() %}
-    <video class="thumb-preview" src="{{ v.preview_url.as_ref().unwrap() }}" muted playsinline preload="none" loop{% if v.thumbnail_url.is_some() %} poster="{{ v.thumbnail_url.as_ref().unwrap() }}" {% endif %}></video>
+    <video class="thumb-preview" src="{{ v.preview_url.as_ref().unwrap() }}" muted playsinline preload="none" loop{% if
+      v.thumbnail_url.is_some() %} poster="{{ v.thumbnail_url.as_ref().unwrap() }}" {% endif %}></video>
     <div class="thumb-spinner"></div>
     {% endif %}
     <span class="duration">{{ v.duration }}</span>
@@ -26,7 +29,8 @@
     <div class="video-details">
       <h3 class="video-title"><a href="/video/{{ v.id }}" title="{{ v.title }}">{{ v.title }}</a></h3>
       <p class="channel-name"><a href="/@{{ v.uploader_username }}">{{ v.uploader_display_name }}</a></p>
-      <p class="video-meta"><span class="meta-left">{{ v.time_ago }}</span><span class="meta-right">{{ v.views }} views</span></p>
+      <p class="video-meta"><span class="meta-left">{{ v.time_ago }}</span><span class="meta-right">{{ v.views }}
+          views</span></p>
     </div>
   </div>
 </div>

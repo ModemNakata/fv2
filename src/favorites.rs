@@ -54,6 +54,8 @@ struct FavVideoItem {
     uploader_avatar_url: Option<String>,
     uploader_display_name: String,
     uploader_username: String,
+    is_paywalled: bool,
+    price_dollars: String,
 }
 
 struct FavGalleryItem {
@@ -67,6 +69,8 @@ struct FavGalleryItem {
     uploader_avatar_url: Option<String>,
     uploader_display_name: String,
     uploader_username: String,
+    is_paywalled: bool,
+    price_dollars: String,
 }
 
 // ---- Page handler ----
@@ -339,6 +343,8 @@ async fn render_video_cards(
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?;
 
+        let price_dollars = format!("{:.2}", content.price_cents as f64 / 100.0);
+
         let item = FavVideoItem {
             id: content.id,
             title: content.title.clone(),
@@ -351,6 +357,8 @@ async fn render_video_cards(
             uploader_avatar_url,
             uploader_display_name: display_name,
             uploader_username: username,
+            is_paywalled: content.is_paywalled,
+            price_dollars,
         };
 
         html.push_str(&FavVideoCardTemplate { v: item }.render().unwrap());
@@ -424,6 +432,8 @@ async fn render_gallery_cards(
             .cloned()
             .unwrap_or_else(|| ("?".to_string(), "?".to_string(), None));
 
+        let price_dollars = format!("{:.2}", content.price_cents as f64 / 100.0);
+
         let item = FavGalleryItem {
             id: content.id,
             title: content.title.clone(),
@@ -435,6 +445,8 @@ async fn render_gallery_cards(
             uploader_avatar_url,
             uploader_display_name: display_name,
             uploader_username: username,
+            is_paywalled: content.is_paywalled,
+            price_dollars,
         };
 
         html.push_str(&FavGalleryCardTemplate { g: item }.render().unwrap());
