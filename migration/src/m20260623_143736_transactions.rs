@@ -68,7 +68,8 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk_transactions_content")
                             .from("transactions", "content_id")
-                            .to("content_items", "id"),
+                            .to("content_items", "id")
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
