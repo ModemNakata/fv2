@@ -1,5 +1,12 @@
 <dialog class="payment-modal" id="paymentModal">
   <div class="payment-modal-inner" id="paymentModalInner">
+    <button class="payment-modal-close" id="closePaymentModalX" aria-label="Close">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+        <rect width="256" height="256" fill="none"/>
+        <line x1="200" y1="56" x2="56" y2="200" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+        <line x1="200" y1="200" x2="56" y2="56" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+      </svg>
+    </button>
 
     <!-- State: initial — coin selection -->
     <div id="paymentStateInitial">
@@ -321,21 +328,19 @@
     });
 
     document.getElementById('closePaymentModal')?.addEventListener('click', function () {
+      closePaymentModal();
+    });
+
+    document.getElementById('closePaymentModalX')?.addEventListener('click', function () {
+      closePaymentModal();
+    });
+
+    function closePaymentModal() {
       modal.close();
       stopPolling();
       iframeEl.src = '';
       clearInvoiceParam();
-    });
-
-    modal?.addEventListener('click', function (e) {
-      var rect = modal.getBoundingClientRect();
-      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
-        modal.close();
-        stopPolling();
-        iframeEl.src = '';
-        clearInvoiceParam();
-      }
-    });
+    }
 
     // Original purchase confirmation button (internal credit path — kept for admin/internal use)
     document.getElementById('confirmPurchase')?.addEventListener('click', function () {

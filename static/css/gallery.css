@@ -345,6 +345,7 @@
 }
 
 .payment-modal-inner {
+  position: relative;
   padding: 32px 24px 24px;
   display: flex;
   flex-direction: column;
@@ -417,4 +418,29 @@
 
 .payment-modal-cancel:hover {
   color: var(--text-secondary);
+}
+
+.payment-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.payment-modal-close:hover {
+  color: var(--text-primary);
+}
+
+.payment-modal-close .icon {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
