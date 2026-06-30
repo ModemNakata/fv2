@@ -276,6 +276,10 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/upload/{id}/complete",
                         web::post().to(upload_direct::complete_upload),
+                    )
+                    .route(
+                        "/gallery/{uuid}/images",
+                        web::get().to(gallery::api_gallery_images),
                     ),
             )
     })

@@ -1,8 +1,9 @@
 use actix_session::Session;
-use actix_web::{Responder, Result, web};
+use actix_web::{HttpResponse, Responder, Result, web};
 use askama::Template;
 use chrono::{DateTime as ChronoDateTime, Utc};
 use sea_orm::*;
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::AppState;
@@ -322,6 +323,7 @@ struct GalleryPage {
     price_dollars: String,
     unblurred_count: i32,
     total_image_count: usize,
+    initial_image_count: usize,
     version: String,
     is_favourited: bool,
     payment_modal_title: String,
@@ -415,6 +417,9 @@ pub async fn gallery(
 
         let total_image_count = images.len();
 
+        // Initial page load: only render first 10 images; rest loaded via JS
+        let initial_images: Vec<GalleryImage> = images.into_iter().take(10).collect();
+
         let is_favourited = if let Some(uid) = session_user_id {
             UserFavorites::find_by_id((uid, content_id))
                 .one(&state.conn)
@@ -437,7 +442,7 @@ pub async fn gallery(
             uploader_display_name: uploader.display_name.clone(),
             uploader_avatar_url: uploader.avatar_url,
             created_at,
-            images,
+            images: initial_images,
             view_count: crate::components::format_view_count(content.view_count),
             favourite_count: content.favorite_count.to_string(),
             is_uploader,
@@ -448,6 +453,7 @@ pub async fn gallery(
             price_dollars: format!("{:.2}", content.price_cents as f64 / 100.0),
             unblurred_count: image_set.unblurred_count.unwrap_or(0),
             total_image_count,
+            initial_image_count: total_image_count.min(10),
             payment_modal_title: "Unlock this Gallery".to_string(),
             payment_modal_desc: format!("{} images", total_image_count),
             version: state.static_version.clone(),
@@ -517,4 +523,126 @@ pub(crate) fn time_ago(created_at: &sea_orm::prelude::DateTime, now: ChronoDateT
     }
     let years = days / 365;
     format!("{} years ago", years)
+}
+
+// ── Paginated images API ─────────────────────────────────────────────
+
+#[derive(Serialize)]
+pub struct GalleryImageResponse {
+    pub url: String,
+    pub alt: String,
+    pub is_blurred: bool,
+}
+
+#[derive(Serialize)]
+pub struct GalleryImagesApiResponse {
+    pub images: Vec<GalleryImageResponse>,
+    pub has_more: bool,
+    pub total: usize,
+    pub offset: usize,
+}
+
+pub async fn api_gallery_images(
+    session: Session,
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+) -> HttpResponse {
+    let content_id = path.into_inner();
+    let offset: usize = query.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0);
+    let limit: usize = query.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20).min(50);
+
+    let content = match ContentItems::find_by_id(content_id)
+        .one(&state.conn)
+        .await
+    {
+        Ok(Some(c)) => c,
+        Ok(None) => return HttpResponse::NotFound().json(serde_json::json!({"error": "Gallery not found"})),
+        Err(e) => {
+            log::error!("DB error fetching gallery: {e}");
+            return HttpResponse::InternalServerError().json(serde_json::json!({"error": "Database error"}));
+        }
+    };
+
+    if content.r#type != ContentType::ImageSet {
+        return HttpResponse::NotFound().json(serde_json::json!({"error": "Gallery not found"}));
+    }
+
+    let session_user_id = auth::get_session_user_id(&session, &state.conn).await;
+    let is_uploader = session_user_id == Some(content.uploader_id);
+
+    if content.status != ContentStatus::Ready || (!is_uploader && content.visibility != ContentVisibility::Public) {
+        return HttpResponse::NotFound().json(serde_json::json!({"error": "Gallery not found"}));
+    }
+
+    let image_set = match ImageSets::find_by_id(content_id).one(&state.conn).await {
+        Ok(Some(s)) => s,
+        Ok(None) => return HttpResponse::NotFound().json(serde_json::json!({"error": "Image set not found"})),
+        Err(e) => {
+            log::error!("DB error fetching image_set: {e}");
+            return HttpResponse::InternalServerError().json(serde_json::json!({"error": "Database error"}));
+        }
+    };
+
+    let image_rows = match Images::find()
+        .filter(images::Column::ImageSetId.eq(content_id))
+        .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
+        .all(&state.conn)
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            log::error!("DB error fetching images: {e}");
+            return HttpResponse::InternalServerError().json(serde_json::json!({"error": "Database error"}));
+        }
+    };
+
+    let total = image_rows.len();
+    let is_paywalled = content.is_paywalled;
+    let has_purchased = if let Some(uid) = session_user_id {
+        UserPurchases::find_by_id((uid, content_id))
+            .one(&state.conn)
+            .await
+            .ok()
+            .flatten()
+            .is_some()
+    } else {
+        false
+    };
+    let is_free_preview = is_paywalled && !is_uploader && !has_purchased;
+    let unblurred_count = image_set.unblurred_count.unwrap_or(0) as usize;
+
+    let page: Vec<_> = image_rows.into_iter().skip(offset).take(limit).collect();
+    let mut images = Vec::with_capacity(page.len());
+
+    for (rel_idx, img) in page.into_iter().enumerate() {
+        let abs_idx = offset + rel_idx;
+        let key = if is_free_preview && abs_idx >= unblurred_count {
+            img.blurred_storage_path
+                .or(img.storage_path)
+                .unwrap_or(img.orig_storage_path)
+        } else {
+            img.storage_path.unwrap_or(img.orig_storage_path)
+        };
+        let url = match state.s3.presigned(&key).await {
+            Ok(u) => u,
+            Err(e) => {
+                log::error!("Failed to presign URL: {e}");
+                continue;
+            }
+        };
+        images.push(GalleryImageResponse {
+            url,
+            alt: img.alt_text.unwrap_or(img.original_name),
+            is_blurred: is_free_preview && abs_idx >= unblurred_count,
+        });
+    }
+
+    let has_more = offset + images.len() < total;
+    HttpResponse::Ok().json(GalleryImagesApiResponse {
+        images,
+        has_more,
+        total,
+        offset,
+    })
 }

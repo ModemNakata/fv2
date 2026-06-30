@@ -444,3 +444,41 @@
   height: 20px;
   display: block;
 }
+
+/* ── Lazy-load indicator ── */
+
+.gallery-loader {
+  text-align: center;
+  padding: 24px 16px 40px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  gap: 10px;
+}
+
+.gallery-loader:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.gallery-loader--done {
+  color: var(--text-tertiary);
+}
+
+.gallery-loader-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: gallery-spin 0.7s linear infinite;
+}
+
+@keyframes gallery-spin {
+  to { transform: rotate(360deg); }
+}
+
+.gallery-sentinel {
+  height: 1px;
+}

@@ -4,8 +4,13 @@
 <link rel="stylesheet" href="/static/{{ version }}/css/gallery.css">
 {% endblock %}
 {% block content %}
-<script>window.__CONTENT_ID__ = '{{ content_id }}';</script>
+<script>
+  window.__CONTENT_ID__ = '{{ content_id }}';
+  window.__TOTAL_IMAGES__ = {{ total_image_count }};
+  window.__INITIAL_IMAGES__ = {{ initial_image_count }};
+</script>
 <script defer src="/static/{{ version }}/js/view-tracker.js"></script>
+<script defer src="/static/{{ version }}/js/gallery-lazy.js"></script>
 <div class="gallery-detail">
   <div class="gallery-uploader">
     {% if uploader_avatar_url.is_some() %}
@@ -104,6 +109,9 @@
   </div>
   {% endfor %}
 </div>
+<div id="lazy-images"></div>
+<div id="gallery-loading" class="gallery-loader" hidden><span class="gallery-loader-spinner"></span> Loading more images…</div>
+<div id="gallery-loaded" class="gallery-loader gallery-loader--done" hidden>All {{ total_image_count }} images loaded</div>
 
 {% if is_paywalled && is_free_preview %}
 {% include "components/payment-modal.html" %}
