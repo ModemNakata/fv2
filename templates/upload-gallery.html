@@ -34,6 +34,18 @@
         <input type="number" id="galleryPrice" name="price" class="upload-input price-input" value="0" min="0"
           step="0.01">
       </div>
+      <!--
+        Unblurred images concept:
+        When a gallery is paywalled (price > 0), the first N images are shown
+        unblurred as a free preview. The remaining images (total - N) are
+        blurred until the viewer purchases the gallery.
+
+        unblurred_count = number of images shown in the free preview (1-10)
+        blurred count  = total - unblurred_count  (no hard cap)
+
+        Rule: total must be at least 2x unblurred_count to ensure there
+        are enough blurred images behind the paywall.
+      -->
       <div class="conditional-fields" id="galleryConditionalFields" hidden>
         <div class="upload-field-row">
           <label class="upload-label" for="unblurredCount">Unblurred images</label>
@@ -41,6 +53,13 @@
             <button type="button" class="count-btn count-btn--active" data-count="1">1</button>
             <button type="button" class="count-btn" data-count="2">2</button>
             <button type="button" class="count-btn" data-count="3">3</button>
+            <button type="button" class="count-btn" data-count="4">4</button>
+            <button type="button" class="count-btn" data-count="5">5</button>
+            <button type="button" class="count-btn" data-count="6">6</button>
+            <button type="button" class="count-btn" data-count="7">7</button>
+            <button type="button" class="count-btn" data-count="8">8</button>
+            <button type="button" class="count-btn" data-count="9">9</button>
+            <button type="button" class="count-btn" data-count="10">10</button>
             <input type="hidden" id="unblurredCount" name="unblurred_count" value="1">
           </div>
         </div>

@@ -235,6 +235,13 @@
     render();
   }
 
+  /*
+    Unblurred images concept:
+    - unblurred_count = first N images shown in free preview (unblurred)
+    - remaining = total - unblurred_count = blurred until purchase
+    - Rule: total >= unblurred_count * 2 (enough blurred behind paywall)
+    - unblurred_count range: 1-10
+  */
   function getPricingError() {
     var price = parseFloat(document.getElementById('galleryPrice').value) || 0;
     if (price <= 0) return null;
@@ -245,6 +252,10 @@
     return null;
   }
 
+  /*
+    When price is set, show the unblurred count selector so the uploader
+    can choose how many images to leave unblurred in the free preview.
+  */
   function toggleGalleryConditional() {
     var price = parseFloat(document.getElementById('galleryPrice').value) || 0;
     document.getElementById('galleryConditionalFields').hidden = price <= 0;

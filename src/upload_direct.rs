@@ -219,6 +219,21 @@ pub async fn init_gallery_upload(
         });
     }
 
+    // Validate unblurred count constraint for paywalled galleries
+    if req.price_cents > 0 {
+        let unblurred = req.unblurred_count.unwrap_or(1).max(1);
+        if (req.files.len() as i32) < unblurred * 2 {
+            return HttpResponse::BadRequest().json(ActionResponse {
+                ok: false,
+                error: Some(format!(
+                    "Need at least {} images for {unblurred} unblurred (have {})",
+                    unblurred * 2,
+                    req.files.len(),
+                )),
+            });
+        }
+    }
+
     let content_id = Uuid::new_v4();
     let now = chrono::Utc::now().naive_utc();
 
