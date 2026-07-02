@@ -4,20 +4,25 @@ Cleanup script for fevid-V2.
 
 Finds content with status = 'failed' in the database, deletes all related
 S3 files from both buckets (orig + processed), and removes the DB rows.
-Also detects stale S3 objects (files in buckets with no DB reference).
+Also finds content stuck in 'uploading' status past a configurable age
+threshold (default 2 hours). Detects stale S3 objects (files in buckets
+with no DB reference).
 
 Usage:
     # Dry-run (default) — log what would be done, no mutations
     python3 scripts/cleanup.py
 
-    # Actually delete failed content + stale S3 objects
+    # Actually delete failed + stuck uploading + stale S3 objects
     python3 scripts/cleanup.py --execute
 
-    # Only run the stale-S3 check (skip failed-content cleanup)
+    # Only run the stale-S3 check (skip Phase 1 content cleanup)
     python3 scripts/cleanup.py --stale-only
 
-    # Only run the failed-content cleanup (skip stale-S3 check)
-    python3 scripts/cleanup.py --failed-only
+    # Only run the content cleanup (skip Phase 2 stale-S3 check)
+    python3 scripts/cleanup.py --content-only
+
+    # Adjust stuck-uploading threshold to N hours (default: 2)
+    python3 scripts/cleanup.py --uploading-max-hours 6
 
     # Quick summary mode (less verbose)
     python3 scripts/cleanup.py --quiet
@@ -201,16 +206,17 @@ def delete_s3_objects(s3, bucket: str, keys: list[str], reason: str = "") -> Non
                 log.info("  [DELETE] s3://%s/%s%s", bucket, k, f"  ({reason})" if reason else "")
 
 
-# ── Phase 1: Clean up failed content ─────────────────────────────────────
+# ── Phase 1: Content cleanup ─────────────────────────────────
 
 
-def collect_failed_content(conn) -> list[dict]:
-    """Return list of content_items with status = 'failed'."""
+def fetch_content_rows(conn, status_filter: str, extra_where: str = "", params: tuple = ()) -> list[dict]:
+    """Return list of content_items matching a status and optional extra WHERE clause."""
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, uploader_id, type, title, thumbnail_url, status, slug "
-            "FROM content_items WHERE status = 'failed' "
-            "ORDER BY created_at DESC"
+            f"SELECT id, uploader_id, type, title, thumbnail_url, status, slug, created_at "
+            f"FROM content_items WHERE status = %s {extra_where} "
+            f"ORDER BY created_at DESC",
+            (status_filter,) + params,
         )
         rows = cur.fetchall()
     result = []
@@ -224,9 +230,25 @@ def collect_failed_content(conn) -> list[dict]:
                 "thumbnail_url": r[4],
                 "status": r[5],
                 "slug": r[6],
+                "created_at": r[7],
             }
         )
     return result
+
+
+def collect_failed_content(conn) -> list[dict]:
+    """Return list of content_items with status = 'failed'."""
+    return fetch_content_rows(conn, "failed")
+
+
+def collect_stuck_uploading_content(conn, max_hours: int) -> list[dict]:
+    """Return list of content_items stuck in 'uploading' older than max_hours."""
+    return fetch_content_rows(
+        conn,
+        "uploading",
+        "AND created_at < NOW() - INTERVAL %s",
+        (f"{max_hours} hours",),
+    )
 
 
 def collect_s3_keys_for_content(conn, content_id: uuid.UUID) -> tuple[list[str], list[str]]:
@@ -293,19 +315,17 @@ def collect_s3_keys_for_content(conn, content_id: uuid.UUID) -> tuple[list[str],
     return orig_keys, processed_keys
 
 
-def run_failed_content_cleanup(conn, s3, processed_bucket: str, orig_bucket: str) -> None:
-    """Phase 1: find failed content, delete S3 files, delete DB rows."""
-    log.info("")
-    log.info("=" * 72)
-    log.info("PHASE 1: Failed Content Cleanup")
-    log.info("=" * 72)
-
-    items = collect_failed_content(conn)
+def _process_content_batch(
+    conn, s3, processed_bucket: str, orig_bucket: str,
+    items: list[dict], phase_label: str, reason: str,
+) -> tuple[int, int, int]:
+    """Process a list of content items: collect S3 keys, delete from S3, delete DB rows.
+    Returns (item_count, orig_key_count, processed_key_count)."""
     if not items:
-        log.info("no failed content found — nothing to do")
-        return
+        log.info("no %s items found", phase_label)
+        return 0, 0, 0
 
-    log.info("found %d content item(s) with status = 'failed'", len(items))
+    log.info("found %d content item(s) — %s", len(items), phase_label)
     log.info("")
 
     total_orig = 0
@@ -316,8 +336,11 @@ def run_failed_content_cleanup(conn, s3, processed_bucket: str, orig_bucket: str
         cid = item["id"]
         ctype = item["type"]
         title = (item["title"] or "")[:80]
+        slug_str = item.get("slug") or "-"
+        age = item.get("created_at")
+        age_str = f"  created={age}" if age else ""
         log.info("─" * 72)
-        log.info("content: %s  [%s]  title=%s  slug=%s", cid, ctype, title, item.get("slug"))
+        log.info("content: %s  [%s]  title=%s  slug=%s%s", cid, ctype, title, slug_str, age_str)
 
         orig_keys, processed_keys = collect_s3_keys_for_content(conn, cid)
 
@@ -334,23 +357,19 @@ def run_failed_content_cleanup(conn, s3, processed_bucket: str, orig_bucket: str
         if not orig_keys and not processed_keys:
             log.info("  (no S3 keys found for this content)")
 
-        # Delete S3 objects
         if orig_keys:
-            delete_s3_objects(s3, orig_bucket, orig_keys, "failed content cleanup")
+            delete_s3_objects(s3, orig_bucket, orig_keys, reason)
         if processed_keys:
-            delete_s3_objects(s3, processed_bucket, processed_keys, "failed content cleanup")
+            delete_s3_objects(s3, processed_bucket, processed_keys, reason)
 
         total_orig += len(orig_keys)
         total_processed += len(processed_keys)
 
-        # Delete DB row
         if DRY_RUN:
             log.info("  [DRY-RUN] DELETE FROM content_items WHERE id = %s", cid)
         else:
             try:
                 with conn.cursor() as cur:
-                    # Cascading delete handles videos, video_formats, image_sets,
-                    # images, user_favorites, user_purchases, transactions
                     cur.execute("DELETE FROM content_items WHERE id = %s", (cid,))
                 log.info("  [DELETE] content_items row id=%s", cid)
             except Exception as e:
@@ -359,21 +378,55 @@ def run_failed_content_cleanup(conn, s3, processed_bucket: str, orig_bucket: str
 
         deleted_count += 1
 
+    return deleted_count, total_orig, total_processed
+
+
+def run_content_cleanup(conn, s3, processed_bucket: str, orig_bucket: str, uploading_max_hours: int) -> None:
+    """Phase 1: find failed + stuck-uploading content, delete S3 files, delete DB rows."""
+    log.info("")
+    log.info("=" * 72)
+    log.info("PHASE 1: Content Cleanup")
+    log.info("=" * 72)
+
+    # 1a — failed content
+    log.info("")
+    log.info("─ Step 1a: status = 'failed'")
+    failed = collect_failed_content(conn)
+    d1, o1, p1 = _process_content_batch(
+        conn, s3, processed_bucket, orig_bucket, failed,
+        "status = 'failed'", "failed content cleanup",
+    )
+
+    # 1b — stuck uploading content
+    log.info("")
+    log.info("─ Step 1b: status = 'uploading' older than %d hours", uploading_max_hours)
+    stuck = collect_stuck_uploading_content(conn, uploading_max_hours)
+    d2, o2, p2 = _process_content_batch(
+        conn, s3, processed_bucket, orig_bucket, stuck,
+        f"stuck 'uploading' (> {uploading_max_hours}h)", "stuck uploading cleanup",
+    )
+
+    total_items = len(failed) + len(stuck)
+    total_orig = o1 + o2
+    total_processed = p1 + p2
+    total_deleted = d1 + d2
+
+    if total_deleted == 0:
+        return
+
     if not DRY_RUN:
         conn.commit()
         log.info("")
-        log.info("committed %d content deletions to database", deleted_count)
+        log.info("committed %d content deletions to database", total_deleted)
     else:
         log.info("")
         log.info("dry-run — no changes committed (use --execute to apply)")
 
     log.info("")
     log.info(
-        "Phase 1 summary: %d content items processed, "
+        "Phase 1 summary: %d content items (%d failed + %d stuck uploading), "
         "%d orig keys, %d processed keys",
-        len(items),
-        total_orig,
-        total_processed,
+        total_items, len(failed), len(stuck), total_orig, total_processed,
     )
 
 
@@ -519,14 +572,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Actually delete S3 objects and database rows (default: dry-run)",
     )
     parser.add_argument(
-        "--failed-only",
+        "--content-only",
         action="store_true",
-        help="Only run Phase 1 (failed content cleanup), skip stale S3 check",
+        help="Only run Phase 1 (content cleanup), skip stale S3 check",
     )
     parser.add_argument(
         "--stale-only",
         action="store_true",
-        help="Only run Phase 2 (stale S3 cleanup), skip failed content cleanup",
+        help="Only run Phase 2 (stale S3 cleanup), skip content cleanup",
+    )
+    parser.add_argument(
+        "--uploading-max-hours",
+        type=int,
+        default=2,
+        help="Max age in hours for stuck 'uploading' content (default: 2)",
     )
     parser.add_argument(
         "--quiet",
@@ -568,10 +627,10 @@ def main() -> None:
     try:
         # Phase 1
         if not args.stale_only:
-            run_failed_content_cleanup(conn, s3, processed_bucket, orig_bucket)
+            run_content_cleanup(conn, s3, processed_bucket, orig_bucket, args.uploading_max_hours)
 
         # Phase 2
-        if not args.failed_only:
+        if not args.content_only:
             run_stale_s3_cleanup(conn, s3, processed_bucket, orig_bucket)
 
         if DRY_RUN:
