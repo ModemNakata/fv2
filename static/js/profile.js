@@ -11,6 +11,21 @@
   var LIMIT = 20;
 
   function videoHtml(item) {
+    if (item.status !== 'ready') {
+      var icon = item.status === 'failed'
+        ? '<svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M142.41,40.22l87.46,151.87C236,202.79,228.08,216,215.46,216H40.54C27.92,216,20,202.79,26.13,192.09L113.59,40.22C119.89,29.26,136.11,29.26,142.41,40.22Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="144" x2="128" y2="104" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="180" r="12"/></svg>'
+        : '<svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><line x1="128" y1="32" x2="128" y2="64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="224" y1="128" x2="192" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="195.88" y1="195.88" x2="173.25" y2="173.25" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="224" x2="128" y2="192" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="60.12" y1="195.88" x2="82.75" y2="173.25" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="32" y1="128" x2="64" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="60.12" y1="60.12" x2="82.75" y2="82.75" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>';
+      var badge = item.status === 'failed' ? 'Failed' : 'Processing';
+      return '<a href="/video/' + item.id + '" class="video-card">'
+        + '<div class="thumbnail">'
+        + '<div class="thumb-placeholder" style="--hue: 0">'
+        + '<span class="thumb-icon processing-icon">' + icon + '</span></div>'
+        + '<span class="status-badge">' + badge + '</span></div>'
+        + '<div class="video-info"><div class="video-details">'
+        + '<h3 class="video-title">' + item.title + '</h3>'
+        + '<p class="video-meta"><span class="meta-left">' + item.time_ago + '</span></p>'
+        + '</div></div></a>';
+    }
     var thumb = item.thumbnail_url
       ? '<img src="' + item.thumbnail_url + '" alt="' + item.title + '" class="thumb-img">'
       : '<div class="thumb-placeholder" style="--hue: ' + item.hue + '">'
@@ -32,6 +47,20 @@
   }
 
   function galleryHtml(item) {
+    if (item.status !== 'ready') {
+      var icon = item.status === 'failed'
+        ? '<svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M142.41,40.22l87.46,151.87C236,202.79,228.08,216,215.46,216H40.54C27.92,216,20,202.79,26.13,192.09L113.59,40.22C119.89,29.26,136.11,29.26,142.41,40.22Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="144" x2="128" y2="104" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="180" r="12"/></svg>'
+        : '<svg class="icon icon--lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><line x1="128" y1="32" x2="128" y2="64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="224" y1="128" x2="192" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="195.88" y1="195.88" x2="173.25" y2="173.25" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="224" x2="128" y2="192" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="60.12" y1="195.88" x2="82.75" y2="173.25" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="32" y1="128" x2="64" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="60.12" y1="60.12" x2="82.75" y2="82.75" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>';
+      var badge = item.status === 'failed' ? 'Failed' : 'Processing';
+      return '<a href="/gallery/' + item.id + '" class="gallery-card">'
+        + '<div class="gallery-card-thumb">'
+        + '<div class="gallery-card-placeholder processing-placeholder">' + icon + '</div>'
+        + '<span class="status-badge">' + badge + '</span></div>'
+        + '<div class="gallery-card-info"><div class="gallery-card-details">'
+        + '<h3 class="gallery-card-title">' + item.title + '</h3>'
+        + '<p class="gallery-card-meta"><span class="meta-left">' + item.time_ago + '</span></p>'
+        + '</div></div></a>';
+    }
     var thumb = item.thumbnail_url
       ? '<img src="' + item.thumbnail_url + '" alt="' + item.title + '" class="gallery-card-img" loading="lazy">'
       : '<div class="gallery-card-placeholder">'

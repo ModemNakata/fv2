@@ -12,6 +12,15 @@ use crate::entity::sea_orm_active_enums::*;
 use crate::entity::{content_items, image_sets, images, users};
 use crate::gallery;
 
+fn status_label(s: &ContentStatus) -> &'static str {
+    match s {
+        ContentStatus::Uploading => "uploading",
+        ContentStatus::Processing => "processing",
+        ContentStatus::Ready => "ready",
+        ContentStatus::Failed => "failed",
+    }
+}
+
 // ---- page handler ----
 
 #[derive(Template)]
@@ -128,6 +137,7 @@ struct ApiVideoItem {
     views: String,
     favourite_count: String,
     time_ago: String,
+    status: String,
 }
 
 #[derive(Serialize)]
@@ -137,11 +147,13 @@ struct ApiVideosResponse {
 }
 
 pub async fn api_videos(
+    session: Session,
     state: web::Data<AppState>,
     username: web::Path<String>,
     query: web::Query<std::collections::HashMap<String, String>>,
 ) -> Result<impl Responder, actix_web::Error> {
     let username = username.into_inner();
+    let session_user = auth::get_session_user(&session, &state.conn).await;
 
     let limit: u64 = query
         .get("limit")
@@ -168,20 +180,36 @@ pub async fn api_videos(
         }
     };
 
+    let is_owner = session_user
+        .as_ref()
+        .map(|u| u.username.as_str() == username)
+        .unwrap_or(false);
+
+    let mut cond = Condition::all()
+        .add(content_items::Column::UploaderId.eq(user.id))
+        .add(content_items::Column::Type.eq(ContentType::Video));
+
+    if is_owner {
+        cond = cond.add(
+            Condition::any()
+                .add(content_items::Column::Status.eq(ContentStatus::Ready))
+                .add(content_items::Column::Status.eq(ContentStatus::Processing))
+                .add(content_items::Column::Status.eq(ContentStatus::Failed)),
+        );
+    } else {
+        cond = cond
+            .add(content_items::Column::Status.eq(ContentStatus::Ready))
+            .add(content_items::Column::Visibility.eq(ContentVisibility::Public));
+    }
+
     let total = ContentItems::find()
-        .filter(content_items::Column::UploaderId.eq(user.id))
-        .filter(content_items::Column::Type.eq(ContentType::Video))
-        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
-        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
+        .filter(cond.clone())
         .count(&state.conn)
         .await
         .unwrap_or(0);
 
     let items = ContentItems::find()
-        .filter(content_items::Column::UploaderId.eq(user.id))
-        .filter(content_items::Column::Type.eq(ContentType::Video))
-        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
-        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
+        .filter(cond)
         .order_by_desc(content_items::Column::CreatedAt)
         .limit(limit)
         .offset(offset)
@@ -234,6 +262,7 @@ pub async fn api_videos(
             views: crate::components::format_view_count(content.view_count),
             favourite_count,
             time_ago: gallery::time_ago(&content.created_at, now),
+            status: status_label(&content.status).to_string(),
         });
     }
 
@@ -256,6 +285,7 @@ struct ApiGalleryItem {
     views: String,
     favourite_count: String,
     time_ago: String,
+    status: String,
 }
 
 #[derive(Serialize)]
@@ -265,11 +295,13 @@ struct ApiGalleriesResponse {
 }
 
 pub async fn api_galleries(
+    session: Session,
     state: web::Data<AppState>,
     username: web::Path<String>,
     query: web::Query<std::collections::HashMap<String, String>>,
 ) -> Result<impl Responder, actix_web::Error> {
     let username = username.into_inner();
+    let session_user = auth::get_session_user(&session, &state.conn).await;
 
     let limit: u64 = query
         .get("limit")
@@ -296,20 +328,36 @@ pub async fn api_galleries(
         }
     };
 
+    let is_owner = session_user
+        .as_ref()
+        .map(|u| u.username.as_str() == username)
+        .unwrap_or(false);
+
+    let mut cond = Condition::all()
+        .add(content_items::Column::UploaderId.eq(user.id))
+        .add(content_items::Column::Type.eq(ContentType::ImageSet));
+
+    if is_owner {
+        cond = cond.add(
+            Condition::any()
+                .add(content_items::Column::Status.eq(ContentStatus::Ready))
+                .add(content_items::Column::Status.eq(ContentStatus::Processing))
+                .add(content_items::Column::Status.eq(ContentStatus::Failed)),
+        );
+    } else {
+        cond = cond
+            .add(content_items::Column::Status.eq(ContentStatus::Ready))
+            .add(content_items::Column::Visibility.eq(ContentVisibility::Public));
+    }
+
     let total = ContentItems::find()
-        .filter(content_items::Column::UploaderId.eq(user.id))
-        .filter(content_items::Column::Type.eq(ContentType::ImageSet))
-        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
-        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
+        .filter(cond.clone())
         .count(&state.conn)
         .await
         .unwrap_or(0);
 
     let gallery_items = ContentItems::find()
-        .filter(content_items::Column::UploaderId.eq(user.id))
-        .filter(content_items::Column::Type.eq(ContentType::ImageSet))
-        .filter(content_items::Column::Status.eq(ContentStatus::Ready))
-        .filter(content_items::Column::Visibility.eq(ContentVisibility::Public))
+        .filter(cond)
         .order_by_desc(content_items::Column::CreatedAt)
         .limit(limit)
         .offset(offset)
@@ -382,6 +430,7 @@ pub async fn api_galleries(
             views: crate::components::format_view_count(content.view_count),
             favourite_count,
             time_ago: gallery::time_ago(&content.created_at, now),
+            status: status_label(&content.status).to_string(),
         });
     }
 
