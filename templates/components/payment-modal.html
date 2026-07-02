@@ -365,10 +365,11 @@
         });
     });
 
-    document.querySelectorAll('.img-lock-overlay[data-action="unlock"]').forEach(function (el) {
-      el.addEventListener('click', function () {
+    document.addEventListener('click', function (e) {
+      var overlay = e.target.closest('.img-lock-overlay[data-action="unlock"]');
+      if (overlay) {
         requireAuthThen(openPurchaseModal);
-      });
+      }
     });
 
     if (window.location.search.includes('purchase=1')) {
