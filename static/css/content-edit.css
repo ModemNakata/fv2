@@ -1,0 +1,119 @@
+.edit-container {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: clamp(16px, 3vw, 32px);
+}
+
+.edit-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.edit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.edit-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.edit-input:focus {
+  border-color: var(--accent);
+}
+
+.edit-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.edit-textarea:focus {
+  border-color: var(--accent);
+}
+
+.edit-hint {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.edit-save-btn {
+  padding: 10px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: none;
+  cursor: pointer;
+}
+
+.edit-save-btn:hover {
+  opacity: 0.9;
+}
+
+.edit-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-cancel-btn {
+  padding: 10px 24px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border: 1px solid var(--border-color);
+  display: inline-flex;
+  align-items: center;
+}
+
+.edit-cancel-btn:hover {
+  background: var(--bg-hover);
+}
+
+.edit-status {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.edit-status--success {
+  color: var(--accent);
+}
+
+.edit-status--error {
+  color: #ef4444;
+}

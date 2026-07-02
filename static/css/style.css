@@ -135,6 +135,7 @@ input {
   cursor: pointer;
   font-family: inherit;
   text-align: left;
+  text-decoration: none;
 }
 
 .kebab-dropdown-item:hover {

@@ -12,6 +12,7 @@ use tracing_subscriber::fmt;
 mod auth;
 mod balance;
 mod components;
+mod content_edit;
 mod cryptowrap;
 mod currency;
 mod entity;
@@ -168,6 +169,10 @@ async fn main() -> std::io::Result<()> {
                     .route(web::get().to(settings::settings_page))
                     .route(web::post().to(settings::update_settings)),
             )
+            .service(
+                web::resource("/edit/{uuid}")
+                    .route(web::get().to(content_edit::edit_page)),
+            )
             .service(web::resource("/balance").route(web::get().to(balance::balance_page)))
             .service(web::resource("/notifications").route(web::get().to(notifications::notifications_page)))
             .service(web::resource("/favorites").route(web::get().to(favorites::favorites)))
@@ -211,6 +216,10 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/content/{id}/cancel",
                         web::post().to(pipeline::cancel_content),
+                    )
+                    .route(
+                        "/content/{id}/edit",
+                        web::patch().to(content_edit::update_content),
                     )
                     .route(
                         "/content/{id}/favourite",

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ content_type_label }} - FeVid{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/{{ version }}/css/content-edit.css">
+{% endblock %}
+{% block content %}
+<div class="edit-container">
+  <h1 class="edit-title">Edit {{ content_type_label }}</h1>
+
+  <form id="editForm" class="edit-form">
+    <div class="edit-section">
+      <label class="edit-label" for="titleInput">Title</label>
+      <input type="text" id="titleInput" name="title" class="edit-input"
+        value="{{ content_title }}" maxlength="128" required>
+    </div>
+
+    <div class="edit-section">
+      <label class="edit-label" for="descInput">Description</label>
+      <textarea id="descInput" name="description" class="edit-textarea" rows="6" maxlength="5000">{% if
+        content_description.is_some() %}{{ content_description.as_ref().unwrap() }}{% endif %}</textarea>
+      <p class="edit-hint">Supports plain text only (max 5000 characters).</p>
+    </div>
+
+    <div class="edit-actions">
+      <button type="submit" class="edit-save-btn" id="saveBtn">Save Changes</button>
+      <a href="javascript:history.back()" class="edit-cancel-btn">Cancel</a>
+    </div>
+    <p class="edit-status" id="editStatus"></p>
+  </form>
+</div>
+
+<script>
+  document.getElementById('editForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = document.getElementById('saveBtn');
+    var status = document.getElementById('editStatus');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    status.textContent = '';
+    status.className = 'edit-status';
+
+    var body = {
+      title: document.getElementById('titleInput').value,
+      description: document.getElementById('descInput').value,
+    };
+
+    fetch('/api/content/{{ content_id }}/edit', {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ok) {
+          status.textContent = 'Saved!';
+          status.className = 'edit-status edit-status--success';
+          btn.textContent = 'Saved';
+          setTimeout(function () { window.location.href = document.referrer || '/'; }, 1000);
+        } else {
+          status.textContent = data.error || 'Something went wrong.';
+          status.className = 'edit-status edit-status--error';
+          btn.disabled = false;
+          btn.textContent = 'Save Changes';
+        }
+      })
+      .catch(function () {
+        status.textContent = 'Network error. Please try again.';
+        status.className = 'edit-status edit-status--error';
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+      });
+  });
+</script>
+{% endblock %}
