@@ -1,0 +1,16 @@
+# FeVid.cloud - Privacy-Focused Video Platform
+# Last Updated: 2026-07-02
+
+User-agent: *
+# Allow crawling of public-facing content
+Allow: /
+
+# Strictly block sensitive areas and technical endpoints
+Disallow: /admin/
+
+# Block common bot traps and low-value paths
+# Disallow: /*?*
+# Disallow: /search?q=
+
+# Sitemap location (essential for discovery)
+Sitemap: https://fevid.cloud/sitemap.xml
