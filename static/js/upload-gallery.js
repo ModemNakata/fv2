@@ -348,6 +348,7 @@
           return;
         }
         var contentId = res.data.content_id;
+        var slug = res.data.slug;
         var uploadFiles = res.data.files;
         var totalFiles = uploadFiles.length;
         var completedFiles = 0;
@@ -360,7 +361,7 @@
               .then(function (r) {return r.json();})
               .then(function (d) {
                 if (d.ok) {
-                  window.location.href = '/gallery/' + contentId;
+                  window.location.href = '/gallery/' + slug;
                 } else {
                   alert(d.error || 'Failed to finalize');
                   resetUploadUI();

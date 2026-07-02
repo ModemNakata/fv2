@@ -43,7 +43,7 @@ struct FavGalleryCardTemplate {
 // ---- Shared item types ----
 
 struct FavVideoItem {
-    id: Uuid,
+    slug: String,
     title: String,
     views: String,
     _favourite_count: String,
@@ -59,7 +59,7 @@ struct FavVideoItem {
 }
 
 struct FavGalleryItem {
-    id: Uuid,
+    slug: String,
     title: String,
     image_count: usize,
     thumbnail_url: Option<String>,
@@ -136,7 +136,10 @@ pub async fn favorites(
     };
 
     let html = FavoritesPage {
-        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
+        username: session_user
+            .as_ref()
+            .map(|u| u.username.clone())
+            .unwrap_or_default(),
         logged_in,
         session_avatar_url: session_user.and_then(|u| u.avatar_url),
         video_count,
@@ -346,7 +349,7 @@ async fn render_video_cards(
         let price_dollars = format!("{:.2}", content.price_cents as f64 / 100.0);
 
         let item = FavVideoItem {
-            id: content.id,
+            slug: content.slug.clone().unwrap_or_default(),
             title: content.title.clone(),
             views: crate::components::format_view_count(view_count),
             _favourite_count: content.favorite_count.to_string(),
@@ -418,8 +421,11 @@ async fn render_gallery_cards(
         let thumb_key = image_set
             .and_then(|is| is.preview_path.clone())
             .or_else(|| {
-                imgs.and_then(|imgs| imgs.first())
-                    .map(|img| img.storage_path.clone().unwrap_or(img.orig_storage_path.clone()))
+                imgs.and_then(|imgs| imgs.first()).map(|img| {
+                    img.storage_path
+                        .clone()
+                        .unwrap_or(img.orig_storage_path.clone())
+                })
             });
         let thumbnail_url = state
             .s3
@@ -435,7 +441,7 @@ async fn render_gallery_cards(
         let price_dollars = format!("{:.2}", content.price_cents as f64 / 100.0);
 
         let item = FavGalleryItem {
-            id: content.id,
+            slug: content.slug.clone().unwrap_or_default(),
             title: content.title.clone(),
             image_count,
             thumbnail_url,

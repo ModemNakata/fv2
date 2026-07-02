@@ -144,6 +144,9 @@ pub async fn update_content(
             });
         }
         active.title = Set(trimmed.to_string());
+        // Regenerate slug when title changes
+        let new_slug = crate::components::unique_slug(&state.conn, trimmed).await;
+        active.slug = Set(Some(new_slug));
     }
 
     if body.description.is_some() {

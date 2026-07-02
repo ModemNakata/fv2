@@ -56,6 +56,7 @@ pub struct FileUploadUrl {
 #[derive(Serialize)]
 pub struct InitUploadResponse {
     pub content_id: Uuid,
+    pub slug: String,
     pub files: Vec<FileUploadUrl>,
 }
 
@@ -83,11 +84,14 @@ pub async fn init_video_upload(
     let now = chrono::Utc::now().naive_utc();
     let key = format!("videos/{file_id}.{}", req.extension);
 
+    let slug = crate::components::unique_slug(&state.conn, &req.title).await;
+
     let content = content_items::ActiveModel {
         id: Set(content_id),
         uploader_id: Set(user.id),
         r#type: Set(ContentType::Video),
         title: Set(req.title.clone()),
+        slug: Set(Some(slug.clone())),
         description: Set(req.description.clone()),
         thumbnail_url: Set(None),
         status: Set(ContentStatus::Uploading),
@@ -191,6 +195,7 @@ pub async fn init_video_upload(
 
     HttpResponse::Ok().json(InitUploadResponse {
         content_id,
+        slug,
         files: vec![FileUploadUrl {
             file_id,
             file_name: format!("{}.{}", file_id, req.extension),
@@ -237,11 +242,14 @@ pub async fn init_gallery_upload(
     let content_id = Uuid::new_v4();
     let now = chrono::Utc::now().naive_utc();
 
+    let slug = crate::components::unique_slug(&state.conn, &req.title).await;
+
     let content = content_items::ActiveModel {
         id: Set(content_id),
         uploader_id: Set(user.id),
         r#type: Set(ContentType::ImageSet),
         title: Set(req.title.clone()),
+        slug: Set(Some(slug.clone())),
         description: Set(req.description.clone()),
         thumbnail_url: Set(None),
         status: Set(ContentStatus::Uploading),
@@ -341,6 +349,7 @@ pub async fn init_gallery_upload(
 
     HttpResponse::Ok().json(InitUploadResponse {
         content_id,
+        slug,
         files: file_urls,
     })
 }

@@ -1,5 +1,5 @@
 <div class="gallery-card">
-  <a href="/gallery/{{ g.id }}" class="gallery-card-thumb">
+  <a href="/gallery/{{ g.slug }}" class="gallery-card-thumb">
     {% if g.thumbnail_url.is_some() %}
     <img src="{{ g.thumbnail_url.as_ref().unwrap() }}" alt="{{ g.title }}" class="gallery-card-img">
     {% else %}
@@ -29,7 +29,7 @@
     </a>
     {% endif %}
     <div class="gallery-card-details">
-      <h3 class="gallery-card-title"><a href="/gallery/{{ g.id }}">{{ g.title }}</a></h3>
+      <h3 class="gallery-card-title"><a href="/gallery/{{ g.slug }}">{{ g.title }}</a></h3>
       <p class="channel-name"><a href="/@{{ g.uploader_username }}">{{ g.uploader_display_name }}</a></p>
       <p class="video-meta"><span class="meta-left">{{ g.time_ago }}</span><span class="meta-right">{{ g.views }}
           views</span></p>

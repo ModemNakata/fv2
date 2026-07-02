@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::auth;
-use crate::components::build_sort_options;
 use crate::components::SortOption;
+use crate::components::build_sort_options;
 use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
 use crate::entity::{content_items, users};
@@ -29,7 +29,7 @@ struct HomePage {
 }
 
 struct VideoItem {
-    id: Uuid,
+    slug: String,
     title: String,
     views: String,
     favourite_count: String,
@@ -64,7 +64,9 @@ fn url_encode(s: &str) -> String {
     for b in s.bytes() {
         match b {
             b' ' => result.push('+'),
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => result.push(b as char),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                result.push(b as char)
+            }
             _ => result.push_str(&format!("%{:02X}", b)),
         }
     }
@@ -212,7 +214,7 @@ pub async fn index(
         let price_dollars = format!("{:.2}", content.price_cents as f64 / 100.0);
 
         video_items.push(VideoItem {
-            id: content.id,
+            slug: content.slug.unwrap_or_default(),
             title: content.title,
             views: views_str,
             favourite_count,
@@ -264,7 +266,10 @@ pub async fn index(
     let content_type_label = "videos".to_string();
 
     let html = HomePage {
-        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
+        username: session_user
+            .as_ref()
+            .map(|u| u.username.clone())
+            .unwrap_or_default(),
         logged_in,
         session_avatar_url: session_user.and_then(|u| u.avatar_url),
         videos: video_items,
@@ -365,7 +370,10 @@ pub async fn upload_video(session: Session, state: web::Data<AppState>) -> Resul
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
     let html = UploadVideoPage {
-        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
+        username: session_user
+            .as_ref()
+            .map(|u| u.username.clone())
+            .unwrap_or_default(),
         logged_in,
         session_avatar_url: session_user.and_then(|u| u.avatar_url),
         version: state.static_version.clone(),
@@ -384,7 +392,10 @@ pub async fn upload_gallery(
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
     let html = UploadGalleryPage {
-        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
+        username: session_user
+            .as_ref()
+            .map(|u| u.username.clone())
+            .unwrap_or_default(),
         logged_in,
         session_avatar_url: session_user.and_then(|u| u.avatar_url),
         version: state.static_version.clone(),
@@ -396,5 +407,3 @@ pub async fn upload_gallery(
     .expect("upload-gallery.html should be valid");
     Ok(web::Html::new(html))
 }
-
-

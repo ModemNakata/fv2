@@ -19,7 +19,7 @@
 <div class="video-grid">
   {% for v in videos %}
   <div class="video-card" data-preview="{{ v.preview_url.is_some() }}">
-    <a href="/video/{{ v.id }}" class="thumbnail">
+    <a href="/video/{{ v.slug }}" class="thumbnail">
       {% if v.thumbnail_url.is_some() %}
       <img src="{{ v.thumbnail_url.as_ref().unwrap() }}" alt="{{ v.title }}" class="thumb-img">
       {% else %}
@@ -54,7 +54,7 @@
       </a>
       {% endif %}
       <div class="video-details">
-        <h3 class="video-title"><a href="/video/{{ v.id }}" title="{{ v.title }}">{{ v.title }}</a></h3>
+        <h3 class="video-title"><a href="/video/{{ v.slug }}" title="{{ v.title }}">{{ v.title }}</a></h3>
         <p class="channel-name"><a href="/@{{ v.uploader_username }}">{{ v.uploader_display_name }}</a></p>
         <p class="video-meta"><span class="meta-left">{{ v.time_ago }}</span><span class="meta-right">
             <!-- <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
