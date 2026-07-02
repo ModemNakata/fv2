@@ -29,6 +29,7 @@ mod purchase;
 mod purchases;
 mod s3;
 mod settings;
+mod sitemap;
 mod upload_direct;
 mod video;
 mod view_counter;
@@ -45,6 +46,7 @@ pub struct AppState {
     pub max_upload_size_video: u64,
     pub max_upload_size_gallery: u64,
     pub max_upload_images_count: u32,
+    pub site_url: String,
 }
 
 #[actix_web::main]
@@ -110,6 +112,7 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or_else(|_| "100".to_string())
         .parse()
         .expect("MAX_UPLOAD_IMAGES_COUNT must be a valid u32");
+    let site_url = env::var("SITE_URL").unwrap_or_else(|_| "https://fevid.cloud".to_string());
     let state = AppState {
         conn,
         s3_processed,
@@ -121,6 +124,7 @@ async fn main() -> std::io::Result<()> {
         max_upload_size_video,
         max_upload_size_gallery,
         max_upload_images_count,
+        site_url,
     };
 
     // ── Background worker: flush view counters to Postgres every 5 min ──────
@@ -163,6 +167,25 @@ async fn main() -> std::io::Result<()> {
             .service(web::resource("/aup").route(web::get().to(pages::page)))
             .service(web::resource("/refund").route(web::get().to(pages::page)))
             .service(web::resource("/compliance").route(web::get().to(pages::page)))
+            .service(
+                web::resource("/sitemap.xml").route(web::get().to(sitemap::index)),
+            )
+            .service(
+                web::resource("/sitemap-static.xml")
+                    .route(web::get().to(sitemap::static_pages)),
+            )
+            .service(
+                web::resource("/sitemap-videos.xml")
+                    .route(web::get().to(sitemap::videos)),
+            )
+            .service(
+                web::resource("/sitemap-galleries.xml")
+                    .route(web::get().to(sitemap::galleries)),
+            )
+            .service(
+                web::resource("/sitemap-profiles.xml")
+                    .route(web::get().to(sitemap::profiles)),
+            )
             .service(web::resource("/@{username}").route(web::get().to(profile::user_profile)))
             .service(
                 web::resource("/settings")
