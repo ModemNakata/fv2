@@ -1457,7 +1457,7 @@ dependencies = [
 
 [[package]]
 name = "fevid-V2"
-version = "0.1.98"
+version = "0.2.0"
 dependencies = [
  "actix-multipart",
  "actix-session",
