@@ -12,11 +12,15 @@ use crate::entity::prelude::*;
 /// If the slug already exists in the database, a numeric suffix is appended.
 pub async fn unique_slug(conn: &DatabaseConnection, title: &str) -> String {
     let base = slug::slugify(title);
-    let base = if base.is_empty() { "untitled".to_string() } else { base };
+    let base = if base.is_empty() {
+        "untitled".to_string()
+    } else {
+        base
+    };
 
     // Check if the slug already exists
     let existing = ContentItems::find()
-        .filter(crate::entity::content_items::Column::Slug.eq(&base))
+        .filter(crate::entity::content_items::Column::Title.eq(&base))
         .count(conn)
         .await
         .unwrap_or(0);
