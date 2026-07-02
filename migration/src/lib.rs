@@ -6,6 +6,7 @@ mod m20260618_184948_user_favorites;
 mod m20260620_174420_user_purchases;
 mod m20260623_143736_transactions;
 mod m20260623_143739_notifications;
+mod m20260702_072022_add_slug_string_to_content;
 
 pub struct Migrator;
 
@@ -19,6 +20,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260620_174420_user_purchases::Migration),
             Box::new(m20260623_143736_transactions::Migration),
             Box::new(m20260623_143739_notifications::Migration),
+            Box::new(m20260702_072022_add_slug_string_to_content::Migration),
         ]
     }
 }

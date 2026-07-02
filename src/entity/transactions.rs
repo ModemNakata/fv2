@@ -26,7 +26,7 @@ pub enum Relation {
         from = "Column::ContentId",
         to = "super::content_items::Column::Id",
         on_update = "NoAction",
-        on_delete = "NoAction"
+        on_delete = "Cascade"
     )]
     ContentItems,
     #[sea_orm(
