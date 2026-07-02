@@ -144,6 +144,16 @@ pub async fn update_content(
             });
         }
         active.title = Set(trimmed.to_string());
+        match crate::slug::unique_slug(&state.conn, trimmed, Some(content_id)).await {
+            Ok(slug) => active.slug = Set(Some(slug)),
+            Err(e) => {
+                log::error!("Failed to generate slug: {e}");
+                return HttpResponse::InternalServerError().json(EditContentResponse {
+                    ok: false,
+                    error: Some("Failed to save changes".to_string()),
+                });
+            }
+        }
     }
 
     if body.description.is_some() {

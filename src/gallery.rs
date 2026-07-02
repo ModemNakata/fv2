@@ -298,7 +298,7 @@ pub async fn index(
     Ok(web::Html::new(html))
 }
 
-// ---- gallery detail (/gallery/{uuid}) ----
+// ---- gallery detail (/g/{slug}) ----
 
 #[derive(Template)]
 #[template(path = "gallery.html")]
@@ -336,13 +336,12 @@ struct GalleryImage {
     is_blurred: bool,
 }
 
-pub async fn gallery(
+/// Legacy UUID URL — permanent redirect to the slug-based canonical URL.
+pub async fn gallery_by_uuid(
     session: Session,
     state: web::Data<AppState>,
     content_id: web::Path<Uuid>,
-) -> Result<impl Responder> {
-    let session_user = auth::get_session_user(&session, &state.conn).await;
-    let logged_in = session_user.is_some();
+) -> Result<HttpResponse, actix_web::Error> {
     let content_id = content_id.into_inner();
 
     let content = ContentItems::find_by_id(content_id)
@@ -350,6 +349,55 @@ pub async fn gallery(
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?
         .ok_or_else(|| actix_web::error::ErrorNotFound("Gallery not found"))?;
+
+    if content.r#type != ContentType::ImageSet {
+        return Err(actix_web::error::ErrorNotFound("Gallery not found"));
+    }
+
+    let session_user_id = auth::get_session_user_id(&session, &state.conn).await;
+    let is_uploader = session_user_id == Some(content.uploader_id);
+    let ready_and_visible = content.status == ContentStatus::Ready
+        && (is_uploader || content.visibility == ContentVisibility::Public);
+
+    if ready_and_visible {
+        let slug = crate::slug::ensure_slug(&state.conn, &content)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+
+        Ok(HttpResponse::MovedPermanently()
+            .insert_header(("Location", format!("/g/{slug}")))
+            .finish())
+    } else {
+        render_gallery(session, state, content).await
+    }
+}
+
+/// Canonical slug URL for a gallery page.
+pub async fn gallery_by_slug(
+    session: Session,
+    state: web::Data<AppState>,
+    slug: web::Path<String>,
+) -> Result<HttpResponse, actix_web::Error> {
+    let slug = slug.into_inner();
+
+    let content = ContentItems::find()
+        .filter(content_items::Column::Slug.eq(&slug))
+        .one(&state.conn)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?
+        .ok_or_else(|| actix_web::error::ErrorNotFound("Gallery not found"))?;
+
+    render_gallery(session, state, content).await
+}
+
+async fn render_gallery(
+    session: Session,
+    state: web::Data<AppState>,
+    content: content_items::Model,
+) -> Result<HttpResponse, actix_web::Error> {
+    let session_user = auth::get_session_user(&session, &state.conn).await;
+    let logged_in = session_user.is_some();
+    let content_id = content.id;
 
     if content.r#type != ContentType::ImageSet {
         return Err(actix_web::error::ErrorNotFound("Gallery not found"));
@@ -462,7 +510,9 @@ pub async fn gallery(
         .render()
         .expect("gallery.html should be valid");
 
-        Ok(web::Html::new(html))
+        Ok(HttpResponse::Ok()
+            .content_type("text/html; charset=utf-8")
+            .body(html))
     } else if is_uploader {
         let status_str = match content.status {
             ContentStatus::Uploading => "uploading",
@@ -484,7 +534,9 @@ pub async fn gallery(
         .render()
         .expect("content-processing.html should be valid");
 
-        Ok(web::Html::new(html))
+        Ok(HttpResponse::Ok()
+            .content_type("text/html; charset=utf-8")
+            .body(html))
     } else {
         Err(actix_web::error::ErrorNotFound("Gallery not found"))
     }

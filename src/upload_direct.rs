@@ -83,6 +83,17 @@ pub async fn init_video_upload(
     let now = chrono::Utc::now().naive_utc();
     let key = format!("videos/{file_id}.{}", req.extension);
 
+    let slug = match crate::slug::unique_slug(&state.conn, &req.title, None).await {
+        Ok(s) => s,
+        Err(e) => {
+            log::error!("Failed to generate slug: {e}");
+            return HttpResponse::InternalServerError().json(ActionResponse {
+                ok: false,
+                error: Some("Failed to create record".to_string()),
+            });
+        }
+    };
+
     let content = content_items::ActiveModel {
         id: Set(content_id),
         uploader_id: Set(user.id),
@@ -99,6 +110,7 @@ pub async fn init_video_upload(
         view_count: Set(0),
         favorite_count: Set(0),
         purchase_count: Set(0),
+        slug: Set(Some(slug)),
     };
 
     if let Err(e) = content.insert(&state.conn).await {
@@ -237,6 +249,17 @@ pub async fn init_gallery_upload(
     let content_id = Uuid::new_v4();
     let now = chrono::Utc::now().naive_utc();
 
+    let slug = match crate::slug::unique_slug(&state.conn, &req.title, None).await {
+        Ok(s) => s,
+        Err(e) => {
+            log::error!("Failed to generate slug: {e}");
+            return HttpResponse::InternalServerError().json(ActionResponse {
+                ok: false,
+                error: Some("Failed to create record".to_string()),
+            });
+        }
+    };
+
     let content = content_items::ActiveModel {
         id: Set(content_id),
         uploader_id: Set(user.id),
@@ -253,6 +276,7 @@ pub async fn init_gallery_upload(
         view_count: Set(0),
         favorite_count: Set(0),
         purchase_count: Set(0),
+        slug: Set(Some(slug)),
     };
 
     if let Err(e) = content.insert(&state.conn).await {

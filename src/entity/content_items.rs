@@ -25,6 +25,7 @@ pub struct Model {
     pub is_paywalled: bool,
     pub favorite_count: i32,
     pub purchase_count: i32,
+    pub slug: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

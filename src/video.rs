@@ -48,13 +48,12 @@ pub async fn redirect_to_home() -> Result<impl Responder> {
         .finish())
 }
 
-pub async fn video(
+/// Legacy UUID URL — permanent redirect to the slug-based canonical URL.
+pub async fn video_by_uuid(
     session: Session,
     state: web::Data<AppState>,
     content_id: web::Path<Uuid>,
-) -> Result<impl Responder> {
-    let session_user = auth::get_session_user(&session, &state.conn).await;
-    let logged_in = session_user.is_some();
+) -> Result<HttpResponse, actix_web::Error> {
     let content_id = content_id.into_inner();
 
     let content = ContentItems::find_by_id(content_id)
@@ -62,6 +61,55 @@ pub async fn video(
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?
         .ok_or_else(|| actix_web::error::ErrorNotFound("Video not found"))?;
+
+    if content.r#type != ContentType::Video {
+        return Err(actix_web::error::ErrorNotFound("Video not found"));
+    }
+
+    let session_user_id = auth::get_session_user_id(&session, &state.conn).await;
+    let is_uploader = session_user_id == Some(content.uploader_id);
+    let ready_and_visible = content.status == ContentStatus::Ready
+        && (is_uploader || content.visibility == ContentVisibility::Public);
+
+    if ready_and_visible {
+        let slug = crate::slug::ensure_slug(&state.conn, &content)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+
+        Ok(HttpResponse::MovedPermanently()
+            .insert_header(("Location", format!("/v/{slug}")))
+            .finish())
+    } else {
+        render_video(session, state, content).await
+    }
+}
+
+/// Canonical slug URL for a video page.
+pub async fn video_by_slug(
+    session: Session,
+    state: web::Data<AppState>,
+    slug: web::Path<String>,
+) -> Result<HttpResponse, actix_web::Error> {
+    let slug = slug.into_inner();
+
+    let content = ContentItems::find()
+        .filter(crate::entity::content_items::Column::Slug.eq(&slug))
+        .one(&state.conn)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?
+        .ok_or_else(|| actix_web::error::ErrorNotFound("Video not found"))?;
+
+    render_video(session, state, content).await
+}
+
+async fn render_video(
+    session: Session,
+    state: web::Data<AppState>,
+    content: crate::entity::content_items::Model,
+) -> Result<HttpResponse, actix_web::Error> {
+    let session_user = auth::get_session_user(&session, &state.conn).await;
+    let logged_in = session_user.is_some();
+    let content_id = content.id;
 
     if content.r#type != ContentType::Video {
         return Err(actix_web::error::ErrorNotFound("Video not found"));
@@ -217,7 +265,9 @@ pub async fn video(
         .render()
         .expect("video.html should be valid");
 
-        Ok(web::Html::new(html))
+        Ok(HttpResponse::Ok()
+            .content_type("text/html; charset=utf-8")
+            .body(html))
     } else if is_uploader {
         let status_str = match content.status {
             ContentStatus::Uploading => "uploading",
@@ -242,7 +292,9 @@ pub async fn video(
         .render()
         .expect("content-processing.html should be valid");
 
-        Ok(web::Html::new(html))
+        Ok(HttpResponse::Ok()
+            .content_type("text/html; charset=utf-8")
+            .body(html))
     } else {
         Err(actix_web::error::ErrorNotFound("Video not found"))
     }

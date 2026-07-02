@@ -137,9 +137,10 @@ pub async fn videos(state: web::Data<AppState>) -> HttpResponse {
 
     let urls: Vec<Url> = items
         .into_iter()
-        .map(|c| {
-            let loc = format!("{base}/video/{}", c.id);
-            make_url(loc, 0.9, ChangeFrequency::Weekly, Some(c.updated_at))
+        .filter_map(|c| {
+            let slug = c.slug?;
+            let loc = format!("{base}/v/{slug}");
+            Some(make_url(loc, 0.9, ChangeFrequency::Weekly, Some(c.updated_at)))
         })
         .collect();
 
@@ -183,9 +184,10 @@ pub async fn galleries(state: web::Data<AppState>) -> HttpResponse {
 
     let urls: Vec<Url> = items
         .into_iter()
-        .map(|c| {
-            let loc = format!("{base}/gallery/{}", c.id);
-            make_url(loc, 0.9, ChangeFrequency::Weekly, Some(c.updated_at))
+        .filter_map(|c| {
+            let slug = c.slug?;
+            let loc = format!("{base}/g/{slug}");
+            Some(make_url(loc, 0.9, ChangeFrequency::Weekly, Some(c.updated_at)))
         })
         .collect();
 

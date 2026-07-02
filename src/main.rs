@@ -29,6 +29,7 @@ mod purchase;
 mod purchases;
 mod s3;
 mod settings;
+mod slug;
 mod sitemap;
 mod upload_direct;
 mod video;
@@ -157,9 +158,11 @@ async fn main() -> std::io::Result<()> {
                     .route(web::get().to(home::upload_gallery)),
             )
             .service(web::resource("/video").route(web::get().to(video::redirect_to_home)))
-            .service(web::resource("/video/{uuid}").route(web::get().to(video::video)))
+            .service(web::resource("/video/{uuid}").route(web::get().to(video::video_by_uuid)))
+            .service(web::resource("/v/{slug}").route(web::get().to(video::video_by_slug)))
             .service(web::resource("/gallery").route(web::get().to(gallery::index)))
-            .service(web::resource("/gallery/{uuid}").route(web::get().to(gallery::gallery)))
+            .service(web::resource("/gallery/{uuid}").route(web::get().to(gallery::gallery_by_uuid)))
+            .service(web::resource("/g/{slug}").route(web::get().to(gallery::gallery_by_slug)))
             .service(web::resource("/privacy").route(web::get().to(pages::page)))
             .service(web::resource("/terms").route(web::get().to(pages::page)))
             .service(web::resource("/contact").route(web::get().to(pages::page)))

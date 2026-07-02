@@ -2,8 +2,8 @@
 """
 Backfill slug column for content_items where slug is NULL.
 
-Loads DATABASE_URL from .env (if python-dotenv is installed) or from
-environment variable.  Verbose logging shows every row processed.
+Uses title-similarity (slugify(title) == base) for suffix assignment,
+matching the Rust logic in src/slug.rs.
 
 Usage:
     pip install psycopg2-binary python-slugify
@@ -36,7 +36,6 @@ except ImportError:
         return text or "untitled"
 
 
-# ── logging ────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(message)s",
@@ -45,49 +44,56 @@ logging.basicConfig(
 log = logging.getLogger("backfill")
 
 
-# ── helpers ────────────────────────────────────────────────────────────────
+def slug_base(title: str | None) -> str:
+    base = _slugify(title or "")
+    return base or "untitled"
+
 
 def get_db_url() -> str:
-    """Return DATABASE_URL, trying .env first if dotenv is available."""
     try:
         import dotenv
-        # Search for .env in: project root (script's parent), then CWD
+
         candidates = [
-            Path(__file__).resolve().parent.parent / ".env",   # scripts/../.env
-            Path.cwd() / ".env",                               # working directory
-            Path.home() / "Desktop/project/fevid-V2/.env",     # known absolute
+            Path(__file__).resolve().parent.parent / ".env",
+            Path.cwd() / ".env",
         ]
         for env_path in candidates:
             if env_path.exists():
                 dotenv.load_dotenv(env_path, override=False)
                 log.info("loaded .env from %s", env_path)
                 break
-        else:
-            log.info("no .env found at %s", [str(p) for p in candidates])
     except ImportError:
-        log.info("python-dotenv not installed, relying on DATABASE_URL env var")
+        pass
 
     url = os.environ.get("DATABASE_URL")
     if not url:
-        log.error("DATABASE_URL is not set (checked env and .env)")
+        log.error("DATABASE_URL is not set")
         sys.exit(1)
     return url
 
 
-def make_unique_slug(existing: set[str], title: str | None) -> str:
-    """Build a unique slug from *title*, deduplicating against *existing*."""
-    base = _slugify(title or "", max_length=240) or "untitled"
+def make_unique_slug(
+    titles_by_base: dict[str, list[str]],
+    assigned_slugs: set[str],
+    title: str | None,
+) -> str:
+    """Match Rust unique_slug: suffix from title-similarity, not slug collisions."""
+    base = slug_base(title)
+    peer_count = len(titles_by_base.get(base, []))
 
-    for i in range(10000):
-        slug = base if i == 0 else f"{base}-{i}"
-        if slug not in existing:
-            return slug
+    if peer_count == 0 and base not in assigned_slugs:
+        return base
+
+    start = 2 if peer_count == 0 else peer_count + 1
+    for i in range(start, 10_000):
+        candidate = f"{base}-{i}"
+        if candidate not in assigned_slugs:
+            return candidate
 
     import secrets
+
     return f"{base}-{secrets.token_hex(4)}"
 
-
-# ── main ───────────────────────────────────────────────────────────────────
 
 def main() -> None:
     db_url = get_db_url()
@@ -95,50 +101,51 @@ def main() -> None:
     conn.autocommit = False
     log.info("connected to %s@%s/%s", conn.info.user, conn.info.host or "localhost", conn.info.dbname)
 
-    # 1. Fetch existing slugs (for dedup)
-    existing: set[str] = set()
     with conn.cursor() as cur:
-        cur.execute("SELECT slug FROM content_items WHERE slug IS NOT NULL")
-        existing.update(row[0] for row in cur.fetchall() if row[0])
+        cur.execute("SELECT id, title, slug FROM content_items ORDER BY created_at")
+        all_rows = cur.fetchall()
 
-    log.info("loaded %d existing slug(s)", len(existing))
+    assigned_slugs: set[str] = {row[2] for row in all_rows if row[2]}
+    titles_by_base: dict[str, list[str]] = {}
 
-    # 2. Fetch rows that need a slug
-    with conn.cursor() as cur:
-        cur.execute(
-            "SELECT id, title FROM content_items WHERE slug IS NULL ORDER BY created_at"
-        )
-        rows = list(cur.fetchall())
+    for _id, title, slug in all_rows:
+        if slug:
+            base = slug_base(title)
+            titles_by_base.setdefault(base, []).append(title or "")
 
-    if not rows:
+    to_backfill = [(row[0], row[1]) for row in all_rows if not row[2]]
+
+    if not to_backfill:
         log.info("nothing to do — all content_items already have a slug")
         conn.close()
         return
 
-    log.info("processing %d content_items without a slug", len(rows))
+    log.info("processing %d content_items without a slug", len(to_backfill))
     log.info("─" * 72)
 
     updated = errors = 0
-    for idx, (content_id, title) in enumerate(rows, 1):
+    for idx, (content_id, title) in enumerate(to_backfill, 1):
         try:
-            slug = make_unique_slug(existing, title)
-            existing.add(slug)
+            slug = make_unique_slug(titles_by_base, assigned_slugs, title)
+            assigned_slugs.add(slug)
+            base = slug_base(title)
+            titles_by_base.setdefault(base, []).append(title or "")
+
             with conn.cursor() as cur:
                 cur.execute(
                     "UPDATE content_items SET slug = %s WHERE id = %s",
                     (slug, content_id),
                 )
-            log.info("  [%3d/%d] %s  →  %s", idx, len(rows), content_id, slug)
+            log.info("  [%3d/%d] %s  →  %s", idx, len(to_backfill), content_id, slug)
             updated += 1
         except Exception as exc:
-            log.error("  [%3d/%d] %s  FAILED  %s", idx, len(rows), content_id, exc)
+            log.error("  [%3d/%d] %s  FAILED  %s", idx, len(to_backfill), content_id, exc)
             errors += 1
 
     conn.commit()
     log.info("─" * 72)
     log.info("committed — %d updated, %d error(s)", updated, errors)
 
-    # Final verification
     with conn.cursor() as cur:
         cur.execute("SELECT COUNT(*) FROM content_items WHERE slug IS NULL")
         remaining = cur.fetchone()[0]
