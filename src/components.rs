@@ -1,50 +1,5 @@
 use askama::Template;
-use sea_orm::ColumnTrait;
-use sea_orm::DatabaseConnection;
-use sea_orm::EntityTrait;
-use sea_orm::PaginatorTrait;
-use sea_orm::QueryFilter;
 use uuid::Uuid;
-
-use crate::entity::prelude::*;
-
-/// Generate a URL-safe slug from a title using the `slug` crate.
-/// If the slug already exists in the database, a numeric suffix is appended.
-pub async fn unique_slug(conn: &DatabaseConnection, title: &str) -> String {
-    let base = slug::slugify(title);
-    let base = if base.is_empty() {
-        "untitled".to_string()
-    } else {
-        base
-    };
-
-    // Check if the slug already exists
-    let existing = ContentItems::find()
-        .filter(crate::entity::content_items::Column::Title.eq(&base))
-        .count(conn)
-        .await
-        .unwrap_or(0);
-
-    if existing == 0 {
-        return base;
-    }
-
-    // Try suffixes
-    for i in 1..10000 {
-        let candidate = format!("{base}-{i}");
-        let count = ContentItems::find()
-            .filter(crate::entity::content_items::Column::Slug.eq(&candidate))
-            .count(conn)
-            .await
-            .unwrap_or(0);
-        if count == 0 {
-            return candidate;
-        }
-    }
-
-    // Extremely unlikely fallback
-    format!("{base}-{}", uuid::Uuid::new_v4().as_simple())
-}
 
 /// Format an i64 view count into a human-readable string like "1.2K views".
 pub fn format_view_count(count: i64) -> String {

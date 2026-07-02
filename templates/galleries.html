@@ -19,7 +19,7 @@
 <div class="gallery-grid">
   {% for g in galleries %}
   <div class="gallery-card">
-    <a href="/gallery/{{ g.slug }}" class="gallery-card-thumb">
+    <a href="/gallery/{{ g.id }}" class="gallery-card-thumb">
       {% if g.thumbnail_url.is_some() %}
       <img src="{{ g.thumbnail_url.as_ref().unwrap() }}" alt="{{ g.title }}" class="gallery-card-img" loading="lazy">
       {% else %}
@@ -50,7 +50,7 @@
       </a>
       {% endif %}
       <div class="gallery-card-details">
-        <h3 class="gallery-card-title"><a href="/gallery/{{ g.slug }}" title="{{ g.title }}">{{ g.title }}</a></h3>
+        <h3 class="gallery-card-title"><a href="/gallery/{{ g.id }}" title="{{ g.title }}">{{ g.title }}</a></h3>
         <p class="channel-name"><a href="/@{{ g.uploader_username }}">{{ g.uploader_display_name }}</a></p>
         <p class="gallery-card-meta"><span class="meta-left">{{ g.time_ago }}</span><span class="meta-right">
             <!-- <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"> -->

@@ -120,7 +120,6 @@ pub async fn user_profile(
 #[derive(Serialize)]
 struct ApiVideoItem {
     id: Uuid,
-    slug: String,
     title: String,
     thumbnail_url: Option<String>,
     preview_url: Option<String>,
@@ -224,7 +223,6 @@ pub async fn api_videos(
 
         video_items.push(ApiVideoItem {
             id: content.id,
-            slug: content.slug.clone().unwrap_or_default(),
             title: content.title,
             thumbnail_url,
             preview_url,
@@ -252,7 +250,6 @@ pub async fn api_videos(
 #[derive(Serialize)]
 struct ApiGalleryItem {
     id: Uuid,
-    slug: String,
     title: String,
     thumbnail_url: Option<String>,
     image_count: usize,
@@ -379,7 +376,6 @@ pub async fn api_galleries(
 
         items.push(ApiGalleryItem {
             id: content.id,
-            slug: content.slug.clone().unwrap_or_default(),
             title: content.title,
             thumbnail_url,
             image_count,

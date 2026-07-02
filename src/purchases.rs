@@ -43,7 +43,7 @@ struct PurchGalleryCardTemplate {
 // ---- Shared item types ----
 
 struct PurchVideoItem {
-    slug: String,
+    id: Uuid,
     title: String,
     views: String,
     _favourite_count: String,
@@ -59,7 +59,7 @@ struct PurchVideoItem {
 }
 
 struct PurchGalleryItem {
-    slug: String,
+    id: Uuid,
     title: String,
     image_count: usize,
     thumbnail_url: Option<String>,
@@ -347,7 +347,7 @@ async fn render_video_cards(
         // let price_dollars = format!("{:.2}", content.price_cents as f64 / 100.0);
 
         let item = PurchVideoItem {
-            slug: content.slug.clone().unwrap_or_default(),
+            id: content.id,
             title: content.title.clone(),
             views: crate::components::format_view_count(view_count),
             _favourite_count: content.favorite_count.to_string(),
@@ -439,7 +439,7 @@ async fn render_gallery_cards(
         // let price_dollars = format!("{:.2}", content.price_cents as f64 / 100.0);
 
         let item = PurchGalleryItem {
-            slug: content.slug.clone().unwrap_or_default(),
+            id: content.id,
             title: content.title.clone(),
             image_count,
             thumbnail_url,

@@ -3,15 +3,14 @@ use actix_web::{HttpResponse, Responder, Result, web};
 use askama::Template;
 use chrono::{DateTime as ChronoDateTime, Utc};
 use sea_orm::*;
-use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
 use crate::AppState;
 use crate::auth;
+use crate::components::build_sort_options;
 use crate::components::ProcessingPage;
 use crate::components::SortOption;
-use crate::components::build_sort_options;
 use crate::entity::prelude::*;
 use crate::entity::sea_orm_active_enums::*;
 use crate::entity::{content_items, image_sets, images, users};
@@ -34,7 +33,7 @@ struct GalleriesPage {
 }
 
 struct GalleryCard {
-    slug: String,
+    id: Uuid,
     title: String,
     image_count: usize,
     thumbnail_url: Option<String>,
@@ -67,9 +66,7 @@ fn url_encode(s: &str) -> String {
     for b in s.bytes() {
         match b {
             b' ' => result.push('+'),
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                result.push(b as char)
-            }
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => result.push(b as char),
             _ => result.push_str(&format!("%{:02X}", b)),
         }
     }
@@ -187,19 +184,18 @@ pub async fn index(
     };
 
     let uploader_ids: Vec<Uuid> = items.iter().map(|c| c.uploader_id).collect();
-    let users_map: std::collections::HashMap<Uuid, (String, String, Option<String>)> =
-        if uploader_ids.is_empty() {
-            std::collections::HashMap::new()
-        } else {
-            Users::find()
-                .filter(users::Column::Id.is_in(uploader_ids))
-                .all(&state.conn)
-                .await
-                .map_err(actix_web::error::ErrorInternalServerError)?
-                .into_iter()
-                .map(|u| (u.id, (u.username, u.display_name, u.avatar_url)))
-                .collect()
-        };
+    let users_map: std::collections::HashMap<Uuid, (String, String, Option<String>)> = if uploader_ids.is_empty() {
+        std::collections::HashMap::new()
+    } else {
+        Users::find()
+            .filter(users::Column::Id.is_in(uploader_ids))
+            .all(&state.conn)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?
+            .into_iter()
+            .map(|u| (u.id, (u.username, u.display_name, u.avatar_url)))
+            .collect()
+    };
 
     let now = Utc::now();
 
@@ -212,11 +208,9 @@ pub async fn index(
         let thumb_key = image_set
             .and_then(|is| is.preview_path.clone())
             .or_else(|| {
-                images.and_then(|imgs| imgs.first()).map(|img| {
-                    img.storage_path
-                        .clone()
-                        .unwrap_or(img.orig_storage_path.clone())
-                })
+                images
+                    .and_then(|imgs| imgs.first())
+                    .map(|img| img.storage_path.clone().unwrap_or(img.orig_storage_path.clone()))
             });
 
         let thumbnail_url = state
@@ -237,7 +231,7 @@ pub async fn index(
         let price_dollars = format!("{:.2}", content.price_cents as f64 / 100.0);
 
         galleries.push(GalleryCard {
-            slug: content.slug.unwrap_or_default(),
+            id: content.id,
             title: content.title,
             image_count,
             thumbnail_url,
@@ -287,10 +281,7 @@ pub async fn index(
     let content_type_label = "galleries".to_string();
 
     let html = GalleriesPage {
-        username: session_user
-            .as_ref()
-            .map(|u| u.username.clone())
-            .unwrap_or_default(),
+        username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
         logged_in,
         session_avatar_url: session_user.and_then(|u| u.avatar_url),
         galleries,
@@ -307,12 +298,7 @@ pub async fn index(
     Ok(web::Html::new(html))
 }
 
-// ---- gallery detail (/gallery/{slug}) ----
-
-#[derive(Deserialize)]
-pub struct GalleryQuery {
-    uuid: Option<Uuid>,
-}
+// ---- gallery detail (/gallery/{uuid}) ----
 
 #[derive(Template)]
 #[template(path = "gallery.html")]
@@ -353,36 +339,17 @@ struct GalleryImage {
 pub async fn gallery(
     session: Session,
     state: web::Data<AppState>,
-    slug: web::Path<String>,
-    query: web::Query<GalleryQuery>,
+    content_id: web::Path<Uuid>,
 ) -> Result<impl Responder> {
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
-    let slug = slug.into_inner();
+    let content_id = content_id.into_inner();
 
-    // Try slug first
-    let content = if !slug.is_empty() {
-        ContentItems::find()
-            .filter(content_items::Column::Slug.eq(&slug))
-            .one(&state.conn)
-            .await
-            .map_err(actix_web::error::ErrorInternalServerError)?
-    } else {
-        None
-    };
-
-    // Fallback: look up by UUID if slug lookup failed and ?uuid= is provided
-    let content = match content {
-        Some(c) => c,
-        None => match query.uuid {
-            Some(uuid) => ContentItems::find_by_id(uuid)
-                .one(&state.conn)
-                .await
-                .map_err(actix_web::error::ErrorInternalServerError)?
-                .ok_or_else(|| actix_web::error::ErrorNotFound("Gallery not found"))?,
-            None => return Err(actix_web::error::ErrorNotFound("Gallery not found")),
-        },
-    };
+    let content = ContentItems::find_by_id(content_id)
+        .one(&state.conn)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?
+        .ok_or_else(|| actix_web::error::ErrorNotFound("Gallery not found"))?;
 
     if content.r#type != ContentType::ImageSet {
         return Err(actix_web::error::ErrorNotFound("Gallery not found"));
@@ -401,13 +368,13 @@ pub async fn gallery(
             .ok_or_else(|| actix_web::error::ErrorNotFound("Uploader not found"))?;
 
         let image_rows = Images::find()
-            .filter(images::Column::ImageSetId.eq(content.id))
+            .filter(images::Column::ImageSetId.eq(content_id))
             .order_by(images::Column::SortOrder, sea_orm::Order::Asc)
             .all(&state.conn)
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?;
 
-        let image_set = ImageSets::find_by_id(content.id)
+        let image_set = ImageSets::find_by_id(content_id)
             .one(&state.conn)
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?
@@ -415,7 +382,7 @@ pub async fn gallery(
 
         let is_paywalled = content.is_paywalled;
         let has_purchased = if let Some(uid) = session_user_id {
-            UserPurchases::find_by_id((uid, content.id))
+            UserPurchases::find_by_id((uid, content_id))
                 .one(&state.conn)
                 .await
                 .map_err(actix_web::error::ErrorInternalServerError)?
@@ -433,7 +400,8 @@ pub async fn gallery(
                     .or(img.storage_path)
                     .unwrap_or(img.orig_storage_path)
             } else {
-                img.storage_path.unwrap_or(img.orig_storage_path)
+                img.storage_path
+                    .unwrap_or(img.orig_storage_path)
             };
             let url = state
                 .s3
@@ -453,7 +421,7 @@ pub async fn gallery(
         let initial_images: Vec<GalleryImage> = images.into_iter().take(10).collect();
 
         let is_favourited = if let Some(uid) = session_user_id {
-            UserFavorites::find_by_id((uid, content.id))
+            UserFavorites::find_by_id((uid, content_id))
                 .one(&state.conn)
                 .await
                 .map_err(actix_web::error::ErrorInternalServerError)?
@@ -465,10 +433,7 @@ pub async fn gallery(
         let created_at = content.created_at.format("%b %e, %Y").to_string();
 
         let html = GalleryPage {
-            username: session_user
-                .as_ref()
-                .map(|u| u.username.clone())
-                .unwrap_or_default(),
+            username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
             logged_in,
             session_avatar_url: session_user.and_then(|u| u.avatar_url),
             title: content.title,
@@ -481,7 +446,7 @@ pub async fn gallery(
             view_count: crate::components::format_view_count(content.view_count),
             favourite_count: content.favorite_count.to_string(),
             is_uploader,
-            content_id: content.id,
+            content_id,
             is_paywalled,
             is_free_preview,
             has_purchased,
@@ -507,16 +472,13 @@ pub async fn gallery(
         };
 
         let html = ProcessingPage {
-            username: session_user
-                .as_ref()
-                .map(|u| u.username.clone())
-                .unwrap_or_default(),
+            username: session_user.as_ref().map(|u| u.username.clone()).unwrap_or_default(),
             logged_in,
             session_avatar_url: session_user.and_then(|u| u.avatar_url),
             title: content.title,
             content_type_label: "gallery".to_string(),
             content_status: status_str.to_string(),
-            content_id: content.id,
+            content_id,
             version: state.static_version.clone(),
         }
         .render()
@@ -528,10 +490,7 @@ pub async fn gallery(
     }
 }
 
-pub(crate) fn time_ago(
-    created_at: &sea_orm::prelude::DateTime,
-    now: ChronoDateTime<Utc>,
-) -> String {
+pub(crate) fn time_ago(created_at: &sea_orm::prelude::DateTime, now: ChronoDateTime<Utc>) -> String {
     let now_naive = now.naive_utc();
     let duration = now_naive - *created_at;
     let seconds = duration.num_seconds().max(0);
@@ -590,26 +549,18 @@ pub async fn api_gallery_images(
     query: web::Query<std::collections::HashMap<String, String>>,
 ) -> HttpResponse {
     let content_id = path.into_inner();
-    let offset: usize = query
-        .get("offset")
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(0);
-    let limit: usize = query
-        .get("limit")
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(20)
-        .min(50);
+    let offset: usize = query.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0);
+    let limit: usize = query.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20).min(50);
 
-    let content = match ContentItems::find_by_id(content_id).one(&state.conn).await {
+    let content = match ContentItems::find_by_id(content_id)
+        .one(&state.conn)
+        .await
+    {
         Ok(Some(c)) => c,
-        Ok(None) => {
-            return HttpResponse::NotFound()
-                .json(serde_json::json!({"error": "Gallery not found"}));
-        }
+        Ok(None) => return HttpResponse::NotFound().json(serde_json::json!({"error": "Gallery not found"})),
         Err(e) => {
             log::error!("DB error fetching gallery: {e}");
-            return HttpResponse::InternalServerError()
-                .json(serde_json::json!({"error": "Database error"}));
+            return HttpResponse::InternalServerError().json(serde_json::json!({"error": "Database error"}));
         }
     };
 
@@ -620,22 +571,16 @@ pub async fn api_gallery_images(
     let session_user_id = auth::get_session_user_id(&session, &state.conn).await;
     let is_uploader = session_user_id == Some(content.uploader_id);
 
-    if content.status != ContentStatus::Ready
-        || (!is_uploader && content.visibility != ContentVisibility::Public)
-    {
+    if content.status != ContentStatus::Ready || (!is_uploader && content.visibility != ContentVisibility::Public) {
         return HttpResponse::NotFound().json(serde_json::json!({"error": "Gallery not found"}));
     }
 
     let image_set = match ImageSets::find_by_id(content_id).one(&state.conn).await {
         Ok(Some(s)) => s,
-        Ok(None) => {
-            return HttpResponse::NotFound()
-                .json(serde_json::json!({"error": "Image set not found"}));
-        }
+        Ok(None) => return HttpResponse::NotFound().json(serde_json::json!({"error": "Image set not found"})),
         Err(e) => {
             log::error!("DB error fetching image_set: {e}");
-            return HttpResponse::InternalServerError()
-                .json(serde_json::json!({"error": "Database error"}));
+            return HttpResponse::InternalServerError().json(serde_json::json!({"error": "Database error"}));
         }
     };
 
@@ -648,8 +593,7 @@ pub async fn api_gallery_images(
         Ok(r) => r,
         Err(e) => {
             log::error!("DB error fetching images: {e}");
-            return HttpResponse::InternalServerError()
-                .json(serde_json::json!({"error": "Database error"}));
+            return HttpResponse::InternalServerError().json(serde_json::json!({"error": "Database error"}));
         }
     };
 

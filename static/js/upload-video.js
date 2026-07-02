@@ -180,7 +180,6 @@
         return;
       }
       var contentId = res.data.content_id;
-      var slug = res.data.slug;
       var uploadUrl = res.data.files[0].upload_url;
 
       // Step 2: Upload file directly to S3
@@ -201,7 +200,7 @@
             .then(function (r) { return r.json(); })
             .then(function (d) {
               if (d.ok) {
-                window.location.href = '/video/' + slug;
+                window.location.href = '/video/' + contentId;
               } else {
                 alert(d.error || 'Failed to finalize');
                 resetUploadUI();

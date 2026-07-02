@@ -2,7 +2,6 @@ use actix_session::Session;
 use actix_web::{HttpResponse, Responder, Result, web};
 use askama::Template;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::AppState;
@@ -49,44 +48,20 @@ pub async fn redirect_to_home() -> Result<impl Responder> {
         .finish())
 }
 
-#[derive(Deserialize)]
-pub struct VideoQuery {
-    pub uuid: Option<Uuid>,
-}
-
 pub async fn video(
     session: Session,
     state: web::Data<AppState>,
-    slug: web::Path<String>,
-    query: web::Query<VideoQuery>,
+    content_id: web::Path<Uuid>,
 ) -> Result<impl Responder> {
     let session_user = auth::get_session_user(&session, &state.conn).await;
     let logged_in = session_user.is_some();
-    let slug = slug.into_inner();
+    let content_id = content_id.into_inner();
 
-    // Try slug first
-    let content = if !slug.is_empty() {
-        ContentItems::find()
-            .filter(crate::entity::content_items::Column::Slug.eq(&slug))
-            .one(&state.conn)
-            .await
-            .map_err(actix_web::error::ErrorInternalServerError)?
-    } else {
-        None
-    };
-
-    // Fallback: look up by UUID if slug lookup failed and ?uuid= is provided
-    let content = match content {
-        Some(c) => c,
-        None => match query.uuid {
-            Some(uuid) => ContentItems::find_by_id(uuid)
-                .one(&state.conn)
-                .await
-                .map_err(actix_web::error::ErrorInternalServerError)?
-                .ok_or_else(|| actix_web::error::ErrorNotFound("Video not found"))?,
-            None => return Err(actix_web::error::ErrorNotFound("Video not found")),
-        },
-    };
+    let content = ContentItems::find_by_id(content_id)
+        .one(&state.conn)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?
+        .ok_or_else(|| actix_web::error::ErrorNotFound("Video not found"))?;
 
     if content.r#type != ContentType::Video {
         return Err(actix_web::error::ErrorNotFound("Video not found"));
@@ -104,7 +79,7 @@ pub async fn video(
             .map_err(actix_web::error::ErrorInternalServerError)?
             .ok_or_else(|| actix_web::error::ErrorNotFound("Uploader not found"))?;
 
-        let video_opt = Videos::find_by_id(content.id)
+        let video_opt = Videos::find_by_id(content_id)
             .one(&state.conn)
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?;
@@ -143,7 +118,7 @@ pub async fn video(
 
         let is_paywalled = content.is_paywalled;
         let has_purchased = if let Some(uid) = session_user_id {
-            UserPurchases::find_by_id((uid, content.id))
+            UserPurchases::find_by_id((uid, content_id))
                 .one(&state.conn)
                 .await
                 .map_err(actix_web::error::ErrorInternalServerError)?
@@ -157,7 +132,7 @@ pub async fn video(
             // HLS mode (can be revived):
             // format!("{}/videos/{}/master.m3u8", s3_base, content_id)
             let mut formats = VideoFormats::find()
-                .filter(video_formats::Column::VideoId.eq(content.id))
+                .filter(video_formats::Column::VideoId.eq(content_id))
                 .filter(video_formats::Column::StoragePath.is_not_null())
                 .all(&state.conn)
                 .await
@@ -197,7 +172,7 @@ pub async fn video(
         };
 
         let is_favourited = if let Some(uid) = session_user_id {
-            UserFavorites::find_by_id((uid, content.id))
+            UserFavorites::find_by_id((uid, content_id))
                 .one(&state.conn)
                 .await
                 .map_err(actix_web::error::ErrorInternalServerError)?
@@ -225,7 +200,7 @@ pub async fn video(
             view_count: crate::components::format_view_count(content.view_count),
             favourite_count: content.favorite_count.to_string(),
             is_uploader,
-            content_id: content.id,
+            content_id,
             is_paywalled,
             is_free_preview,
             has_purchased,
@@ -261,7 +236,7 @@ pub async fn video(
             title: content.title,
             content_type_label: "video".to_string(),
             content_status: status_str.to_string(),
-            content_id: content.id,
+            content_id,
             version: state.static_version.clone(),
         }
         .render()
