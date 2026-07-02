@@ -19,7 +19,8 @@
 <div class="video-grid">
   {% for v in videos %}
   <div class="video-card" data-preview="{{ v.preview_url.is_some() }}">
-    <a href="/video/{{ v.id }}" class="thumbnail">
+    <!-- <a href="/video/{{ v.id }}" class="thumbnail"> -->
+    <a href="/v/{{ v.slug }}" class="thumbnail">
       {% if v.thumbnail_url.is_some() %}
       <img src="{{ v.thumbnail_url.as_ref().unwrap() }}" alt="{{ v.title }}" class="thumb-img">
       {% else %}

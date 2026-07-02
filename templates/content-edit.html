@@ -55,7 +55,8 @@
           status.textContent = 'Saved!';
           status.className = 'edit-status edit-status--success';
           btn.textContent = 'Saved';
-          setTimeout(function () { window.location.href = document.referrer || '/'; }, 1000);
+          var redirectUrl = '/' + data.content_type + '/' + data.content_id;
+          setTimeout(function () { window.location.href = redirectUrl; }, 1000);
         } else {
           status.textContent = data.error || 'Something went wrong.';
           status.className = 'edit-status edit-status--error';

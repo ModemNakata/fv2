@@ -19,7 +19,8 @@
 <div class="gallery-grid">
   {% for g in galleries %}
   <div class="gallery-card">
-    <a href="/gallery/{{ g.id }}" class="gallery-card-thumb">
+    <!-- <a href="/gallery/{{ g.id }}" class="gallery-card-thumb"> -->
+    <a href="/g/{{ g.slug }}" class="gallery-card-thumb">
       {% if g.thumbnail_url.is_some() %}
       <img src="{{ g.thumbnail_url.as_ref().unwrap() }}" alt="{{ g.title }}" class="gallery-card-img" loading="lazy">
       {% else %}

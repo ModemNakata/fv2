@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::auth;
-use crate::entity::prelude::*;
 use crate::entity::content_items;
+use crate::entity::prelude::*;
 
 #[derive(Template)]
 #[template(path = "content-edit.html")]
@@ -38,10 +38,7 @@ pub async fn edit_page(
 
     let content_id = content_id.into_inner();
 
-    let content = match ContentItems::find_by_id(content_id)
-        .one(&state.conn)
-        .await
-    {
+    let content = match ContentItems::find_by_id(content_id).one(&state.conn).await {
         Ok(Some(c)) => c,
         Ok(None) => {
             return HttpResponse::NotFound().body("Content not found");
@@ -91,6 +88,8 @@ pub struct EditContentRequest {
 struct EditContentResponse {
     ok: bool,
     error: Option<String>,
+    content_type: Option<String>,
+    content_id: Option<Uuid>,
 }
 
 pub async fn update_content(
@@ -106,15 +105,14 @@ pub async fn update_content(
 
     let content_id = content_id.into_inner();
 
-    let content = match ContentItems::find_by_id(content_id)
-        .one(&state.conn)
-        .await
-    {
+    let content = match ContentItems::find_by_id(content_id).one(&state.conn).await {
         Ok(Some(c)) => c,
         Ok(None) => {
             return HttpResponse::NotFound().json(EditContentResponse {
                 ok: false,
                 error: Some("Content not found".to_string()),
+                content_type: None,
+                content_id: None,
             });
         }
         Err(e) => {
@@ -122,6 +120,8 @@ pub async fn update_content(
             return HttpResponse::InternalServerError().json(EditContentResponse {
                 ok: false,
                 error: Some("Something went wrong".to_string()),
+                content_type: None,
+                content_id: None,
             });
         }
     };
@@ -130,9 +130,12 @@ pub async fn update_content(
         return HttpResponse::Forbidden().json(EditContentResponse {
             ok: false,
             error: Some("You don't own this content".to_string()),
+            content_type: None,
+            content_id: None,
         });
     }
 
+    let content_type = content.r#type.clone();
     let mut active: content_items::ActiveModel = content.into();
 
     if let Some(ref title) = body.title {
@@ -141,6 +144,8 @@ pub async fn update_content(
             return HttpResponse::BadRequest().json(EditContentResponse {
                 ok: false,
                 error: Some("Title cannot be empty".to_string()),
+                content_type: None,
+                content_id: None,
             });
         }
         active.title = Set(trimmed.to_string());
@@ -151,6 +156,8 @@ pub async fn update_content(
                 return HttpResponse::InternalServerError().json(EditContentResponse {
                     ok: false,
                     error: Some("Failed to save changes".to_string()),
+                    content_type: None,
+                    content_id: None,
                 });
             }
         }
@@ -158,7 +165,11 @@ pub async fn update_content(
 
     if body.description.is_some() {
         let trimmed = body.description.as_ref().unwrap().trim().to_string();
-        active.description = Set(if trimmed.is_empty() { None } else { Some(trimmed) });
+        active.description = Set(if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed)
+        });
     }
 
     if let Err(e) = active.update(&state.conn).await {
@@ -166,11 +177,20 @@ pub async fn update_content(
         return HttpResponse::InternalServerError().json(EditContentResponse {
             ok: false,
             error: Some("Failed to save changes".to_string()),
+            content_type: None,
+            content_id: None,
         });
     }
+
+    let content_type_str = match content_type {
+        crate::entity::sea_orm_active_enums::ContentType::Video => "video",
+        crate::entity::sea_orm_active_enums::ContentType::ImageSet => "gallery",
+    };
 
     HttpResponse::Ok().json(EditContentResponse {
         ok: true,
         error: None,
+        content_type: Some(content_type_str.to_string()),
+        content_id: Some(content_id),
     })
 }

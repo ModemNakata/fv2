@@ -132,7 +132,10 @@ async fn render_video(
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?;
 
-        let duration_secs = video_opt.as_ref().and_then(|v| v.duration_seconds).unwrap_or(0);
+        let duration_secs = video_opt
+            .as_ref()
+            .and_then(|v| v.duration_seconds)
+            .unwrap_or(0);
         let hours = duration_secs / 3600;
         let minutes = (duration_secs % 3600) / 60;
         let secs = duration_secs % 60;
@@ -252,7 +255,9 @@ async fn render_video(
             is_paywalled,
             is_free_preview,
             has_purchased,
-            free_preview_duration_s: free_preview_duration_s.map(|s| format!("{s}s")).unwrap_or_default(),
+            free_preview_duration_s: free_preview_duration_s
+                .map(|s| format!("{s}s"))
+                .unwrap_or_default(),
             duration_formatted,
             payment_modal_title: "Unlock this Video".to_string(),
             payment_modal_desc: duration_human.clone(),
